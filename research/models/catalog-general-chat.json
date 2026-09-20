@@ -1,0 +1,554 @@
+[
+  {
+    "model_name": "Qwen3.5-0.8B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3.5-0.8B",
+    "github_url": "https://github.com/QwenLM/Qwen3.8",
+    "downloads_last_month": 2376732,
+    "loves": 719,
+    "community_hype_score": "2.38M downloads/30d and 719 likes on the original repo; it is the model wllama's own tool-calling example loads (examples/tools/index.html:268, unsloth Q4_K_M). Vendor card: non-thinking IFEval 52.1, MMMLU 34.1, BFCL-V4 25.3 (thinking) - weak instruction following and tool accuracy in absolute terms; card recommends presence_penalty 2.0 in non-thinking mode, i.e. it is repetition-prone.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M (Q8_0 = 812 MB is the safer-quality alternative for a sub-1B model)",
+      "required_vram_mb": 733
+    },
+    "params_b": 0.8,
+    "license": "apache-2.0",
+    "gguf_repo": "unsloth/Qwen3.5-0.8B-GGUF",
+    "gguf_file": "Qwen3.5-0.8B-Q4_K_M.gguf",
+    "gguf_size_mb": 533,
+    "context_length": 262144,
+    "languages": "201 languages and dialects claimed on card (French included; per-language quality at 0.8B UNVERIFIED)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning",
+      "vision"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/Qwen/Qwen3.5-0.8B (downloads=2376732, likes=719); GGUF https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF [unsloth; no official Qwen GGUF repo found for Qwen3.5; github.com/QwenLM/Qwen3.5 now redirects to QwenLM/Qwen3.8] file Qwen3.5-0.8B-Q4_K_M.gguf = 532517120 bytes, gguf.architecture=qwen35, gguf.context_length=262144. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'qwen35' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*6 attn layers*2 kv heads*256 head_dim*4096*2 B = 50 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Hybrid Gated-DeltaNet: only 6 of 24 layers hold KV; recurrent state not counted (small). Vision needs mmproj-F16.gguf (+205 MB), optional. Card: /Qwen/Qwen3.5-0.8B README lines 35, 585, 705 and benchmark table. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "LFM2.5-1.2B-Instruct",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 201456,
+    "loves": 671,
+    "community_hype_score": "201k downloads/30d, 671 likes; the official GGUF repo alone has 325k downloads/30d. Vendor card reports IFEval 86.23 and BFCLv3 49.12 (vs Qwen3-1.7B 73.68 / 46.30, Llama-3.2-1B 52.37 / 21.44) and states it is 'not recommended for knowledge-intensive tasks and programming'. wllama's demo app ships its predecessor LFM2-1.2B (examples/main/src/config.ts:36).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 931
+    },
+    "params_b": 1.17,
+    "license": "lfm1.0",
+    "gguf_repo": "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
+    "gguf_file": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+    "gguf_size_mb": 731,
+    "context_length": 128000,
+    "languages": "en, ar, zh, fr, de, ja, ko, es (card)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct (downloads=201456, likes=671); GGUF https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF [official LiquidAI] file LFM2.5-1.2B-Instruct-Q4_K_M.gguf = 730895168 bytes, gguf.architecture=lfm2, gguf.context_length=128000. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'lfm2' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*6 attn layers*8 kv heads*64 head_dim*4096*2 B = 50 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Hybrid conv+attention: 6 of 16 layers hold KV. Tool calls are Pythonic by default (card line 102) - check llama.cpp's parser handles it or prompt for JSON calls. Card lines 41, 67, 81, 102, 192-198 (vendor-reported). 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Qwen3.5-2B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3.5-2B",
+    "github_url": "https://github.com/QwenLM/Qwen3.8",
+    "downloads_last_month": 4770035,
+    "loves": 406,
+    "community_hype_score": "4.77M downloads/30d, 406 likes. Vendor card: non-thinking IFEval 61.2, MMMLU 56.9; BFCL-V4 43.6 in thinking mode - the best multilingual score of the sub-2 GB Qwen files, but thinking mode costs many tokens on WASM. OpenBMB's MiniCPM5-2B card lists it at IFEval 77.5 / BFCL v4 43.6 (third-party vendor table).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1481
+    },
+    "params_b": 1.9,
+    "license": "apache-2.0",
+    "gguf_repo": "unsloth/Qwen3.5-2B-GGUF",
+    "gguf_file": "Qwen3.5-2B-Q4_K_M.gguf",
+    "gguf_size_mb": 1281,
+    "context_length": 262144,
+    "languages": "201 languages and dialects claimed on card (French included)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning",
+      "vision"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/Qwen/Qwen3.5-2B (downloads=4770035, likes=406); GGUF https://huggingface.co/unsloth/Qwen3.5-2B-GGUF [unsloth] file Qwen3.5-2B-Q4_K_M.gguf = 1280835840 bytes, gguf.architecture=qwen35, gguf.context_length=262144. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'qwen35' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*6 attn layers*2 kv heads*256 head_dim*4096*2 B = 50 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Hybrid: 6 of 24 layers hold KV. 1281 MB is above the ~1100 MB phone budget. Vision mmproj-F16 is +668 MB. Card benchmark table in /Qwen/Qwen3.5-0.8B README (shared table). 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "LFM2.5-350M",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2.5-350M",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 83728,
+    "loves": 423,
+    "community_hype_score": "83.7k downloads/30d, 423 likes. LiquidAI's LFM2.5-230M card reports BFCLv3 44.11 / BFCLv4 21.86 for this model, ahead of Granite-4.0-350M (39.58 / 13.73); positioned by the vendor for extraction and light agentic pipelines, not reasoning or knowledge.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (tiny model; Q4_K_M = 229 MB exists)",
+      "required_vram_mb": 579
+    },
+    "params_b": 0.35,
+    "license": "lfm1.0",
+    "gguf_repo": "LiquidAI/LFM2.5-350M-GGUF",
+    "gguf_file": "LFM2.5-350M-Q8_0.gguf",
+    "gguf_size_mb": 379,
+    "context_length": 128000,
+    "languages": "en, ar, zh, fr, de, ja, ko, es, pt (card metadata)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/LiquidAI/LFM2.5-350M (downloads=83728, likes=423); GGUF https://huggingface.co/LiquidAI/LFM2.5-350M-GGUF [official LiquidAI] file LFM2.5-350M-Q8_0.gguf = 379217632 bytes, gguf.architecture=lfm2, gguf.context_length=128000. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'lfm2' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*6 attn layers*8 kv heads*64 head_dim*4096*2 B = 50 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Hybrid conv+attention: 6 of 16 layers hold KV. LFM2.5-230M card lines 196-202 (vendor-reported). 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Qwen3-1.7B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3-1.7B",
+    "github_url": "https://github.com/QwenLM/Qwen3",
+    "downloads_last_month": 3619571,
+    "loves": 550,
+    "community_hype_score": "3.62M downloads/30d, 550 likes, 17 months after release; this exact file is in wllama's demo model list (examples/main/src/config.ts:44). Qwen's own Qwen3.5 card puts it at IFEval 68.2 / MMMLU 46.7 non-thinking. Known cost: 28 full-attention layers with 8 KV heads make its KV cache ~9x that of Qwen3.5-2B.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1727
+    },
+    "params_b": 1.7,
+    "license": "apache-2.0",
+    "gguf_repo": "unsloth/Qwen3-1.7B-GGUF",
+    "gguf_file": "Qwen3-1.7B-Q4_K_M.gguf",
+    "gguf_size_mb": 1107,
+    "context_length": 40960,
+    "languages": "100+ languages and dialects (Qwen3 card line 23; French included)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/Qwen/Qwen3-1.7B (downloads=3619571, likes=550); GGUF https://huggingface.co/unsloth/Qwen3-1.7B-GGUF [unsloth] file Qwen3-1.7B-Q4_K_M.gguf = 1107409472 bytes, gguf.architecture=qwen3, gguf.context_length=40960. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'qwen3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*28 attn layers*8 kv heads*128 head_dim*4096*2 B = 470 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Official Qwen/Qwen3-1.7B-GGUF only ships Q8_0 (1834 MB), hence unsloth. 1107 MB is borderline for the phone budget once the 459 MB KV is added - use cache_type_k/v q8_0 or n_ctx 2048 on phones. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Qwen3-0.6B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3-0.6B",
+    "github_url": "https://github.com/QwenLM/Qwen3",
+    "downloads_last_month": 23745227,
+    "loves": 1648,
+    "community_hype_score": "23.7M downloads/30d and 1,648 likes - the most-downloaded model in this part by a factor of 3; the same Q8_0 (unsloth mirror) is in wllama's demo list (examples/main/src/config.ts:40). Thinking mode is ON by default (card line 73), which is slow in WASM - disable it for chat.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (the only quant Qwen publishes; unsloth Q4_K_M = 397 MB)",
+      "required_vram_mb": 1259
+    },
+    "params_b": 0.6,
+    "license": "apache-2.0",
+    "gguf_repo": "Qwen/Qwen3-0.6B-GGUF",
+    "gguf_file": "Qwen3-0.6B-Q8_0.gguf",
+    "gguf_size_mb": 639,
+    "context_length": 40960,
+    "languages": "100+ languages and dialects (card line 23); French quality at 0.6B UNVERIFIED",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/Qwen/Qwen3-0.6B (downloads=23745227, likes=1648); GGUF https://huggingface.co/Qwen/Qwen3-0.6B-GGUF [official Qwen] file Qwen3-0.6B-Q8_0.gguf = 639446688 bytes, gguf.architecture=qwen3, gguf.context_length=40960. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'qwen3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*28 attn layers*8 kv heads*128 head_dim*4096*2 B = 470 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). 28 layers * 8 KV heads: KV cache (459 MB @4k) is almost as large as the weights. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "MiniCPM5-1B",
+    "huggingface_url": "https://huggingface.co/openbmb/MiniCPM5-1B",
+    "github_url": "https://github.com/OpenBMB/MiniCPM",
+    "downloads_last_month": 611026,
+    "loves": 1143,
+    "community_hype_score": "611k downloads/30d, 1,143 likes since May 2026; two community 'Fable5-Thinking' GGUF fine-tunes of it each exceed 325k downloads/30d. Vendor claims 1B-class SOTA vs LFM2.5-1.2B-Thinking / Qwen3-0.6B / Qwen3.5-0.8B on tool use, code and reasoning (self-reported). Card metadata lists only en and zh.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 939
+    },
+    "params_b": 1.08,
+    "license": "apache-2.0",
+    "gguf_repo": "openbmb/MiniCPM5-1B-GGUF",
+    "gguf_file": "MiniCPM5-1B-Q4_K_M.gguf",
+    "gguf_size_mb": 688,
+    "context_length": 131072,
+    "languages": "en, zh (card metadata); French UNVERIFIED",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/openbmb/MiniCPM5-1B (downloads=611026, likes=1143); GGUF https://huggingface.co/openbmb/MiniCPM5-1B-GGUF [official OpenBMB] file MiniCPM5-1B-Q4_K_M.gguf = 688065920 bytes, gguf.architecture=llama, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'llama' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*24 attn layers*2 kv heads*128 head_dim*4096*2 B = 101 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Plain 'llama' architecture in GGUF, so no arch risk; only 2 KV heads -> 101 MB KV. Card lines 46, 50, 84. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Granite-4.0-1B (Nano)",
+    "huggingface_url": "https://huggingface.co/ibm-granite/granite-4.0-1b",
+    "github_url": "https://github.com/ibm-granite/granite-4.0-language-models",
+    "downloads_last_month": 21862,
+    "loves": 54,
+    "community_hype_score": "21.9k downloads/30d, 54 likes - low traction next to Qwen/LFM. LiquidAI's comparison table credits it with the best BFCLv3 of the 1B class (52.43) and IFEval 79.61, but GPQA 24.24 / MMLU-Pro 33.53. Apache-2.0 with French in the supported list.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1510
+    },
+    "params_b": 1.6,
+    "license": "apache-2.0",
+    "gguf_repo": "ibm-granite/granite-4.0-1b-GGUF",
+    "gguf_file": "granite-4.0-1b-Q4_K_M.gguf",
+    "gguf_size_mb": 1024,
+    "context_length": 131072,
+    "languages": "en, de, es, fr, ja, pt, ar, cs, it, ko, nl, zh (Granite 4.0 Nano card)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/ibm-granite/granite-4.0-1b (downloads=21862, likes=54); GGUF https://huggingface.co/ibm-granite/granite-4.0-1b-GGUF [official IBM] file granite-4.0-1b-Q4_K_M.gguf = 1023645440 bytes, gguf.architecture=granite, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'granite' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*40 attn layers*4 kv heads*128 head_dim*4096*2 B = 336 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Dense 'granite' arch (the -h- hybrid variants use 'granitehybrid', also present at the pin). 1.63B real parameters. LFM2.5-1.2B-Instruct card lines 192-198 (third-party vendor table); granite-4.0-350m card lines 23-24, 87-88. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Llama-3.2-1B-Instruct",
+    "huggingface_url": "https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct",
+    "github_url": "https://github.com/meta-llama/llama-models",
+    "downloads_last_month": 6922063,
+    "loves": 1690,
+    "community_hype_score": "Still 6.92M downloads/30d and 1,690 likes two years after release; in wllama's demo list (hugging-quants Q4_K_M, examples/main/src/config.ts:60). LiquidAI's table: IFEval 52.37, BFCLv3 21.44 - now clearly behind 2026 1B models on instruction following and tools.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1092
+    },
+    "params_b": 1.24,
+    "license": "llama3.2 (Llama 3.2 Community License, custom)",
+    "gguf_repo": "bartowski/Llama-3.2-1B-Instruct-GGUF",
+    "gguf_file": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+    "gguf_size_mb": 808,
+    "context_length": 131072,
+    "languages": "en, de, fr, it, pt, hi, es, th (card metadata)",
+    "capabilities": [
+      "chat",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct (downloads=6922063, likes=1690); GGUF https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF [bartowski; no official Meta GGUF] file Llama-3.2-1B-Instruct-Q4_K_M.gguf = 807694464 bytes, gguf.architecture=llama, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'llama' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*16 attn layers*8 kv heads*64 head_dim*4096*2 B = 134 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Original repo is gated (manual); GGUF mirror is not. config.json read from unsloth/Llama-3.2-1B-Instruct (ungated mirror). 'tools' omitted on purpose: BFCLv3 21.44. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Gemma-3-1B-it",
+    "huggingface_url": "https://huggingface.co/google/gemma-3-1b-it",
+    "github_url": "https://github.com/google-deepmind/gemma",
+    "downloads_last_month": 3077946,
+    "loves": 1169,
+    "community_hype_score": "3.08M downloads/30d, 1,169 likes. Card claims training data in 140+ languages; LiquidAI's table gives IFEval 63.25, MMLU-Pro 14.04, BFCLv3 16.64 - fluent multilingual chat, poor at tools. Gemma 3 tool use is prompt-based, no dedicated tool-call tokens (from memory - UNVERIFIED).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1065
+    },
+    "params_b": 1.0,
+    "license": "gemma (Gemma Terms of Use, custom)",
+    "gguf_repo": "ggml-org/gemma-3-1b-it-GGUF",
+    "gguf_file": "gemma-3-1b-it-Q4_K_M.gguf",
+    "gguf_size_mb": 806,
+    "context_length": 32768,
+    "languages": "140+ languages in training data (card); French fluent in practice UNVERIFIED here",
+    "capabilities": [
+      "chat",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/google/gemma-3-1b-it (downloads=3077946, likes=1169); GGUF https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF [ggml-org] file gemma-3-1b-it-Q4_K_M.gguf = 806058240 bytes, gguf.architecture=gemma3, gguf.context_length=32768. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'gemma3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*26 attn layers*1 kv heads*256 head_dim*4096*2 B = 109 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). KV shown is an upper bound: 22 of 26 layers are 512-token sliding-window and llama.cpp allocates less for them. Text-only at 1B. Original repo gated; ggml-org mirror is not. Card (unsloth mirror) lines 76-77, 124. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "LFM2.5-2.6B",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2.5-2.6B",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 91036,
+    "loves": 776,
+    "community_hype_score": "Released 2026-07-28; 91k downloads/30d and 776 likes on the original, 1.2M downloads/30d on the official GGUF repo (the most-downloaded <=4B GGUF repo found). Vendor card: BFCLv4 56.88 vs gemma-4-E2B-it 36.98 and Qwen3.5-4B 50.56; OpenBMB's table gives it IFEval 93.4 / BFCL v4 61.1. Vendor says not recommended for agentic coding and knowledge-heavy tasks.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1891
+    },
+    "params_b": 2.7,
+    "license": "lfm1.0",
+    "gguf_repo": "LiquidAI/LFM2.5-2.6B-GGUF",
+    "gguf_file": "LFM2.5-2.6B-Q4_K_M.gguf",
+    "gguf_size_mb": 1674,
+    "context_length": 131072,
+    "languages": "en, ar, zh, fr, de, it, ja, ko, pt, es, vi, th, id, hi, ru, pl (card line 75)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "extraction"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/LiquidAI/LFM2.5-2.6B (downloads=91036, likes=776); GGUF https://huggingface.co/LiquidAI/LFM2.5-2.6B-GGUF [official LiquidAI] file LFM2.5-2.6B-Q4_K_M.gguf = 1674455040 bytes, gguf.architecture=lfm2, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'lfm2' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*8 attn layers*8 kv heads*64 head_dim*4096*2 B = 67 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). Hybrid: 8 of 30 layers hold KV. 1674 MB single file is under 2 GiB but wllama recommends <=512 MB shards (README.md:106) - desktop-class, not phone. Card lines 49, 75, 89, 274-286; MiniCPM5-2B card table. Vendor numbers disagree (56.88 vs 61.1) - treat both as claims. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "SmolLM3-3B",
+    "huggingface_url": "https://huggingface.co/HuggingFaceTB/SmolLM3-3B",
+    "github_url": "https://github.com/huggingface/smollm",
+    "downloads_last_month": 613886,
+    "loves": 1034,
+    "community_hype_score": "614k downloads/30d, 1,034 likes; fully open (data + recipe) and French is one of its 6 native languages. This exact file is in wllama's demo list (examples/main/src/config.ts:48). 2025 model, no 2026 refresh.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 2367
+    },
+    "params_b": 3.08,
+    "license": "apache-2.0",
+    "gguf_repo": "ggml-org/SmolLM3-3B-GGUF",
+    "gguf_file": "SmolLM3-Q4_K_M.gguf",
+    "gguf_size_mb": 1915,
+    "context_length": 65536,
+    "languages": "en, fr, es, de, it, pt native (card line 45); metadata also lists zh, ar, ru",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/HuggingFaceTB/SmolLM3-3B (downloads=613886, likes=1034); GGUF https://huggingface.co/ggml-org/SmolLM3-3B-GGUF [ggml-org] file SmolLM3-Q4_K_M.gguf = 1915305312 bytes, gguf.architecture=smollm3, gguf.context_length=65536. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'smollm3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*36 attn layers*4 kv heads*128 head_dim*4096*2 B = 302 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). 1915 MB single file: under 2 GiB, far above the phone budget; split to 512 MB shards advised. Card lines 35, 45. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Llama-3.2-3B-Instruct",
+    "huggingface_url": "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct",
+    "github_url": "https://github.com/meta-llama/llama-models",
+    "downloads_last_month": 1844496,
+    "loves": 2630,
+    "community_hype_score": "1.84M downloads/30d, 2,630 likes (most-liked repo in this part). French officially supported. No 2026-era benchmark found in the sources read - standing vs Qwen3.5/LFM2.5 UNVERIFIED.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 2639
+    },
+    "params_b": 3.21,
+    "license": "llama3.2 (Llama 3.2 Community License, custom)",
+    "gguf_repo": "bartowski/Llama-3.2-3B-Instruct-GGUF",
+    "gguf_file": "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+    "gguf_size_mb": 2019,
+    "context_length": 131072,
+    "languages": "en, de, fr, it, pt, hi, es, th (card metadata)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct (downloads=1844496, likes=2630); GGUF https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF [bartowski] file Llama-3.2-3B-Instruct-Q4_K_M.gguf = 2019377696 bytes, gguf.architecture=llama, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'llama' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*28 attn layers*8 kv heads*128 head_dim*4096*2 B = 470 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). 2,019,377,696 B is only 128 MB under the 2 GiB limit and KV @4k is 459 MB: desktop only; Q4_0 (1922 MB) gives a little margin. config.json from unsloth/Llama-3.2-3B-Instruct mirror. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Gemma-3-270M-it",
+    "huggingface_url": "https://huggingface.co/google/gemma-3-270m-it",
+    "github_url": "https://github.com/google-deepmind/gemma",
+    "downloads_last_month": 73688,
+    "loves": 635,
+    "community_hype_score": "73.7k downloads/30d, 635 likes (base gemma-3-270m: 395k / 1,099). Card reports IFEval 51.2; Google positions it as a fine-tuning base for narrow tasks, not a general assistant.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (only quant in the ggml-org repo; right choice for 270M)",
+      "required_vram_mb": 517
+    },
+    "params_b": 0.27,
+    "license": "gemma (Gemma Terms of Use, custom)",
+    "gguf_repo": "ggml-org/gemma-3-270m-it-GGUF",
+    "gguf_file": "gemma-3-270m-it-Q8_0.gguf",
+    "gguf_size_mb": 292,
+    "context_length": 32768,
+    "languages": "140+ languages in training data (card); usable French at 270M UNVERIFIED",
+    "capabilities": [
+      "chat",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/google/gemma-3-270m-it (downloads=73688, likes=635); GGUF https://huggingface.co/ggml-org/gemma-3-270m-it-GGUF [ggml-org] file gemma-3-270m-it-Q8_0.gguf = 291545600 bytes, gguf.architecture=gemma3, gguf.context_length=32768. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'gemma3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*18 attn layers*1 kv heads*256 head_dim*4096*2 B = 75 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). KV is an upper bound (15 of 18 layers are 512-token sliding window). Card (unsloth mirror) line 231. 'Fine-tuning base' positioning is my reading of Google's launch messaging - UNVERIFIED. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "DeepSeek-R1-Distill-Qwen-1.5B",
+    "huggingface_url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    "github_url": "https://github.com/deepseek-ai/DeepSeek-R1",
+    "downloads_last_month": 430987,
+    "loves": 1588,
+    "community_hype_score": "431k downloads/30d, 1,588 likes; wllama's demo list carries bartowski's Q3_K_M of it (examples/main/src/config.ts:64). Math-reasoning distill that always emits a long <think> block: slow in WASM; no evidence of tool-calling support found (UNVERIFIED); for chat, Qwen3/Qwen3.5 offer switchable thinking at the same size.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1384
+    },
+    "params_b": 1.78,
+    "license": "mit",
+    "gguf_repo": "bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF",
+    "gguf_file": "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf",
+    "gguf_size_mb": 1117,
+    "context_length": 131072,
+    "languages": "not stated in card metadata (qwen2 architecture); French UNVERIFIED",
+    "capabilities": [
+      "chat",
+      "reasoning",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B (downloads=430987, likes=1588); GGUF https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF [bartowski; no official DeepSeek GGUF] file DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf = 1117320800 bytes, gguf.architecture=qwen2, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'qwen2' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*28 attn layers*2 kv heads*128 head_dim*4096*2 B = 117 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). qwen2 arch. Only 2 KV heads -> 115 MB KV. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Qwen3.5-4B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3.5-4B",
+    "github_url": "https://github.com/QwenLM/Qwen3.8",
+    "downloads_last_month": 6819426,
+    "loves": 941,
+    "community_hype_score": "6.82M downloads/30d, 941 likes; unsloth's GGUF repo has 907k downloads/30d. OpenBMB's table gives it IFEval 90.2 / BFCL v4 56.8; LiquidAI's gives BFCLv4 50.56. The single-file Q4_K_M (2741 MB) breaks wllama's 2 GiB limit, so the only ready-made option is a 53-download community split.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M, gguf-split into 2 shards (1793 MB + 948 MB)",
+      "required_vram_mb": 3025
+    },
+    "params_b": 4.2,
+    "license": "apache-2.0",
+    "gguf_repo": "888rok/Qwen3.5-4B-Q4_K_M-wllama-split",
+    "gguf_file": "Qwen3.5-4B-Q4_K_M-00001-of-00002.gguf",
+    "gguf_size_mb": 2741,
+    "context_length": 262144,
+    "languages": "201 languages and dialects claimed (Qwen3.5 card); French included",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning",
+      "vision"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/Qwen/Qwen3.5-4B (downloads=6819426, likes=941); GGUF https://huggingface.co/888rok/Qwen3.5-4B-Q4_K_M-wllama-split [community (888rok), UNVETTED] file Qwen3.5-4B-Q4_K_M-00001-of-00002.gguf = 2740938080 bytes, gguf.architecture=qwen35, gguf.context_length=262144. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'qwen35' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*8 attn layers*4 kv heads*256 head_dim*4096*2 B = 134 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). gguf_size_mb is the 2-shard TOTAL. Shards are 1793/948 MB, not the <=512 MB wllama recommends; uploader 888rok is unvetted (0 likes) - safer to run llama-gguf-split --split-max-size 512M on unsloth/Qwen3.5-4B-GGUF yourself. ~3.2 GB total is near the wasm32 4 GB address space: desktop + WebGPU only. Loading this split was NOT tested. Split repo file list via HF API (base_model = unsloth/Qwen3.5-4B-GGUF). 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Ministral-3-3B-Instruct-2512",
+    "huggingface_url": "https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512",
+    "github_url": "https://github.com/mistralai/mistral-common",
+    "downloads_last_month": 121495,
+    "loves": 284,
+    "community_hype_score": "121k downloads/30d, 284 likes. French vendor, Apache-2.0, card claims native function calling and JSON output plus vision. The official Q4_K_M is 2,147,023,008 B - 460,640 B under 2 GiB - so it is a coin-flip at wllama's file limit.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 2733
+    },
+    "params_b": 3.4,
+    "license": "apache-2.0",
+    "gguf_repo": "mistralai/Ministral-3-3B-Instruct-2512-GGUF",
+    "gguf_file": "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+    "gguf_size_mb": 2147,
+    "context_length": 262144,
+    "languages": "en, fr, es, de, it, pt, nl, zh, ja, ko, ar (card line 42)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "vision"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512 (downloads=121495, likes=284); GGUF https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF [official Mistral] file Ministral-3-3B-Instruct-2512-Q4_K_M.gguf = 2147023008 bytes, gguf.architecture=mistral3, gguf.context_length=262144. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'mistral3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*26 attn layers*8 kv heads*128 head_dim*4096*2 B = 436 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). ARCH_OK ('mistral3'). BORDERLINE/UNVERIFIED: file is 0.02% under the 2 GiB ArrayBuffer limit; not load-tested. Treat as needs-split (llama-gguf-split 512M). Vision mmproj BF16 is +842 MB. 3.85B params incl. vision encoder; 3.43B in the text GGUF. Card lines 42, 44. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Gemma-4-E2B-it",
+    "huggingface_url": "https://huggingface.co/google/gemma-4-E2B-it",
+    "github_url": "https://github.com/google-deepmind/gemma",
+    "downloads_last_month": 3350157,
+    "loves": 970,
+    "community_hype_score": "3.35M downloads/30d, 970 likes, Apache-2.0 (a change from Gemma 3's custom terms); card claims native function calling, thinking mode, 35+ supported languages. Third-party vendor tables rate its tool use low for its size: BFCLv4 36.98 (LiquidAI), 36.6 (OpenBMB).",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_0 (smallest non-IQ file published; no Q4_K_M in ggml-org repo)",
+      "required_vram_mb": 3138
+    },
+    "params_b": 4.65,
+    "license": "apache-2.0",
+    "gguf_repo": "ggml-org/gemma-4-E2B-it-GGUF",
+    "gguf_file": "gemma-4-E2B-it-Q4_0.gguf",
+    "gguf_size_mb": 2841,
+    "context_length": 131072,
+    "languages": "35+ languages supported, 140+ in pre-training (card line 124)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json",
+      "reasoning",
+      "vision"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/google/gemma-4-E2B-it (downloads=3350157, likes=970); GGUF https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF [ggml-org] file gemma-4-E2B-it-Q4_0.gguf = 2841481184 bytes, gguf.architecture=gemma4, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'gemma4' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*35 attn layers*1 kv heads*256 head_dim*4096*2 B = 147 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). ARCH_OK ('gemma4' is in the pinned arch list) but NOT loadable as published: 'E2B' is 4.65B stored parameters (per-layer embeddings), so Q4_0 = 2841 MB and Google's QAT q4_0 = 3350 MB, both over 2 GiB. The only pre-split repo found (888rok/gemma-4-E2B-it-wllama-split) is UD-IQ2_M - an IQ quant wllama advises against (README.md:107). Would need a self-made split and ~3.2 GB of WASM memory. KV is an upper bound (sliding-window + shared-KV layers ignored). Card lines 25, 122, 124; LFM2.5-2.6B card line 285; MiniCPM5-2B card table. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "Phi-4-mini-instruct",
+    "huggingface_url": "https://huggingface.co/microsoft/Phi-4-mini-instruct",
+    "github_url": "https://github.com/microsoft/PhiCookBook",
+    "downloads_last_month": 383540,
+    "loves": 836,
+    "community_hype_score": "384k downloads/30d, 836 likes; MIT licence and a function-calling chat format. Microsoft's own card warns non-English performance is worse (lines 242-243). February-2025 model with no small-model successor on the Hub.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 3179
+    },
+    "params_b": 3.84,
+    "license": "mit",
+    "gguf_repo": "unsloth/Phi-4-mini-instruct-GGUF",
+    "gguf_file": "Phi-4-mini-instruct-Q4_K_M.gguf",
+    "gguf_size_mb": 2492,
+    "context_length": 131072,
+    "languages": "23 languages listed incl. fr (card metadata); vendor warns of non-English gaps",
+    "capabilities": [
+      "chat",
+      "tools",
+      "json"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/microsoft/Phi-4-mini-instruct (downloads=383540, likes=836); GGUF https://huggingface.co/unsloth/Phi-4-mini-instruct-GGUF [unsloth] file Phi-4-mini-instruct-Q4_K_M.gguf = 2491874272 bytes, gguf.architecture=phi3, gguf.context_length=131072. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'phi3' present=yes. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV f16 @4096 = 2*32 attn layers*8 kv heads*128 head_dim*4096*2 B = 537 MB; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). ARCH_OK ('phi3') but Q4_K_M = 2492 MB exceeds 2 GiB and no pre-split repo was found; sub-2 GiB files are Q2_K (1683 MB) / Q3_K_M (2118 MB) only. KV @4k = 537 MB. Needs a self-made split; poor value vs LFM2.5-2.6B. Card lines 77, 131-136, 242-243. 'json' = engine-level: wllama exposes response_format json_schema + GBNF grammar (src/types/oai-compat.ts:122-124, src/types/types.ts:119), so syntax is enforced for any model; content quality is the model's."
+  },
+  {
+    "model_name": "BitNet b1.58 2B4T",
+    "huggingface_url": "https://huggingface.co/microsoft/bitnet-b1.58-2B-4T",
+    "github_url": "https://github.com/microsoft/BitNet",
+    "downloads_last_month": 21116,
+    "loves": 1495,
+    "community_hype_score": "1,495 likes but only 21k downloads/30d (GGUF repo 7.5k): high curiosity, low use. The card says the GGUF is 'compatible with the bitnet.cpp library' and that the efficiency claims require bitnet.cpp.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "I2_S (bitnet.cpp-only ternary format)",
+      "required_vram_mb": null
+    },
+    "params_b": 2.4,
+    "license": "mit",
+    "gguf_repo": "microsoft/bitnet-b1.58-2B-4T-gguf",
+    "gguf_file": "ggml-model-i2_s.gguf",
+    "gguf_size_mb": 1188,
+    "context_length": 4096,
+    "languages": "en (card metadata)",
+    "capabilities": [
+      "chat"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info 2026-09-21: https://huggingface.co/microsoft/bitnet-b1.58-2B-4T (downloads=21116, likes=1495); GGUF https://huggingface.co/microsoft/bitnet-b1.58-2B-4T-gguf [official Microsoft] file ggml-model-i2_s.gguf = 1187801280 bytes, gguf.architecture=bitnet-b1.58, gguf.context_length=4096. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03); arch list read from src/llama-arch.cpp at that commit; 'bitnet-b1.58' present=see note. Single-file limit 2 GiB = 2147483648 B (wllama README.md:38). KV not computed (config not fetched) so required_vram_mb is null; required_vram_mb = gguf_size_mb + KV + 150 MB runtime (mmproj excluded). phone_ok = compatible and file <= 1150 MB (task says ~1100). INCOMPATIBLE on two counts: GGUF architecture string is 'bitnet-b1.58', absent from the pinned llama-arch.cpp (only 'bitnet' exists); tensor type I2_S is absent from ggml.h at the pin (TQ1_0/TQ2_0 are the mainline ternary types). No mainline-format GGUF from Microsoft was found. GGUF card lines 23, 33, 66; ggml/include/ggml.h at c7bda030 lines 424-430."
+  }
+]

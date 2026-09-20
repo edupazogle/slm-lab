@@ -1,0 +1,158 @@
+/* SLM Lab design tokens.
+ *
+ * Identity: the carbonless duplicate claim form (the French constat amiable): carbon-blue ink on
+ * form stock, and ONE canary-yellow copy that stays with you. The canary sheet is the product's
+ * promise made visible — what you type stays on your device — so it is the only loud element.
+ * Everything else is quiet form furniture: tinted fields, small labels inside the box, typed values.
+ *
+ * Fonts are bundled (@fontsource). A page that promises "no third-party requests" cannot call a
+ * font CDN, and the PWA must render offline.
+ */
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/courier-prime/400.css';
+@import '@fontsource/courier-prime/700.css';
+
+:root {
+  --paper: #f7f9fc;
+  --sheet: #ffffff;
+  --ink: #0e1230;
+  --ink-soft: #4a5278;
+  --carbon: #1b2a6b;
+  --carbon-soft: #3d5bc9;
+  --field: #dce6f7;
+  --field-line: #b4c4e6;
+  --canary: #ffe45c;
+  --canary-deep: #f2cf1d;
+  --canary-ink: #2a2400;
+  --stamp: #c8372d;
+  --ok: #1f7a4d;
+
+  --font-form: 'Archivo Variable', Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-typed: 'Courier Prime', 'Courier New', ui-monospace, monospace;
+
+  /* type scale: 1.250 (major third) on a 17px base — forms are read at arm's length on a phone */
+  --t--1: 0.8rem;
+  --t-0: 1.0625rem;
+  --t-1: 1.328rem;
+  --t-2: 1.66rem;
+  --t-3: 2.075rem;
+  --t-4: 2.594rem;
+  --t-5: clamp(2.6rem, 7.2vw, 4.6rem);
+
+  --gutter: clamp(16px, 4vw, 40px);
+  --measure: 62ch;
+  --radius: 2px;
+  --rule: 1.5px solid var(--carbon);
+  --hair: 1px solid var(--field-line);
+}
+
+:root[data-theme='carbonpaper'] {
+  --paper: #0c1233;
+  --sheet: #121a45;
+  --ink: #dce4ff;
+  --ink-soft: #9aa8dc;
+  --carbon: #9db2ff;
+  --carbon-soft: #c9d6ff;
+  --field: #18225a;
+  --field-line: #2c3a80;
+  --canary: #ffe45c;
+  --canary-deep: #d9b800;
+  --canary-ink: #1a1600;
+  --stamp: #ff8a7e;
+  --ok: #5fd39a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='carbon']) {
+    --paper: #0c1233; --sheet: #121a45; --ink: #dce4ff; --ink-soft: #9aa8dc; --carbon: #9db2ff; --carbon-soft: #c9d6ff;
+    --field: #18225a; --field-line: #2c3a80; --canary-deep: #d9b800; --canary-ink: #1a1600; --stamp: #ff8a7e; --ok: #5fd39a;
+  }
+}
+
+/* ---- form furniture -------------------------------------------------------------------- */
+
+/* A form field: tinted box, small label sitting INSIDE the box top-left, value set in the typed face. */
+.ff {
+  background: var(--field);
+  border: var(--hair);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.8rem 0.7rem;
+}
+.ff > .ff-label {
+  display: block;
+  font: 500 var(--t--1) / 1.2 var(--font-form);
+  font-stretch: 88%;
+  color: var(--ink-soft);
+  margin-bottom: 0.2rem;
+}
+.typed {
+  font-family: var(--font-typed);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* The canary duplicate: the copy that stays with you. */
+.copy-sheet {
+  background: var(--canary);
+  color: var(--canary-ink);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 var(--canary-deep), 0 14px 30px -18px rgba(14, 18, 48, 0.55);
+  padding: 1.1rem 1.15rem 1.3rem;
+  position: relative;
+}
+/* perforated tear edge along the top, like a pad of duplicates */
+.copy-sheet::before {
+  content: '';
+  position: absolute;
+  inset: -5px 0 auto 0;
+  height: 6px;
+  background: radial-gradient(circle at 5px 6px, transparent 3.2px, var(--canary) 3.4px) 0 0 / 10px 6px repeat-x;
+}
+.copy-sheet dl { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 1rem; margin: 0; }
+.copy-sheet dt { font: 500 var(--t--1) / 1.5 var(--font-form); font-stretch: 88%; opacity: 0.75; }
+.copy-sheet dd { margin: 0; text-align: right; font: 400 0.95rem / 1.5 var(--font-typed); font-variant-numeric: tabular-nums; }
+.copy-sheet hr { border: 0; border-top: 1px dashed rgba(42, 36, 0, 0.45); margin: 0.6rem 0; }
+
+/* The rubber stamp — the one orchestrated moment. It lands when the first on-device answer completes. */
+.stamp {
+  display: inline-block;
+  font: 800 1.05rem / 1 var(--font-form);
+  font-stretch: 112%;
+  letter-spacing: 0.06em;
+  color: var(--stamp);
+  border: 2.5px solid var(--stamp);
+  border-radius: 3px;
+  padding: 0.35rem 0.6rem 0.3rem;
+  transform: rotate(-7deg);
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+.stamp[data-land='1'] { animation: stamp-land 420ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes stamp-land {
+  from { transform: rotate(-16deg) scale(2.1); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: rotate(-7deg) scale(1); opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp[data-land='1'] { animation: none; }
+}
+
+/* Receipt strip under an on-device answer: label/value pairs, never a dotted meta string. */
+.receipt {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, max-content));
+  gap: 0.1rem 1.25rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: color-mix(in srgb, var(--canary) 38%, transparent);
+  border-left: 3px solid var(--canary-deep);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.receipt span { display: block; color: var(--ink-soft); font-family: var(--font-form); font-stretch: 88%; }
+.receipt b { font: 400 0.85rem / 1.3 var(--font-typed); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+:where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 3px solid var(--carbon-soft);
+  outline-offset: 2px;
+}

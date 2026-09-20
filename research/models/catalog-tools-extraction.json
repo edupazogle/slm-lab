@@ -1,0 +1,569 @@
+[
+  {
+    "model_name": "LFM2-1.2B-Tool",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2-1.2B-Tool",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 1136,
+    "loves": 123,
+    "community_hype_score": "Non-thinking tool-calling fine-tune of LFM2-1.2B; card claims parity with similarly sized thinking models but only on Liquid's proprietary benchmark (not on the public BFCL CSV). Low original-repo downloads (1.1k/30d; GGUF repo 5.5k). Pinned llama.cpp has a dedicated LFM2 tool-call parser (common/chat.cpp is_lfm2_template / common_chat_params_init_lfm2), so wllama's OpenAI-style tools API should parse its Pythonic calls - not run here, UNVERIFIED in browser.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 931
+    },
+    "params_b": 1.17,
+    "license": "LFM Open License v1.0 (lfm1.0; commercial-use revenue threshold - read LICENSE)",
+    "gguf_repo": "LiquidAI/LFM2-1.2B-Tool-GGUF (official)",
+    "gguf_file": "LFM2-1.2B-Tool-Q4_K_M.gguf",
+    "gguf_size_mb": 731,
+    "context_length": 128000,
+    "languages": "en, ar, zh, fr, de, ja, ko, es (card text also lists pt)",
+    "capabilities": [
+      "tools",
+      "json",
+      "chat"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/LiquidAI/LFM2-1.2B-Tool ; https://huggingface.co/LiquidAI/LFM2-1.2B-Tool-GGUF ; llama.cpp common/chat.cpp@c7bda030 lines 720-732,1903-2007 ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=50 MB + 150 MB runtime. Only 6 of 16 layers are attention (config.json layer_types), so KV is small. context_length is the GGUF metadata value; card gives no figure; LFM2.5 card states 32,768."
+  },
+  {
+    "model_name": "LFM2-1.2B-Extract",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2-1.2B-Extract",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 2820,
+    "loves": 132,
+    "community_hype_score": "Document-to-JSON/XML/YAML extractor; card claims it outputs complex objects 'on a level higher than Gemma 3 27B' on Liquid's own synthetic benchmark (vendor claim, no third-party replication found). Card requires greedy decoding (temperature=0) and a schema in the system prompt. French is a listed language.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 931
+    },
+    "params_b": 1.17,
+    "license": "LFM Open License v1.0 (lfm1.0)",
+    "gguf_repo": "LiquidAI/LFM2-1.2B-Extract-GGUF (official)",
+    "gguf_file": "LFM2-1.2B-Extract-Q4_K_M.gguf",
+    "gguf_size_mb": 731,
+    "context_length": 128000,
+    "languages": "en, ar, zh, fr, de, ja, ko, es (card text also lists pt)",
+    "capabilities": [
+      "extraction",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/LiquidAI/LFM2-1.2B-Extract (card lines 40-95) ; https://huggingface.co/LiquidAI/LFM2-1.2B-Extract-GGUF ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=50 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "LFM2-350M-Extract",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2-350M-Extract",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 1247,
+    "loves": 89,
+    "community_hype_score": "Smallest multilingual (incl. French) extractor with an official GGUF; card claims it 'outperforms Gemma 3 4B' on Liquid's own extraction benchmark (vendor claim). Low traction: 1.2k downloads/30d on the original repo, 2.9k on the GGUF repo.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (tiny model; Q4_K_M = 229 MB is available if download size matters more)",
+      "required_vram_mb": 579
+    },
+    "params_b": 0.354,
+    "license": "LFM Open License v1.0 (lfm1.0)",
+    "gguf_repo": "LiquidAI/LFM2-350M-Extract-GGUF (official)",
+    "gguf_file": "LFM2-350M-Extract-Q8_0.gguf",
+    "gguf_size_mb": 379,
+    "context_length": 128000,
+    "languages": "en, ar, zh, fr, de, ja, ko, es (card text also lists pt)",
+    "capabilities": [
+      "extraction",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/LiquidAI/LFM2-350M-Extract ; https://huggingface.co/LiquidAI/LFM2-350M-Extract-GGUF ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=50 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "LFM2.5-1.2B-Thinking",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2.5-1.2B-Thinking",
+    "github_url": "https://github.com/Liquid4All/cookbook",
+    "downloads_last_month": 10480,
+    "loves": 400,
+    "community_hype_score": "Reasoning model under 1 GB; card reports BFCLv3 56.97 vs Qwen3-1.7B-thinking 55.41 and IFEval 88.42 (vendor-run, custom BFCL scoring), and says it is 'not recommended for knowledge-intensive tasks and programming'. 400 likes; GGUF repo 10.8k downloads/30d. Thinking traces cost many tokens, which is slow on WASM CPU.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 931
+    },
+    "params_b": 1.17,
+    "license": "LFM Open License v1.0 (lfm1.0)",
+    "gguf_repo": "LiquidAI/LFM2.5-1.2B-Thinking-GGUF (official)",
+    "gguf_file": "LFM2.5-1.2B-Thinking-Q4_K_M.gguf",
+    "gguf_size_mb": 731,
+    "context_length": 32768,
+    "languages": "en, ar, zh, fr, de, ja, ko, es",
+    "capabilities": [
+      "reasoning",
+      "tools",
+      "chat",
+      "json",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/LiquidAI/LFM2.5-1.2B-Thinking (card lines 64-80,187-190) ; https://huggingface.co/LiquidAI/LFM2.5-1.2B-Thinking-GGUF ; chat.cpp@c7bda030 lines 3542-3546 (LFM2.5 tool format) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=50 MB + 150 MB runtime. context_length from the card (32,768); GGUF metadata says 128000."
+  },
+  {
+    "model_name": "Hammer2.1-1.5b",
+    "huggingface_url": "https://huggingface.co/MadeAgents/Hammer2.1-1.5b",
+    "github_url": "https://github.com/MadeAgents/Hammer",
+    "downloads_last_month": 484,
+    "loves": 15,
+    "community_hype_score": "BFCL V4 rank 75, overall 27.88% (non-live AST 82.98, live 69.50, multi-turn 15.62, irrelevance 79.40) - best single-turn accuracy per MB in this list; multi-turn is weak. Near-zero traction (484 downloads/30d, 15 likes), English-centric training data, and CC-BY-NC-4.0 blocks commercial use. Qwen2.5-Coder-1.5B base.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1253
+    },
+    "params_b": 1.54,
+    "license": "cc-by-nc-4.0 (non-commercial)",
+    "gguf_repo": "mradermacher/Hammer2.1-1.5b-GGUF (community; no official GGUF found)",
+    "gguf_file": "Hammer2.1-1.5b.Q4_K_M.gguf",
+    "gguf_size_mb": 986,
+    "context_length": 32768,
+    "languages": "en (not declared on card; xlam-function-calling-60k training data is English) - French UNVERIFIED",
+    "capabilities": [
+      "tools",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/MadeAgents/Hammer2.1-1.5b ; https://huggingface.co/mradermacher/Hammer2.1-1.5b-GGUF ; https://gorilla.cs.berkeley.edu/data_overall.csv (BFCL V4, page 'Last Updated: 2026-04-12', fetched 2026-09-21) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=117 MB + 150 MB runtime. Hammer2.1-0.5b also exists (BFCL rank 100, 21.22%; mradermacher Q8_0 531 MB) but multi-turn is 2.88%."
+  },
+  {
+    "model_name": "xLAM-2-1b-fc-r",
+    "huggingface_url": "https://huggingface.co/Salesforce/xLAM-2-1b-fc-r",
+    "github_url": "https://github.com/SalesforceAIResearch/xLAM",
+    "downloads_last_month": 1505,
+    "loves": 14,
+    "community_hype_score": "BFCL V4 rank 65, overall 30.44% with the best multi-turn score of any <2B model on the board (36.00%), but weak irrelevance detection (64.47%) and live accuracy (55.14%). 'Research purposes only' + CC-BY-NC-4.0; English only; 14 likes. Named 1b but the GGUF holds 1.54B params (Qwen2.5-1.5B geometry).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1253
+    },
+    "params_b": 1.54,
+    "license": "cc-by-nc-4.0 (card: research purposes only)",
+    "gguf_repo": "Salesforce/xLAM-2-1b-fc-r-gguf (official)",
+    "gguf_file": "xLAM-2-1B-fc-r-Q4_K_M.gguf",
+    "gguf_size_mb": 986,
+    "context_length": 32768,
+    "languages": "en",
+    "capabilities": [
+      "tools",
+      "json",
+      "chat"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/Salesforce/xLAM-2-1b-fc-r (card lines 36-80) ; https://huggingface.co/Salesforce/xLAM-2-1b-fc-r-gguf ; https://gorilla.cs.berkeley.edu/data_overall.csv (BFCL V4, page 'Last Updated: 2026-04-12', fetched 2026-09-21) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=117 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "Arch-Agent-1.5B",
+    "huggingface_url": "https://huggingface.co/katanemo/Arch-Agent-1.5B",
+    "github_url": "https://github.com/katanemo/plano",
+    "downloads_last_month": 812,
+    "loves": 10,
+    "community_hype_score": "BFCL V4 rank 60, overall 32.14% (non-live 82.67, live 67.73, multi-turn 26.62) - highest overall of the <2B function callers on the board. Built for Katanemo's Arch/Plano gateway; katanemo-research licence; the official GGUF repo ships F16 only (3.09 GB), so a community quant is required. Supersedes Arch-Function-1.5B (162 downloads/30d, official Q4_K_M 986 MB at katanemo/Arch-Function-1.5B.gguf).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1253
+    },
+    "params_b": 1.54,
+    "license": "katanemo-research (other; non-standard research licence - read before commercial use)",
+    "gguf_repo": "mradermacher/Arch-Agent-1.5B-GGUF (community; official katanemo/Arch-Agent-1.5B.gguf is F16 3094 MB only)",
+    "gguf_file": "Arch-Agent-1.5B.Q4_K_M.gguf",
+    "gguf_size_mb": 986,
+    "context_length": 32768,
+    "languages": "en",
+    "capabilities": [
+      "tools",
+      "json",
+      "chat"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/katanemo/Arch-Agent-1.5B ; https://huggingface.co/mradermacher/Arch-Agent-1.5B-GGUF ; https://huggingface.co/katanemo/Arch-Agent-1.5B.gguf ; https://gorilla.cs.berkeley.edu/data_overall.csv (BFCL V4, page 'Last Updated: 2026-04-12', fetched 2026-09-21) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=117 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "NuExtract-1.5-tiny",
+    "huggingface_url": "https://huggingface.co/numind/NuExtract-1.5-tiny",
+    "github_url": "https://github.com/numindai/nuextract",
+    "downloads_last_month": 4372,
+    "loves": 38,
+    "community_hype_score": "0.5B template-driven JSON extractor (Qwen2.5-0.5B fine-tune) covering en/fr/es/de/pt/it; card insists on temperature ~0 and a fixed '<|input|>### Template' prompt, so it must be driven through raw completion, not the chat API. MIT licence. Modest traction (4.4k downloads/30d); NuMind has since moved to 2B-4B vision models, so this line is no longer developed.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (0.5B model; Q4_K_M = 491 MB alternative)",
+      "required_vram_mb": 876
+    },
+    "params_b": 0.49,
+    "license": "mit",
+    "gguf_repo": "QuantFactory/NuExtract-1.5-tiny-GGUF (community; NuMind publishes no GGUF for this model)",
+    "gguf_file": "NuExtract-1.5-tiny.Q8_0.gguf",
+    "gguf_size_mb": 676,
+    "context_length": 32768,
+    "languages": "en, fr, es, de, pt, it",
+    "capabilities": [
+      "extraction",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/numind/NuExtract-1.5-tiny (card lines 14-25,53) ; https://huggingface.co/QuantFactory/NuExtract-1.5-tiny-GGUF ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=50 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "FunctionGemma-270M-it",
+    "huggingface_url": "https://huggingface.co/google/functiongemma-270m-it",
+    "github_url": "https://github.com/google-gemini/gemma-cookbook",
+    "downloads_last_month": 23331,
+    "loves": 1085,
+    "community_hype_score": "Most-liked model in this part (1,085 likes, 23k downloads/30d) but the card says it is 'intended to be fine-tuned for your specific function-calling task' and 'not intended for use as a direct dialogue model'; zero-shot BFCL on the card is low (Simple 61.6, Parallel 39, Live Multiple 25.7). Gated repo (manual acceptance of Gemma terms). Pinned llama.cpp chat.cpp has a Gemma4 tool parser but no FunctionGemma-specific one, so tool_calls parsing in wllama is UNVERIFIED.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 463
+    },
+    "params_b": 0.268,
+    "license": "gemma (Gemma Terms of Use; gated)",
+    "gguf_repo": "ggml-org/functiongemma-270m-it-GGUF (ggml-org; unsloth/functiongemma-270m-it-GGUF has Q4_K_M 253 MB)",
+    "gguf_file": "functiongemma-270m-it-q8_0.gguf",
+    "gguf_size_mb": 292,
+    "context_length": 32768,
+    "languages": "UNVERIFIED (no language field on card; base Gemma 3 270M is multilingual, fine-tune data appears English)",
+    "capabilities": [
+      "tools",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/google/functiongemma-270m-it (stats) ; https://huggingface.co/unsloth/functiongemma-270m-it-GGUF (card copy, lines 53-59,255-290; config.json) ; https://huggingface.co/ggml-org/functiongemma-270m-it-GGUF ; chat.cpp@c7bda030 grep ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=21 MB + 150 MB runtime. KV counts 3 full-attention layers at 4096 plus 15 sliding-window layers at 512 tokens (config.json layer_types, sliding_window=512). The 262k-token vocab makes the logits/compute buffer larger than for other tiny models, so 150 MB overhead may be low - UNVERIFIED."
+  },
+  {
+    "model_name": "Osmosis-Structure-0.6B",
+    "huggingface_url": "https://huggingface.co/osmosis-ai/Osmosis-Structure-0.6B",
+    "github_url": null,
+    "downloads_last_month": 1891,
+    "loves": 416,
+    "community_hype_score": "Qwen3-0.6B-based model whose only job is to re-emit another model's free-text answer as schema-valid JSON; card shows large gains when used as a post-processor for GPT-4.1/Claude on math sets (e.g. AIME GPT-4.1 2.79% -> 39.66%), not as a standalone extractor. 416 likes but only 1.9k downloads/30d and no update since 2025-06-13.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (0.6B; Q4_K_M = 397 MB alternative)",
+      "required_vram_mb": 1259
+    },
+    "params_b": 0.596,
+    "license": "apache-2.0",
+    "gguf_repo": "osmosis-ai/Osmosis-Structure-0.6B (official; GGUFs live in the original repo)",
+    "gguf_file": "jsonsft-0.6b.Q8_0.gguf",
+    "gguf_size_mb": 639,
+    "context_length": 40960,
+    "languages": "UNVERIFIED (not declared; Qwen3 base is multilingual)",
+    "capabilities": [
+      "json",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/osmosis-ai/Osmosis-Structure-0.6B (card lines 14-51; file list) ; Qwen/Qwen3-0.6B config.json for KV geometry (repo has no root config.json) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=470 MB + 150 MB runtime. Qwen3-0.6B has 8 KV heads x 28 layers, so KV at 4k (470 MB) is almost as large as the weights; run at 2k context on phones (KV halves)."
+  },
+  {
+    "model_name": "NuExtract-2.0-2B",
+    "huggingface_url": "https://huggingface.co/numind/NuExtract-2.0-2B",
+    "github_url": "https://github.com/numindai/nuextract",
+    "downloads_last_month": 119259,
+    "loves": 47,
+    "community_hype_score": "Highest download count among the extraction specialists here (119k/30d), MIT-licensed because it is built on Qwen2-VL-2B rather than the non-commercial Qwen2.5-VL-3B (stated on card). Multilingual, template-based extraction, text or image input. Image input needs the 1,335 MB BF16 mmproj, which pushes the total past phone budgets; text-only use loads the 986 MB LLM file alone.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M (text-only); images additionally need mmproj-BF16.gguf 1335 MB (single file < 2 GB, wllama v3 multimodal API)",
+      "required_vram_mb": 1253
+    },
+    "params_b": 1.54,
+    "license": "mit",
+    "gguf_repo": "numind/NuExtract-2.0-2B-GGUF (official)",
+    "gguf_file": "NuExtract-2.0-2B-Q4_K_M.gguf",
+    "gguf_size_mb": 986,
+    "context_length": 32768,
+    "languages": "multilingual (card; examples en/fr) - per-language quality UNVERIFIED",
+    "capabilities": [
+      "extraction",
+      "json",
+      "vision"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/numind/NuExtract-2.0-2B (card lines 21-30,81) ; https://huggingface.co/numind/NuExtract-2.0-2B-GGUF ; wllama guides/intro-v3.md (mmproj loading) ; qwen2vl in llama-arch.cpp@c7bda030 ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=117 MB + 150 MB runtime. Text-only figure. With mmproj add ~1335 MB -> ~2590 MB, not phone-class."
+  },
+  {
+    "model_name": "Qwen2.5-Coder-1.5B-Instruct",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "github_url": "https://github.com/QwenLM/Qwen3-Coder",
+    "downloads_last_month": 567398,
+    "loves": 145,
+    "community_hype_score": "567k downloads/30d; it is the base of Hammer2.1-1.5b, Arch-Function/Arch-Agent-1.5B and Tiny-Agent-a-1.5B, which says more about its tool/JSON aptitude than any leaderboard row (it is not on the BFCL CSV itself). Apache-2.0. English-declared; 2024-11 model, not updated since 2025-01.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1384
+    },
+    "params_b": 1.78,
+    "license": "apache-2.0",
+    "gguf_repo": "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF (official)",
+    "gguf_file": "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+    "gguf_size_mb": 1117,
+    "context_length": 32768,
+    "languages": "en (declared); base Qwen2.5 is multilingual - French quality UNVERIFIED",
+    "capabilities": [
+      "chat",
+      "json",
+      "tools"
+    ],
+    "phone_ok": true,
+    "evidence": "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct ; https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF ; base_model fields of MadeAgents/Hammer2.1-1.5b, katanemo/Arch-Agent-1.5B, driaforall/Tiny-Agent-a-1.5B ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=117 MB + 150 MB runtime. 1117 MB is ~1.5% over the 1100 MB phone line; q4_0 (1066 MB) fits strictly. The 0.5B sibling (q8_0 676 MB, official) is the phone-safe option."
+  },
+  {
+    "model_name": "SmolLM3-3B",
+    "huggingface_url": "https://huggingface.co/HuggingFaceTB/SmolLM3-3B",
+    "github_url": "https://github.com/huggingface/smollm",
+    "downloads_last_month": 613886,
+    "loves": 1034,
+    "community_hype_score": "614k downloads/30d, 1,034 likes; fully open 3B with /think and /no_think modes, native tool calling (xml_tools / python_tools in the template) and French among its 6 trained languages (card lists en, fr, es, de, it, pt; metadata adds zh, ar, ru). Not listed on the BFCL CSV; the card's own BFCL figure (92.3 no-think) uses a different scoring than the leaderboard. At 1.9 GB it is desktop-only in a browser.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M (1915 MB single file, under the 2 GB ArrayBuffer limit by ~5%; re-splitting to 512 MB shards is recommended by the wllama README)",
+      "required_vram_mb": 2367
+    },
+    "params_b": 3.08,
+    "license": "apache-2.0",
+    "gguf_repo": "ggml-org/SmolLM3-3B-GGUF (ggml-org)",
+    "gguf_file": "SmolLM3-Q4_K_M.gguf",
+    "gguf_size_mb": 1915,
+    "context_length": 65536,
+    "languages": "en, fr, es, it, pt, de (+ zh, ar, ru in metadata)",
+    "capabilities": [
+      "chat",
+      "tools",
+      "reasoning",
+      "json"
+    ],
+    "phone_ok": false,
+    "evidence": "https://huggingface.co/HuggingFaceTB/SmolLM3-3B (card lines 35-44,107-146,254) ; https://huggingface.co/ggml-org/SmolLM3-3B-GGUF ; smollm3 in llama-arch.cpp@c7bda030 ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=302 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "xLAM-2-3b-fc-r",
+    "huggingface_url": "https://huggingface.co/Salesforce/xLAM-2-3b-fc-r",
+    "github_url": "https://github.com/SalesforceAIResearch/xLAM",
+    "downloads_last_month": 1895,
+    "loves": 16,
+    "community_hype_score": "BFCL V4 rank 42, overall 41.22% with multi-turn 58.38% - the strongest multi-turn function caller under 4B that still fits one <2 GB file; irrelevance detection is poor (63.45%, i.e. it calls tools when it should not). CC-BY-NC-4.0 / research-only, English only, 16 likes.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M (1930 MB single file, ~5% under the 2 GB limit; Q4_K_S 1834 MB or re-split recommended)",
+      "required_vram_mb": 2231
+    },
+    "params_b": 3.09,
+    "license": "cc-by-nc-4.0 (card: research purposes only)",
+    "gguf_repo": "Salesforce/xLAM-2-3b-fc-r-gguf (official)",
+    "gguf_file": "xLAM-2-3B-fc-r-Q4_K_M.gguf",
+    "gguf_size_mb": 1930,
+    "context_length": 32768,
+    "languages": "en",
+    "capabilities": [
+      "tools",
+      "json",
+      "chat"
+    ],
+    "phone_ok": false,
+    "evidence": "https://huggingface.co/Salesforce/xLAM-2-3b-fc-r ; https://huggingface.co/Salesforce/xLAM-2-3b-fc-r-gguf ; https://gorilla.cs.berkeley.edu/data_overall.csv (BFCL V4, page 'Last Updated: 2026-04-12', fetched 2026-09-21) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=151 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "Nanbeige4-3B-Thinking-2511",
+    "huggingface_url": "https://huggingface.co/Nanbeige/Nanbeige4-3B-Thinking-2511",
+    "github_url": null,
+    "downloads_last_month": 894,
+    "loves": 211,
+    "community_hype_score": "Best sub-4B model on BFCL V4: rank 25, overall 51.40% (non-live 81.58, live 79.42, multi-turn 51.12, irrelevance 83.09), ahead of Qwen3-8B (42.57%). Apache-2.0, en/zh only, 894 downloads/30d. 3.93B params: every published Q4 file exceeds 2 GB, and its long thinking traces are slow on WASM.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_K_M 2443 MB single file > 2 GB ArrayBuffer limit - loads only after re-splitting with llama-gguf-split --split-max-size 512M (no pre-split repo located; not searched exhaustively)",
+      "required_vram_mb": 2861
+    },
+    "params_b": 3.93,
+    "license": "apache-2.0",
+    "gguf_repo": "bartowski/Nanbeige_Nanbeige4-3B-Thinking-2511-GGUF (community)",
+    "gguf_file": "Nanbeige_Nanbeige4-3B-Thinking-2511-Q4_K_M.gguf",
+    "gguf_size_mb": 2443,
+    "context_length": 65536,
+    "languages": "en, zh",
+    "capabilities": [
+      "tools",
+      "reasoning",
+      "chat",
+      "json"
+    ],
+    "phone_ok": false,
+    "evidence": "https://huggingface.co/Nanbeige/Nanbeige4-3B-Thinking-2511 (card lines 21-30) ; https://huggingface.co/bartowski/Nanbeige_Nanbeige4-3B-Thinking-2511-GGUF ; https://gorilla.cs.berkeley.edu/data_overall.csv (BFCL V4, page 'Last Updated: 2026-04-12', fetched 2026-09-21) ; wllama README lines 38,106,155-165 ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=268 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "Qwen3-4B-Thinking-2507",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3-4B-Thinking-2507",
+    "github_url": "https://github.com/QwenLM/Qwen3",
+    "downloads_last_month": 419975,
+    "loves": 617,
+    "community_hype_score": "420k downloads/30d, 617 likes; base of Jan-v1-4B. The Thinking variant is not on the BFCL CSV; its sibling Qwen3-4B-Instruct-2507 is rank 54 at 35.68% (multi-turn 22.12%). No official GGUF from Qwen for the 2507 models was found; all Q4 files are > 2 GB.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_K_M 2497 MB single file > 2 GB limit - needs re-splitting into <=512 MB shards before wllama can load it",
+      "required_vram_mb": 3251
+    },
+    "params_b": 4.02,
+    "license": "apache-2.0",
+    "gguf_repo": "unsloth/Qwen3-4B-Thinking-2507-GGUF (community)",
+    "gguf_file": "Qwen3-4B-Thinking-2507-Q4_K_M.gguf",
+    "gguf_size_mb": 2497,
+    "context_length": 262144,
+    "languages": "multilingual (Qwen3 family claims 100+ languages; not declared on this card) - UNVERIFIED",
+    "capabilities": [
+      "reasoning",
+      "tools",
+      "chat",
+      "json"
+    ],
+    "phone_ok": false,
+    "evidence": "https://huggingface.co/Qwen/Qwen3-4B-Thinking-2507 ; https://huggingface.co/unsloth/Qwen3-4B-Thinking-2507-GGUF ; https://gorilla.cs.berkeley.edu/data_overall.csv (BFCL V4, page 'Last Updated: 2026-04-12', fetched 2026-09-21) ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=604 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "Jan-nano",
+    "huggingface_url": "https://huggingface.co/Menlo/Jan-nano",
+    "github_url": null,
+    "downloads_last_month": 496,
+    "loves": 509,
+    "community_hype_score": "Qwen3-4B fine-tune for MCP-driven 'deep research'; 509 likes from its June-2025 launch but only 496 downloads/30d now (GGUF repo 2.0k), and no update since 2025-07. Its headline score is SimpleQA measured with MCP web tools attached, not a function-calling benchmark. The GitHub link on the card (menloresearch/deep-research) returns 404.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_K_M 2497 MB single file > 2 GB limit (smallest published file, iQ4_XS, is 2271 MB) - needs re-splitting",
+      "required_vram_mb": 3251
+    },
+    "params_b": 4.02,
+    "license": "apache-2.0",
+    "gguf_repo": "Menlo/Jan-nano-gguf (official)",
+    "gguf_file": "jan-nano-4b-Q4_K_M.gguf",
+    "gguf_size_mb": 2497,
+    "context_length": 40960,
+    "languages": "UNVERIFIED (not declared; Jan-nano-128k declares en)",
+    "capabilities": [
+      "tools",
+      "chat",
+      "json"
+    ],
+    "phone_ok": false,
+    "evidence": "https://huggingface.co/Menlo/Jan-nano (card lines 9-45) ; https://huggingface.co/Menlo/Jan-nano-gguf ; gh api repos/menloresearch/deep-research -> 404 ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=604 MB + 150 MB runtime. "
+  },
+  {
+    "model_name": "NuExtract3",
+    "huggingface_url": "https://huggingface.co/numind/NuExtract3",
+    "github_url": "https://github.com/numindai/nuextract",
+    "downloads_last_month": 60871,
+    "loves": 364,
+    "community_hype_score": "NuMind's current flagship (2026-04, Qwen3.5-4B base): 4B vision-language extractor + image-to-Markdown with reasoning mode; 61k downloads/30d, 364 likes, Apache-2.0. Benchmarks on the card are NuMind-internal (~600 documents). Too large for wllama as published: smallest file Q2_K is 1959 MB, Q4_K_M 2783 MB, plus a 676 MB mmproj.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_K_M 2783 MB single file > 2 GB limit; qwen35 arch IS in pinned llama.cpp, so it would load after re-splitting, desktop only",
+      "required_vram_mb": 3067
+    },
+    "params_b": 4.33,
+    "license": "apache-2.0",
+    "gguf_repo": "numind/NuExtract3-GGUF (official)",
+    "gguf_file": "NuExtract3-Q4_K_M.gguf",
+    "gguf_size_mb": 2783,
+    "context_length": 262144,
+    "languages": "UNVERIFIED (no language field; card says all document types)",
+    "capabilities": [
+      "extraction",
+      "json",
+      "vision",
+      "reasoning"
+    ],
+    "phone_ok": false,
+    "evidence": "https://huggingface.co/numind/NuExtract3 (card lines 42-73) ; https://huggingface.co/numind/NuExtract3-GGUF ; qwen35 in llama-arch.cpp@c7bda030 line 41 ; wllama 3.7.0 pins llama.cpp c7bda030 dated 2026-09-03 (gh api commit date); arch list checked in src/llama-arch.cpp at that commit | VRAM formula: gguf_size_mb + KV(f16, 4096 ctx)=134 MB + 150 MB runtime. Only 8 of 32 layers are full attention (config.json layer_types), so KV is small; linear-attention state not counted. Add 676 MB for mmproj when using images."
+  },
+  {
+    "model_name": "needle3 (Cactus-Compute)",
+    "huggingface_url": "https://huggingface.co/Cactus-Compute/needle3",
+    "github_url": "https://github.com/cactus-compute/needle",
+    "downloads_last_month": 36096,
+    "loves": 134,
+    "community_hype_score": "Released 2026-09-16; 36k downloads in its first days, GitHub repo cactus-compute/needle at 11.9k stars. Card claims it beats models 10x its size on mobile tool calls and matches 2-3x bigger models on extraction (vendor benchmarks, exact-match / field micro-F1); it trades away general chat entirely. Local lab notes (docs/slm-research/FINDINGS.md) found extraction strong but a 179-example LoRA gave no held-out gain (0.72 -> 0.72).",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "n/a - .cact (Cactus engine), no GGUF exists",
+      "required_vram_mb": null
+    },
+    "params_b": 0.121,
+    "license": "apache-2.0",
+    "gguf_repo": null,
+    "gguf_file": null,
+    "gguf_size_mb": null,
+    "context_length": null,
+    "languages": "UNVERIFIED (not declared on card)",
+    "capabilities": [
+      "tools",
+      "extraction",
+      "json",
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "NOT a GGUF/wllama model: needle runs on Cactus's own engine and .cact weight format (2-4 bit 'Cactus Quants'); the HF repo ships its own wasm/needle.wasm and wasm-component/needle.component.wasm. It cannot be loaded by wllama/llama.cpp. phone_ok refers to the .cact file (needle3.cact, 35 MB) on its own engine, not to wllama. https://huggingface.co/Cactus-Compute/needle3 (card + file list: needle3.cact 35.3 MB, wasm/needle.wasm 0.7 MB, checkpoints/needle3.safetensors 242 MB) ; gh api repos/cactus-compute/needle ; params 29-121M (laddered 2-20 layers) from /home/edu/Public/Valheim/docs/slm-research/FINDINGS.md lines 13,71 ; local copy of the wasm folder at /home/edu/.cache/slm-src/needle3-wasm"
+  },
+  {
+    "model_name": "needle2 (Cactus-Compute)",
+    "huggingface_url": "https://huggingface.co/Cactus-Compute/needle2",
+    "github_url": "https://github.com/cactus-compute/needle",
+    "downloads_last_month": 34669,
+    "loves": 320,
+    "community_hype_score": "Released 2026-07-29; 34.7k downloads/30d, 320 likes. Ships prebuilt engines for Android/iOS/Linux/Windows/RISC-V/MIPS plus wasm in the HF repo. Superseded by needle3 seven weeks later.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "n/a - .cact (Cactus engine), no GGUF exists",
+      "required_vram_mb": null
+    },
+    "params_b": 0.045,
+    "license": "apache-2.0",
+    "gguf_repo": null,
+    "gguf_file": null,
+    "gguf_size_mb": null,
+    "context_length": null,
+    "languages": "UNVERIFIED (not declared on card)",
+    "capabilities": [
+      "tools",
+      "extraction",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "NOT a GGUF/wllama model: needle runs on Cactus's own engine and .cact weight format (2-4 bit 'Cactus Quants'); the HF repo ships its own wasm/needle.wasm and wasm-component/needle.component.wasm. It cannot be loaded by wllama/llama.cpp. phone_ok refers to the .cact file (needle2.cact, 14 MB) on its own engine, not to wllama. https://huggingface.co/Cactus-Compute/needle2 (file list: needle2.cact 13.7 MB, wasm/needle.wasm 0.3 MB) ; params 45M from /home/edu/Public/Valheim/docs/slm-research/FINDINGS.md line 70 (not re-verified against the card)"
+  },
+  {
+    "model_name": "needle v1 (Cactus-Compute)",
+    "huggingface_url": "https://huggingface.co/Cactus-Compute/needle",
+    "github_url": "https://github.com/cactus-compute/needle",
+    "downloads_last_month": 358,
+    "loves": 348,
+    "community_hype_score": "First release (2026-03-16): 26M-param encoder-decoder 'Simple Attention Network' with no FFN, distilled from Gemini 3.1 per its card; 348 likes but only 358 downloads/30d now that needle2/3 exist. JAX/Flax checkpoint (needle.pkl, model.safetensors) plus needle-cq4.zip; no wasm build in this repo.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "n/a - .cact (Cactus engine), no GGUF exists",
+      "required_vram_mb": null
+    },
+    "params_b": 0.026,
+    "license": "mit",
+    "gguf_repo": null,
+    "gguf_file": null,
+    "gguf_size_mb": null,
+    "context_length": null,
+    "languages": "UNVERIFIED (not declared on card)",
+    "capabilities": [
+      "tools",
+      "json"
+    ],
+    "phone_ok": true,
+    "evidence": "NOT a GGUF/wllama model: needle runs on Cactus's own engine and .cact weight format (2-4 bit 'Cactus Quants'); the HF repo ships its own wasm/needle.wasm and wasm-component/needle.component.wasm. It cannot be loaded by wllama/llama.cpp. phone_ok refers to the .cact file (needle-cq4.zip, 16 MB) on its own engine, not to wllama. https://huggingface.co/Cactus-Compute/needle (card table: Parameters 26M; file list)"
+  }
+]

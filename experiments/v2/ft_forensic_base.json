@@ -1,0 +1,449 @@
+{
+ "which": "base",
+ "weights": null,
+ "n": 16,
+ "exact": 6,
+ "output_signature": "c71e4930e2a8c648",
+ "rows": [
+  {
+   "tag": "sparse->flag",
+   "query": "Un client veut déclarer un sinistre pour sa voiture.",
+   "expected": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "insufficient information",
+      "severity": "low"
+     }
+    }
+   ],
+   "calls": [],
+   "suppressed": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "VOIT-001",
+      "claimant": "Sinistre",
+      "incident_date": "2026-09-20",
+      "damage_type": "sinistre",
+      "amount": 0.0
+     }
+    }
+   ],
+   "exact": false,
+   "confidence": 0.1983
+  },
+  {
+   "tag": "sparse->flag",
+   "query": "Someone called about a fire in their kitchen.",
+   "expected": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "insufficient information",
+      "severity": "low"
+     }
+    }
+   ],
+   "calls": [],
+   "suppressed": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "fire in their kitchen",
+      "severity": "medium"
+     }
+    }
+   ],
+   "exact": false,
+   "confidence": 1.0
+  },
+  {
+   "tag": "sparse->flag",
+   "query": "J'ai eu un dégât des eaux hier.",
+   "expected": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "insufficient information",
+      "severity": "low"
+     }
+    }
+   ],
+   "calls": [],
+   "suppressed": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-7777",
+      "claimant": "Dégât des eaux",
+      "incident_date": "2026-09-20",
+      "damage_type": "damage",
+      "amount": 45.0
+     }
+    }
+   ],
+   "exact": false,
+   "confidence": 0.1227
+  },
+  {
+   "tag": "sparse->flag",
+   "query": "A customer wants to make a claim about their car.",
+   "expected": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "insufficient information",
+      "severity": "low"
+     }
+    }
+   ],
+   "calls": [],
+   "suppressed": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-77812",
+      "claimant": "Alex",
+      "incident_date": "2026-09-21",
+      "damage_type": "car",
+      "amount": 450.0
+     }
+    }
+   ],
+   "exact": false,
+   "confidence": 0.9851
+  },
+  {
+   "tag": "sparse->flag",
+   "query": "Log a theft claim for 800 euros.",
+   "expected": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "insufficient information",
+      "severity": "low"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "800",
+      "claimant": "theft",
+      "incident_date": "2026-09-21",
+      "damage_type": "theft",
+      "amount": 800.0
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": false,
+   "confidence": 0.9833
+  },
+  {
+   "tag": "offtopic->[]",
+   "query": "What is the capital of France?",
+   "expected": [],
+   "calls": [],
+   "suppressed": [],
+   "exact": true,
+   "confidence": 1.0
+  },
+  {
+   "tag": "offtopic->[]",
+   "query": "Play some jazz music",
+   "expected": [],
+   "calls": [],
+   "suppressed": [],
+   "exact": true,
+   "confidence": 1.0
+  },
+  {
+   "tag": "offtopic->[]",
+   "query": "Tell me a joke",
+   "expected": [],
+   "calls": [],
+   "suppressed": [
+    {
+     "name": "flag_for_review",
+     "arguments": {
+      "reason": "joke",
+      "severity": "high"
+     }
+    }
+   ],
+   "exact": true,
+   "confidence": 1.0
+  },
+  {
+   "tag": "offtopic->[]",
+   "query": "Set a reminder for 6pm",
+   "expected": [],
+   "calls": [],
+   "suppressed": [],
+   "exact": true,
+   "confidence": 1.0
+  },
+  {
+   "tag": "FR log_claim",
+   "query": "Sinistre AXA-2187, Monsieur Thomas Petit, collision le le 18 septembre 2026, 2150.5 euros.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2187",
+      "claimant": "Monsieur Thomas Petit",
+      "incident_date": "2026-09-18",
+      "damage_type": "collision",
+      "amount": 2150.5
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2187",
+      "claimant": "Monsieur Thomas Petit",
+      "incident_date": "2026-09-18",
+      "damage_type": "collision",
+      "amount": 2150.5
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": true,
+   "confidence": 1.0
+  },
+  {
+   "tag": "FR log_claim",
+   "query": "Contrat AXA-2000 : Madame Elena Moreau, dégât des eaux le le 15 septembre 2026, 450.0 euros.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2000",
+      "claimant": "Madame Elena Moreau",
+      "incident_date": "2026-09-15",
+      "damage_type": "dégât des eaux",
+      "amount": 450.0
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2000",
+      "claimant": "Madame Elena Moreau",
+      "incident_date": "2026-09-15",
+      "damage_type": "eaux",
+      "amount": 450.0
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": false,
+   "confidence": 1.0
+  },
+  {
+   "tag": "FR log_claim",
+   "query": "Contrat AXA-2306 : Madame Laura Fournier, vol le le 15 septembre 2026, 1200.0 euros.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2306",
+      "claimant": "Madame Laura Fournier",
+      "incident_date": "2026-09-15",
+      "damage_type": "vol",
+      "amount": 1200.0
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2306",
+      "claimant": "Madame Laura Fournier",
+      "incident_date": "2026-09-15",
+      "damage_type": "madame",
+      "amount": 1200.0
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": false,
+   "confidence": 0.9911
+  },
+  {
+   "tag": "FR log_claim",
+   "query": "Déclarer un sinistre AXA-2323 pour Monsieur Hugo Bernard, collision le le 2 août 2026, 2150.5 euros.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2323",
+      "claimant": "Monsieur Hugo Bernard",
+      "incident_date": "2026-08-02",
+      "damage_type": "collision",
+      "amount": 2150.5
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-2323",
+      "claimant": "Monsieur Hugo Bernard",
+      "incident_date": "2026-08-02",
+      "damage_type": "collision",
+      "amount": 2150.5
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": true,
+   "confidence": 1.0
+  },
+  {
+   "tag": "multi",
+   "query": "Log a car collision claim AXA-4230 for Ms Elena Moreau on 15 September 2026, repair cost 1200.0, and call them back next Tuesday on 04 11 22 33 44.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-4230",
+      "claimant": "Ms Elena Moreau",
+      "incident_date": "2026-09-15",
+      "damage_type": "car collision",
+      "amount": 1200.0
+     }
+    },
+    {
+     "name": "schedule_callback",
+     "arguments": {
+      "contact_number": "04 11 22 33 44",
+      "when": "next Tuesday"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-4230",
+      "claimant": "Ms Elena Moreau",
+      "incident_date": "2026-09-15",
+      "damage_type": "car collision",
+      "amount": 1200.0
+     }
+    },
+    {
+     "name": "schedule_callback",
+     "arguments": {
+      "contact_number": "04 11 22 33 44",
+      "when": "next Tuesday on 04 11 22 33 44"
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": false,
+   "confidence": 0.9896
+  },
+  {
+   "tag": "multi",
+   "query": "Déclarer un sinistre AXA-5076 pour Madame Claire Dubois le le 12 septembre 2026, coût 2800.0, et le rappeler demain matin au 06 55 44 33 22.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-5076",
+      "claimant": "Madame Claire Dubois",
+      "incident_date": "2026-09-12",
+      "damage_type": "collision",
+      "amount": 2800.0
+     }
+    },
+    {
+     "name": "schedule_callback",
+     "arguments": {
+      "contact_number": "06 55 44 33 22",
+      "when": "demain matin"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-5076",
+      "claimant": "Madame Claire Dubois",
+      "incident_date": "2026-09-12",
+      "damage_type": "sinistre",
+      "amount": 2800.0
+     }
+    },
+    {
+     "name": "schedule_callback",
+     "arguments": {
+      "contact_number": "06 55 44 33 22",
+      "when": "tomorrow morning"
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": false,
+   "confidence": 0.7534
+  },
+  {
+   "tag": "multi",
+   "query": "Déclarer un sinistre AXA-5285 pour Monsieur Jean Dupont le le 5 septembre 2026, coût 12000.0, et le rappeler demain à 9h au 07 45 12 88 90.",
+   "expected": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-5285",
+      "claimant": "Monsieur Jean Dupont",
+      "incident_date": "2026-09-05",
+      "damage_type": "collision",
+      "amount": 12000.0
+     }
+    },
+    {
+     "name": "schedule_callback",
+     "arguments": {
+      "contact_number": "07 45 12 88 90",
+      "when": "demain à 9h"
+     }
+    }
+   ],
+   "calls": [
+    {
+     "name": "log_claim",
+     "arguments": {
+      "policy_number": "AXA-5285",
+      "claimant": "Monsieur Jean Dupont",
+      "incident_date": "2026-09-05",
+      "damage_type": "signistre",
+      "amount": 12000.0
+     }
+    },
+    {
+     "name": "schedule_callback",
+     "arguments": {
+      "contact_number": "07 45 12 88 90",
+      "when": "demain 09:00"
+     }
+    }
+   ],
+   "suppressed": [],
+   "exact": false,
+   "confidence": 0.201
+  }
+ ]
+}

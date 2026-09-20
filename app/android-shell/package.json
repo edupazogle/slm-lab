@@ -1,0 +1,17 @@
+{
+  "name": "slm-lab-android-shell",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Capacitor Android shell around the SLM Lab PWA (slm/app/web/dist).",
+  "scripts": {
+    "sync": "rm -rf www && cp -r ../web/dist www && npx cap sync android",
+    "apk": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

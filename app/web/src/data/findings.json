@@ -1,0 +1,15 @@
+{
+  "_note": "Only MEASURED values belong here. null means not measured yet. Owner: supervisor session. Never invent.",
+  "updated": "2026-09-21",
+  "machine": "Ryzen 7 7800X3D (WSL2 VM: 4 cores / 8 threads, 12 GB RAM), headless Chromium 153, WASM CPU (no WebGPU in headless WSL)",
+  "inBrowser": [
+    { "model": "SmolLM2-360M-Instruct Q8_0", "sizeMB": 386, "threads": 4, "prefillTokS": null, "decodeTokS": null,
+      "status": "functional run verified; timed run pending a quiet machine" }
+  ],
+  "needle3": { "paramsM": 121, "fileMB": 35, "engine": "own .cact engine (not GGUF/wllama)", "evalV2": null },
+  "limits": [
+    "Open-ended reasoning and factual recall are weak in models under 2B parameters.",
+    "Prompt processing in WebAssembly is slow: long prompts cost seconds before the first word. Keep prompts short.",
+    "A phone reaching the app over plain http on the LAN is not a secure context, so it runs single-threaded."
+  ]
+}

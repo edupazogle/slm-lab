@@ -1,0 +1,98 @@
+E0921 01:07:09.774970  923044 cuda_executor.cc:1365] [0] Failed to allocate device memory of 7.20GiB (7728005120 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla+/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:230
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:487
+
+E0921 01:07:09.777102  923044 cuda_executor.cc:1365] [0] Failed to allocate device memory of 6.48GiB (6955204608 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla+/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:230
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:487
+
+E0921 01:07:09.778902  923044 cuda_executor.cc:1365] [0] Failed to allocate device memory of 5.83GiB (6259683840 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla+/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:230
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:487
+
+E0921 01:07:09.780992  923044 cuda_executor.cc:1365] [0] Failed to allocate device memory of 5.25GiB (5633715200 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla+/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:230
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:487
+
+E0921 01:07:09.782320  923044 cuda_executor.cc:1365] [0] Failed to allocate device memory of 4.72GiB (5070343680 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla+/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:230
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:487
+
+E0921 01:07:09.784787  923044 cuda_executor.cc:1365] [0] Failed to allocate device memory of 4.25GiB (4563309056 bytes): RESOURCE_EXHAUSTED: : CUDA_ERROR_OUT_OF_MEMORY: out of memory
+=== Source Location Trace: ===
+external/xla+/xla/stream_executor/cuda/cuda_status.cc:45
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:230
+external/xla+/xla/stream_executor/cuda/cuda_device_allocator.cc:487
+
+  backend   gpu  float32
+  depth     20 layers
+  data      1200 examples  seq_len 640  cap 640
+  numerics  CQ W4 STE + A8 (matches export)
+  lora      rank 32  alpha 64  5 weight groups
+  holdout   120 examples for validation
+  schedule  540 steps  warmup 27  cosine decay  clip 1.0  (compiling...)
+  step      10/540  loss 0.4203
+  step      20/540  loss 0.4476
+  step      30/540  loss 0.2970
+  step      40/540  loss 0.3027
+  step      50/540  loss 0.3762
+  step      60/540  loss 0.1501
+  step      70/540  loss 0.3273
+  step      80/540  loss 0.6584
+  step      90/540  loss 0.1788
+  step      100/540  loss 0.1528
+  step      110/540  loss 0.1182
+  step      120/540  loss 0.1233
+  step      130/540  loss 0.0790
+  epoch     1/4  loss 0.1174  val 0.1355
+  step      140/540  loss 0.1199
+  step      150/540  loss 0.0812
+  step      160/540  loss 0.0618
+  step      170/540  loss 0.0969
+  step      180/540  loss 0.0754
+  step      190/540  loss 0.0281
+  step      200/540  loss 0.0599
+  step      210/540  loss 0.1351
+  step      220/540  loss 0.0699
+  step      230/540  loss 0.0266
+  step      240/540  loss 0.0332
+  step      250/540  loss 0.0302
+  step      260/540  loss 0.0475
+  step      270/540  loss 0.1526
+  epoch     2/4  loss 0.1526  val 0.0522
+  step      280/540  loss 0.0533
+  step      290/540  loss 0.0199
+  step      300/540  loss 0.0291
+  step      310/540  loss 0.0384
+  step      320/540  loss 0.0386
+  step      330/540  loss 0.0313
+  step      340/540  loss 0.0559
+  step      350/540  loss 0.0074
+  step      360/540  loss 0.0228
+  step      370/540  loss 0.0644
+  step      380/540  loss 0.0392
+  step      390/540  loss 0.0155
+  step      400/540  loss 0.0043
+  epoch     3/4  loss 0.0030  val 0.0312
+  step      410/540  loss 0.0325
+  step      420/540  loss 0.0233
+  step      430/540  loss 0.0013
+  step      440/540  loss 0.0418
+  step      450/540  loss 0.0278
+  step      460/540  loss 0.0365
+  step      470/540  loss 0.0091
+  step      480/540  loss 0.0016
+  step      490/540  loss 0.0313
+  step      500/540  loss 0.0389
+  step      510/540  loss 0.0372
+  step      520/540  loss 0.0222

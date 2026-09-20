@@ -1,0 +1,23 @@
+# Phase-1 service state, captured 2026-09-21T00:55:24+02:00 BEFORE remediation
+## listening sockets
+LISTEN 0      5           127.0.0.1:8097       0.0.0.0:*    users:(("python3",pid=855668,fd=3))    
+LISTEN 0      2048        127.0.0.1:8000       0.0.0.0:*    users:(("python",pid=253145,fd=9))     
+LISTEN 0      511                 *:3001             *:*    users:(("node",pid=231931,fd=19))      
+LISTEN 0      511                 *:8888             *:*    users:(("node",pid=231733,fd=18))      
+## AnythingLLM onboarding + auth state
+{"onboardingComplete":false}
+{'RequiresAuth': False, 'AuthToken': False, 'MultiUserMode': False, 'LLMProvider': None, 'LLMModel': None, 'EmbeddingEngine': 'native', 'VectorDB': None, 'DisableTelemetry': 'true'}
+## CORS reflection (foreign Origin)
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://evil.example
+HTTP/1.1 405 Method Not Allowed
+access-control-allow-origin: https://evil.example
+access-control-allow-credentials: true
+## container
+network=host restart=unless-stopped image=mintplexlabs/anythingllm
+## cpu topology
+CPU(s):                                  8
+Model name:                              AMD Ryzen 7 7800X3D 8-Core Processor
+Thread(s) per core:                      2
+Core(s) per socket:                      4
+captured+remediated 2026-09-21T00:55:49+02:00: anythingllm stopped (restart=no), llama server pid 253145 killed
