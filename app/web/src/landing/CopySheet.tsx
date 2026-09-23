@@ -6,6 +6,8 @@ export interface SheetState {
   modelLabel: string | null;
   /** host a download is running against right now (Resource Timing only records it once it ends) */
   pendingHost: string | null;
+  /** true when the model came out of this browser's storage, false when it was downloaded, null before either */
+  modelFromCache: boolean | null;
   noteChars: number;
   /** when the first on-device run completed; null until then */
   stampedAt: Date | null;
@@ -49,7 +51,7 @@ export function CopySheet({ meter, state }: { meter: RequestMeter; state: SheetS
 
       {meter.supported ? (
         <dl aria-live="polite">
-          <dt>Requests made by this page</dt>
+          <dt>Requests from this page's main thread</dt>
           <dd data-meter="total">{n(meter.total)}</dd>
           <dt className="sub">to this site</dt>
           <dd data-meter="own">{n(meter.own)}</dd>
@@ -71,21 +73,38 @@ export function CopySheet({ meter, state }: { meter: RequestMeter; state: SheetS
 
       {meter.other > 0 && (
         <p className="sheet-note">
-          Downloads only: the model file, which Hugging Face redirects to its CDN. Nothing you typed is in those requests.
+          Downloads only: the model file. Nothing you typed is in those requests.
         </p>
       )}
+
+      {/* What the instrument can and cannot see, said before anyone reads a 0 as proof. */}
+      <p className="sheet-note">
+        This counter reads the browser's own record of what the page's main thread fetched, and that is where the model
+        download runs. It cannot see requests made inside the engine's Web Worker, which has its own record and fetches the
+        engine's program file from this site; and a chain of redirects counts once, under the host first asked. So a zero here
+        is a qualified reading, not a proof. The proof is below.
+      </p>
 
       <hr />
       <dl>
         <dt>Model loaded</dt>
         <dd data-meter="model">{state.modelLabel ?? 'none'}</dd>
+        {state.modelFromCache !== null && (
+          <>
+            <dt className="sub">it came from</dt>
+            <dd data-meter="source">{state.modelFromCache ? "this browser's storage" : 'huggingface.co, downloaded once'}</dd>
+          </>
+        )}
         <dt>Characters in the note</dt>
         <dd data-meter="chars">{n(state.noteChars)}</dd>
         <dt className="sub">that left this device</dt>
         <dd data-meter="sent">0</dd>
-        <dt>Cost of this session</dt>
+        <dt>Billed for this session</dt>
         <dd data-meter="cost">0.0000 EUR</dd>
       </dl>
+      <p className="sheet-note">
+        Nothing is billed: no provider, no per-token charge. Your device's electricity is not counted.
+      </p>
       <hr />
 
       <div className="stamp-slot" data-filled={landed ? '1' : '0'}>
@@ -102,8 +121,8 @@ export function CopySheet({ meter, state }: { meter: RequestMeter; state: SheetS
       </div>
 
       <p className="sheet-note">
-        Check it yourself: open DevTools, then Network, and run the demo. The note never appears in a request, because the page
-        never sends it. The engine's worker also fetches its own program file from this site; DevTools lists that too.
+        Check it yourself: open DevTools, then Network, and run the demo. That list covers the page and the worker, every
+        redirect hop, and every request body. The note is in none of them, because the page never sends it.
       </p>
     </aside>
   );

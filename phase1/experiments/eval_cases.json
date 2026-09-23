@@ -1,0 +1,82 @@
+[
+  [
+    "Policy AXA-7711: Ms Nadia Rousseau, water damage in the attic on 22 September 2026, 3100 euros.",
+    [
+      {
+        "name": "log_claim",
+        "arguments": {
+          "policy_number": "AXA-7711",
+          "claimant": "Ms Nadia Rousseau",
+          "incident_date": "2026-09-22",
+          "damage_type": "water damage",
+          "amount": 3100.0
+        }
+      }
+    ]
+  ],
+  [
+    "Contrat AXA-7711 : Madame Nadia Rousseau, dégât des eaux dans les combles le 22 septembre 2026, 3100 euros.",
+    [
+      {
+        "name": "log_claim",
+        "arguments": {
+          "policy_number": "AXA-7711",
+          "claimant": "Madame Nadia Rousseau",
+          "incident_date": "2026-09-22",
+          "damage_type": "dégât des eaux",
+          "amount": 3100.0
+        }
+      }
+    ]
+  ],
+  [
+    "Log a car collision claim AXA-8822 for Mr Olivier Renard on 11 August 2026, cost 1900 euros, and call him back tomorrow afternoon on 06 77 88 99 00.",
+    [
+      {
+        "name": "log_claim",
+        "arguments": {
+          "policy_number": "AXA-8822",
+          "claimant": "Mr Olivier Renard",
+          "incident_date": "2026-08-11",
+          "damage_type": "car collision",
+          "amount": 1900.0
+        }
+      },
+      {
+        "name": "schedule_callback",
+        "arguments": {
+          "contact_number": "06 77 88 99 00",
+          "when": "tomorrow afternoon"
+        }
+      }
+    ]
+  ],
+  [
+    "Rappeler Madame Rousseau demain à 14h au 01 99 88 77 66.",
+    [
+      {
+        "name": "schedule_callback",
+        "arguments": {
+          "contact_number": "01 99 88 77 66",
+          "when": "demain à 14h"
+        }
+      }
+    ]
+  ],
+  [
+    "A policyholder reported a leak but gave no policy number.",
+    [
+      {
+        "name": "flag_for_review",
+        "arguments": {
+          "reason": "insufficient information",
+          "severity": "low"
+        }
+      }
+    ]
+  ],
+  [
+    "What is the tallest mountain?",
+    []
+  ]
+]

@@ -5,7 +5,8 @@
 // Send button submits; shadcn tokens and Tailwind-4-only classes remapped to Tailwind 3 + the carbon identity (the form
 // is a tinted `.ff` field with its small label inside the box, the text is set in the typed face); the submit/stop
 // controls carry text labels instead of being icon-only circles; the dictation mic sub-part was dropped (no local
-// speech-to-text ships in this app, and the build spec forbids stubs); `label` and `hint` props added.
+// speech-to-text ships in this app, and the build spec forbids stubs); `label` and `allowEmpty` props added (a skill
+// like "Synthetic claims" runs with no text at all); the textarea ref is typed for React 18's RefObject.
 
 /**
  * @file prompt-input.tsx
@@ -101,7 +102,8 @@ interface PromptFormState {
   setText: (t: string) => void;
   streaming: boolean;
   attachments: PromptAttachment[];
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  allowEmpty: boolean;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
   submit: () => void;
   onStop?: () => void;
 }
@@ -141,6 +143,8 @@ export interface PromptInputProps
   disabled?: boolean;
   /** Small label set inside the field, top-left (form identity). */
   label?: React.ReactNode;
+  /** Allow a submit with no text and no attachment (a skill that needs no input). @default false */
+  allowEmpty?: boolean;
 }
 
 /**
@@ -166,13 +170,14 @@ export function PromptInput({
   attachments = [],
   disabled,
   label,
+  allowEmpty = false,
   className,
   children,
   ...props
 }: PromptInputProps) {
   const provider = usePromptInputContext();
   const [internal, setInternal] = React.useState('');
-  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Resolve text from controlled prop → provider → internal state.
   const text = value ?? provider?.text ?? internal;
@@ -189,12 +194,12 @@ export function PromptInput({
 
   const submit = React.useCallback(() => {
     const trimmed = text.trim();
-    if ((!trimmed && resolvedAttachments.length === 0) || streaming || disabled)
+    if ((!trimmed && resolvedAttachments.length === 0 && !allowEmpty) || streaming || disabled)
       return;
     onSubmit(trimmed, resolvedAttachments);
     setText('');
     provider?.setAttachments([]);
-  }, [text, resolvedAttachments, streaming, disabled, onSubmit, setText, provider]);
+  }, [text, resolvedAttachments, allowEmpty, streaming, disabled, onSubmit, setText, provider]);
 
   const formState = React.useMemo<PromptFormState>(
     () => ({
@@ -202,11 +207,12 @@ export function PromptInput({
       setText,
       streaming,
       attachments: resolvedAttachments,
+      allowEmpty,
       textareaRef,
       submit,
       onStop,
     }),
-    [text, setText, streaming, resolvedAttachments, submit, onStop],
+    [text, setText, streaming, resolvedAttachments, allowEmpty, submit, onStop],
   );
 
   return (
@@ -324,8 +330,8 @@ export function PromptInputSubmit({
   stopLabel,
   ...props
 }: PromptInputSubmitProps) {
-  const { streaming, onStop, text, attachments } = usePromptForm();
-  const empty = text.trim().length === 0 && attachments.length === 0;
+  const { streaming, onStop, text, attachments, allowEmpty } = usePromptForm();
+  const empty = text.trim().length === 0 && attachments.length === 0 && !allowEmpty;
 
   if (streaming) {
     return (

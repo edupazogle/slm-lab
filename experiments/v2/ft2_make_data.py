@@ -19,9 +19,10 @@ usage: ft2_make_data.py [n_train] [n_eval] [seed]
 import json, random, sys
 from datetime import date, timedelta
 
-N_TRAIN = int(sys.argv[1]) if len(sys.argv) > 1 else 1200
-N_EVAL = int(sys.argv[2]) if len(sys.argv) > 2 else 240
-SEED = int(sys.argv[3]) if len(sys.argv) > 3 else 7
+_ARGS = sys.argv[1:] if __name__ == "__main__" else []   # importers (ft2_predict.py) pass their own argv; never parse it here
+N_TRAIN = int(_ARGS[0]) if len(_ARGS) > 0 else 1200
+N_EVAL = int(_ARGS[1]) if len(_ARGS) > 1 else 240
+SEED = int(_ARGS[2]) if len(_ARGS) > 2 else 7
 TODAY = date(2026, 9, 20)
 SYSTEM = {"en": "date: 2026-09-20 Sun; locale: en-GB", "fr": "date: 2026-09-20 Sun; locale: fr-FR"}
 

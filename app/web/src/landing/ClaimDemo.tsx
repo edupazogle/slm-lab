@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { DemoFailure, FailureKind, FieldKey, FieldValues, LoadInfo, RunResult } from './demo-engine';
 
 // A realistic note, entirely made up. The phone number sits in the 01 99 00 block that the French
@@ -12,10 +12,10 @@ export const SAMPLE_NOTE =
 const FIELDS: { key: FieldKey; label: string; wide?: boolean; tall?: boolean }[] = [
   { key: 'policy_number', label: 'Policy number' },
   { key: 'date_of_incident', label: 'Date of incident' },
-  { key: 'claimant', label: 'Claimant', wide: true },
-  { key: 'damage', label: 'Damage', wide: true, tall: true },
-  { key: 'amount_eur', label: 'Amount claimed (EUR)' },
-  { key: 'phone', label: 'Phone' },
+  { key: 'claimant_name', label: 'Claimant', wide: true },
+  { key: 'what_was_damaged', label: 'Damage', wide: true, tall: true },
+  { key: 'amount_claimed_eur', label: 'Amount claimed (EUR)' },
+  { key: 'phone_number', label: 'Phone' },
 ];
 
 type Phase = 'idle' | 'starting' | 'checking' | 'downloading' | 'initialising' | 'reading' | 'writing' | 'done' | 'error';
@@ -32,6 +32,7 @@ export interface LiveRun {
 export interface DemoReport {
   modelLabel: string | null;
   pendingHost: string | null;
+  modelFromCache: boolean | null;
   noteChars: number;
   stampedAt: Date | null;
   liveRun: LiveRun | null;
@@ -43,8 +44,12 @@ const FAILURE_TEXT: Record<FailureKind, { what: string; todo: string }> = {
     todo: 'Open the page in a current Chrome, Edge, Firefox or Safari. If this is a managed work browser, WebAssembly may be switched off by policy.',
   },
   offline: {
-    what: 'This device is offline and the model is not in this browser yet.',
-    todo: 'Connect once to download the 386 MB file. After that the demo starts from storage.',
+    what: 'This device is offline, and what the demo needs is not in this browser yet.',
+    todo: 'Connect once to fetch the engine and the 386 MB model. After that the demo starts from storage.',
+  },
+  engine: {
+    what: 'The page could not fetch the engine that runs the model.',
+    todo: 'That file comes from this site, so this is usually a dropped connection. Reload the page and press the button again.',
   },
   download: {
     what: 'The download stopped before it finished.',
@@ -88,12 +93,28 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
   const engineRef = useRef<typeof import('./demo-engine') | null>(null);
   const loadInfoRef = useRef<LoadInfo | null>(null);
 
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+
+  // the note box grows with its text, so nothing the model will read is hidden below a scrollbar
+  useLayoutEffect(() => {
+    const fit = () => {
+      const el = noteRef.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    document.fonts?.ready.then(fit).catch(() => undefined);
+    return () => window.removeEventListener('resize', fit);
+  }, [note]);
+
   const busy = phase !== 'idle' && phase !== 'done' && phase !== 'error';
   const pendingHost = phase === 'downloading' && fromCache === false ? 'huggingface.co' : null;
 
   useEffect(() => {
-    onReport({ modelLabel, pendingHost, noteChars: note.length, stampedAt, liveRun });
-  }, [onReport, modelLabel, pendingHost, note.length, stampedAt, liveRun]);
+    onReport({ modelLabel, pendingHost, modelFromCache: modelLabel ? fromCache : null, noteChars: note.length, stampedAt, liveRun });
+  }, [onReport, modelLabel, pendingHost, fromCache, note.length, stampedAt, liveRun]);
 
   // free the worker and its memory when the tab goes away
   useEffect(() => {
@@ -113,8 +134,19 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
     setPhase('starting');
     let stage = 'loading the engine';
     try {
-      // the dynamic import keeps wllama out of the landing page's own bundle
-      const engine = engineRef.current ?? (await import('./demo-engine'));
+      // The dynamic import keeps wllama out of the landing page's own bundle, so the engine is a
+      // second file fetched from this site when the button is pressed. Offline, that is where the run
+      // stops first, and without this the visitor got the browser's "Failed to fetch dynamically
+      // imported module" instead of a sentence (measured 2026-09-21 with the context set offline).
+      const engine =
+        engineRef.current ??
+        (await import('./demo-engine').catch((err: unknown) => {
+          const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+          throw {
+            kind: offline ? 'offline' : 'engine',
+            detail: String((err as Error)?.message ?? err),
+          } satisfies Pick<DemoFailure, 'kind' | 'detail'>;
+        }));
       engineRef.current = engine;
 
       if (!engine.isLoaded()) {
@@ -190,8 +222,8 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
     <section className="demo" id="try" aria-labelledby="try-title">
       <h2 id="try-title">Try it here</h2>
       <p className="lead">
-        A claims handler's note goes in on the left. A model with 360 million parameters reads it inside this tab and fills in
-        the form on the right. The note is fictional. Change it if you want to test the model.
+        A claims handler's note goes into the first box. A model with 360 million parameters reads it inside this tab and
+        fills in the claim form. The note is fictional. Change it if you want to test the model.
       </p>
 
       <div className="demo-grid">
@@ -199,10 +231,11 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
           <label className="ff note-field">
             <span className="ff-label">Claim note, as it was taken on the phone</span>
             <textarea
+              ref={noteRef}
               className="typed"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              rows={10}
+              rows={8}
               spellCheck={false}
               disabled={busy}
               maxLength={4000}
@@ -213,7 +246,7 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
             {buttonLabel}
           </button>
 
-          <div className="demo-status" aria-live="polite">
+          <div className="demo-status" aria-live="polite" data-phase={phase}>
             {phase === 'idle' && !loadedBefore && (
               <p>
                 386 MB from huggingface.co, downloaded once and kept in this browser's storage. After the first time it starts
@@ -317,8 +350,8 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
               <b data-run="prefill">{result.prefillTokS !== null ? `${result.prefillTokS.toFixed(1)} tokens/s` : 'not reported'}</b>
             </div>
             <div>
-              <span>Note length</span>
-              <b>{result.promptTokens !== null ? `${result.promptTokens} tokens` : 'not reported'}</b>
+              <span>Prompt read</span>
+              <b data-run="prompt">{result.promptTokens !== null ? `${result.promptTokens} tokens` : 'not reported'}</b>
             </div>
             <div>
               <span>Threads</span>
@@ -329,13 +362,14 @@ export function ClaimDemo({ onReport }: { onReport: (r: DemoReport) => void }) {
               <b>{(result.wallMs / 1000).toFixed(1)} s</b>
             </div>
             <div>
-              <span>Cost</span>
-              <b>0.0000 EUR</b>
+              <span>Billed</span>
+              <b data-run="cost">0.0000 EUR</b>
             </div>
           </div>
           <p className="run-note">
             Small models make mistakes: compare the form with the note. Speeds are the engine's own timings for this one run,
-            not a benchmark.
+            not a benchmark. The prompt is the note plus a two-sentence instruction. Nothing is billed for the run; your
+            device's electricity is not counted.
             {!result.parsed && ' The answer was cut off at 200 tokens, so the form shows what was written up to that point.'}
             {loadInfo && !loadInfo.multithread && ' This page is not cross-origin isolated here, so the model ran on one thread.'}
           </p>

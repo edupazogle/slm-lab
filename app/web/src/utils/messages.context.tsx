@@ -1,115 +1,174 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { Conversation, Message } from './types';
-import { WllamaStorage } from './utils';
+// Conversations, kept in this browser's IndexedDB (idb-keyval), one record per conversation. Replaces the vendored
+// store that JSON-stringified every conversation into localStorage on every streamed token (5 MB quota, synchronous,
+// O(history) per token). Writes are debounced while an answer streams and flushed when it ends.
+//
+// Data that must live in memory only (the Anonymise mapping between placeholders and real values) is removed by
+// `forStorage` before a record is written, so it never reaches the disk.
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { createStore, del, entries, set } from 'idb-keyval';
+import type { Conversation, Message } from './types';
+import { errorText, newId } from './utils';
+import { forStorage } from '../skills/storage';
 
 interface MessagesContextValue {
   conversations: Conversation[];
-  newConversation: (message: Message) => Conversation;
-  deleteConversation: (id: number) => void;
-  addMessageToConversation: (id: number, message: Message) => void;
-  getConversationById: (id: number) => Conversation | undefined;
-  editMessageInConversation: (
-    conversationId: number,
-    messageId: number,
-    content: string
-  ) => void;
+  ready: boolean;
+  /** why conversations are not being saved, when they are not */
+  storageError: string | null;
+  getConversation(id: number | null): Conversation | undefined;
+  /** the latest state, readable from async code that outlived a render */
+  readConversation(id: number): Conversation | undefined;
+  createConversation(title: string, messages: Message[]): Conversation;
+  setMessages(convId: number, fn: (prev: Message[]) => Message[], opts?: { flush?: boolean }): void;
+  renameConversation(id: number, title: string): void;
+  deleteConversation(id: number): void;
 }
 
-const MessagesContext = createContext<MessagesContextValue>({} as any);
+const MessagesContext = createContext<MessagesContextValue | null>(null);
 
-type ConvMap = { [id: number]: Conversation };
+let store: ReturnType<typeof createStore> | null = null;
+function getStore() {
+  store ??= createStore('slm-lab-chat', 'conversations');
+  return store;
+}
 
-export const MessagesProvider = ({ children }: any) => {
-  const [conversations, _setConversations] = useState<ConvMap>(
-    WllamaStorage.load('conversations', {})
-  );
-  const sortedConversations = useMemo(() => {
-    return Object.values(conversations).sort((a, b) => {
-      const lastMessageA = a.messages[a.messages.length - 1];
-      const lastMessageB = b.messages[b.messages.length - 1];
-      return lastMessageB.id - lastMessageA.id;
-    });
-  }, [conversations]);
+type ConvMap = Record<number, Conversation>;
 
-  // proxy function for saving to localStorage
-  const setConversations = (fn: (prev: ConvMap) => ConvMap) => {
-    _setConversations((prev) => {
-      const next = fn(prev);
-      WllamaStorage.save('conversations', next);
-      return next;
-    });
-  };
+export const MessagesProvider = ({ children }: { children: ReactNode }) => {
+  const [convs, setConvs] = useState<ConvMap>({});
+  const convsRef = useRef<ConvMap>({});
+  const [ready, setReady] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
-  const newConversation = (message: Message) => {
-    const conv: Conversation = {
-      id: Date.now(),
-      messages: [message],
-    };
-    setConversations((prevConversations) => ({
-      ...prevConversations,
-      [conv.id]: conv,
-    }));
-    return conv;
-  };
-
-  const deleteConversation = (conversationId: number) => {
-    setConversations((prevConversations) => {
-      const newConversations = { ...prevConversations };
-      delete newConversations[conversationId];
-      return newConversations;
-    });
-  };
-
-  const addMessageToConversation = (
-    conversationId: number,
-    message: Message
-  ) => {
-    setConversations((prevConversations) => {
-      if (prevConversations[conversationId]) {
-        const newConversations = { ...prevConversations };
-        const conv = newConversations[conversationId];
-        newConversations[conversationId].messages = [...conv.messages, message];
-        return newConversations;
-      } else {
-        return prevConversations;
-      }
-    });
-  };
-
-  const editMessageInConversation = (
-    conversationId: number,
-    messageId: number,
-    content: string
-  ) => {
-    setConversations((prevConversations) => {
-      if (prevConversations[conversationId]) {
-        const newConversations = { ...prevConversations };
-        const conv = newConversations[conversationId];
-        const updatedMessages = conv.messages.map((message) => {
-          if (message.id === messageId) {
-            return { ...message, content };
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const all = await entries<number, Conversation>(getStore());
+        if (cancelled) return;
+        const map: ConvMap = {};
+        for (const [id, conv] of all) {
+          if (conv && Array.isArray(conv.messages)) {
+            // an answer that was streaming when the page closed is finished as it stands
+            map[Number(id)] = {
+              ...conv,
+              messages: conv.messages.map((m) => (m.pending ? { ...m, pending: false, error: m.error ?? 'Interrupted when the page was closed.' } : m)),
+            };
           }
-          return message;
-        });
-        newConversations[conversationId].messages = updatedMessages;
-        return newConversations;
-      } else {
-        return prevConversations;
+        }
+        convsRef.current = map;
+        setConvs(map);
+      } catch (e) {
+        setStorageError(`Conversations are not being saved: this browser refused its local database (${errorText(e)}).`);
+      } finally {
+        if (!cancelled) setReady(true);
       }
-    });
-  };
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const getConversationById = (id: number) => conversations[id];
+  const writeNow = useCallback(async (id: number) => {
+    clearTimeout(timers.current[id]);
+    delete timers.current[id];
+    const conv = convsRef.current[id];
+    try {
+      if (conv) await set(id, forStorage(conv), getStore());
+      else await del(id, getStore());
+    } catch (e) {
+      setStorageError(`Conversations are not being saved: ${errorText(e)}.`);
+    }
+  }, []);
+
+  const schedule = useCallback(
+    (id: number, flush: boolean) => {
+      if (flush) {
+        void writeNow(id);
+        return;
+      }
+      if (timers.current[id]) return;
+      timers.current[id] = setTimeout(() => void writeNow(id), 800);
+    },
+    [writeNow]
+  );
+
+  const commit = useCallback((next: ConvMap) => {
+    convsRef.current = next;
+    setConvs(next);
+  }, []);
+
+  const createConversation = useCallback(
+    (title: string, messages: Message[]) => {
+      const now = Date.now();
+      const conv: Conversation = { id: newId(), title, messages, createdAt: now, updatedAt: now };
+      commit({ ...convsRef.current, [conv.id]: conv });
+      schedule(conv.id, true);
+      return conv;
+    },
+    [commit, schedule]
+  );
+
+  const setMessages = useCallback(
+    (convId: number, fn: (prev: Message[]) => Message[], opts?: { flush?: boolean }) => {
+      const conv = convsRef.current[convId];
+      if (!conv) return;
+      commit({ ...convsRef.current, [convId]: { ...conv, messages: fn(conv.messages), updatedAt: Date.now() } });
+      schedule(convId, !!opts?.flush);
+    },
+    [commit, schedule]
+  );
+
+  const renameConversation = useCallback(
+    (id: number, title: string) => {
+      const conv = convsRef.current[id];
+      if (!conv) return;
+      commit({ ...convsRef.current, [id]: { ...conv, title: title.trim() || conv.title } });
+      schedule(id, true);
+    },
+    [commit, schedule]
+  );
+
+  const deleteConversation = useCallback(
+    (id: number) => {
+      const next = { ...convsRef.current };
+      delete next[id];
+      commit(next);
+      schedule(id, true);
+    },
+    [commit, schedule]
+  );
+
+  const conversations = useMemo(
+    () => Object.values(convs).sort((a, b) => b.updatedAt - a.updatedAt),
+    [convs]
+  );
+
+  const getConversation = useCallback((id: number | null) => (id == null ? undefined : convs[id]), [convs]);
+  const readConversation = useCallback((id: number) => convsRef.current[id], []);
 
   return (
     <MessagesContext.Provider
       value={{
-        conversations: sortedConversations,
-        newConversation,
+        conversations,
+        ready,
+        storageError,
+        getConversation,
+        readConversation,
+        createConversation,
+        setMessages,
+        renameConversation,
         deleteConversation,
-        addMessageToConversation,
-        getConversationById,
-        editMessageInConversation,
       }}
     >
       {children}
@@ -117,4 +176,8 @@ export const MessagesProvider = ({ children }: any) => {
   );
 };
 
-export const useMessages = () => useContext(MessagesContext);
+export const useMessages = () => {
+  const ctx = useContext(MessagesContext);
+  if (!ctx) throw new Error('useMessages must be used inside MessagesProvider');
+  return ctx;
+};

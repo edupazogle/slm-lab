@@ -98,7 +98,14 @@ export function StorageMeter({
       )}
       {persisted === false && (
         <p className="mt-1 text-xs text-base-content/70">
-          The browser may clear this data when the device runs low on space.
+          The browser has not promised to keep this data: it may clear the downloaded models when the device runs low on
+          space, and Safari clears it after about a week without a visit. Downloading again is the only way back — a
+          download cannot resume.
+        </p>
+      )}
+      {persisted === true && (
+        <p className="mt-1 text-xs text-base-content/70">
+          The browser has agreed to keep this data until you delete it.
         </p>
       )}
     </div>

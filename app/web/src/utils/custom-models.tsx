@@ -1,10 +1,18 @@
-import { DisplayedModel } from './displayed-model';
-import { WllamaStorage } from './utils';
-
+// From the vendored wllama examples/main (MIT, ngxson/wllama @ 46af429): validates a model URL the person typed by a
+// ranged fetch of the GGUF magic bytes, then sums the size of every shard by HEAD. Changes: the debugging
+// `window._exportModelList` hook was removed; errors are plain sentences; returns a plain record.
 const ggufMagicNumber = new Uint8Array([0x47, 0x47, 0x55, 0x46]);
 
-export async function verifyCustomModel(url: string): Promise<DisplayedModel> {
-  const _url = url.replace(/\?.*/, '');
+export interface VerifiedModel {
+  url: string;
+  size: number;
+}
+
+export async function verifyCustomModel(url: string): Promise<VerifiedModel> {
+  const _url = url.trim().replace(/\?.*/, '');
+  if (!/^https:\/\/(huggingface\.co|hf\.co)\/.+\.gguf$/i.test(_url)) {
+    throw new Error('Use a Hugging Face file link that ends in .gguf (https://huggingface.co/<owner>/<repo>/resolve/main/<file>.gguf).');
+  }
 
   const response = await fetch(_url, {
     headers: {
@@ -15,15 +23,13 @@ export async function verifyCustomModel(url: string): Promise<DisplayedModel> {
   if (response.ok) {
     const buf = await response.arrayBuffer();
     if (!checkBuffer(new Uint8Array(buf.slice(0, 4)), ggufMagicNumber)) {
-      throw new Error(
-        'Not a valid gguf file: not starting with GGUF magic number'
-      );
+      throw new Error('That file is not a GGUF model: it does not start with the GGUF signature.');
     }
   } else {
-    throw new Error(`Fetch error with status code = ${response.status}`);
+    throw new Error(`Hugging Face answered HTTP ${response.status} for that link.`);
   }
 
-  return new DisplayedModel(_url, await getModelSize(_url), true, undefined);
+  return { url: _url, size: await getModelSize(_url) };
 }
 
 const checkBuffer = (buffer: Uint8Array, header: Uint8Array) => {
@@ -52,23 +58,16 @@ const getModelSize = async (url: string): Promise<number> => {
           return 0;
         }
       } else {
-        throw new Error(`Fetch error with status code = ${response.status}`);
+        throw new Error(`Hugging Face answered HTTP ${response.status} for ${url.split('/').pop()}.`);
       }
     })
   );
-
-  // if (sizes.some((s) => s >= MAX_GGUF_SIZE)) {
-  //   throw new Error(
-  //     'GGUF file is too big (max. 2GB per file). Please split the file into smaller shards (learn more in "Guide")'
-  //   );
-  // }
 
   return sumArr(sizes);
 };
 
 const parseModelUrl = (modelUrl: string): string[] => {
-  const urlPartsRegex =
-    /(?<baseURL>.*)-(?<current>\d{5})-of-(?<total>\d{5})\.gguf$/;
+  const urlPartsRegex = /(?<baseURL>.*)-(?<current>\d{5})-of-(?<total>\d{5})\.gguf$/;
   const matches = modelUrl.match(urlPartsRegex);
   if (!matches || !matches.groups || Object.keys(matches.groups).length !== 3) {
     return [modelUrl];
@@ -77,20 +76,7 @@ const parseModelUrl = (modelUrl: string): string[] => {
   const paddedShardIds = Array.from({ length: Number(total) }, (_, index) =>
     (index + 1).toString().padStart(5, '0')
   );
-  return paddedShardIds.map(
-    (current) => `${baseURL}-${current}-of-${total}.gguf`
-  );
+  return paddedShardIds.map((current) => `${baseURL}-${current}-of-${total}.gguf`);
 };
 
 const sumArr = (arr: number[]) => arr.reduce((sum, num) => sum + num, 0);
-
-// for debugging only
-// @ts-ignore
-window._exportModelList = function () {
-  const list: any[] = WllamaStorage.load('custom_models', []);
-  const listExported = list.map((m) => {
-    delete m.userAdded;
-    return m;
-  });
-  console.log(JSON.stringify(listExported, null, 2));
-};

@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 export NEEDLE_TELEMETRY=0 DO_NOT_TRACK=1
 export XLA_PYTHON_CLIENT_MEM_FRACTION=0.60     # JAX otherwise grabs ~all VRAM on a GPU shared with the Windows host (run 1 died with CUDA_ERROR_UNKNOWN)
 PY=~/.venvs/slm/bin/python; NEEDLE=~/.venvs/slm/bin/needle
-CKPT=/home/edu/Public/Valheim/docs/slm-research/experiments/checkpoints/needle3.safetensors
+CKPT=/home/edu/Public/bizloop/slm/phase1/experiments/checkpoints/needle3.safetensors
 say() { echo "[$(date +%T)] $*"; }
 need() { [ -s "$1" ] || { say "FATAL: expected artifact missing: $1"; exit 1; }; }
 

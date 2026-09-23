@@ -17,6 +17,19 @@ const COMPAT_JS = resolve(
 );
 const compatAvailable = existsSync(COMPAT_WASM) && existsSync(COMPAT_JS);
 
+const ISOLATION_HEADERS = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+};
+
+// Build-time existence checks for optional files the landing page links to. `import.meta.glob` also
+// works, but it emits a hashed COPY of whatever it matches into assets/ — measured: a 200 KB dummy
+// APK shipped twice in dist, and would ship twice again inside the Android shell's www. A define
+// costs nothing at runtime.
+const PUBLIC = resolve(__dirname, 'public');
+const HAS_APK = existsSync(resolve(PUBLIC, 'slm-lab.apk'));
+const HAS_NOTICES = existsSync(resolve(PUBLIC, 'THIRD_PARTY-NOTICES.txt'));
+
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
@@ -45,6 +58,11 @@ export default { wasm, worker: { code: worker } };
       },
     },
     {
+      // Cross-origin isolation, which the multi-threaded wllama build needs for SharedArrayBuffer.
+      // `configureServer` alone covers `vite dev` only: `vite preview` served NO headers, so a
+      // preview build silently ran single-threaded (wllama's check is silent — utils.ts isMultithread).
+      // `server.headers` / `preview.headers` below fix both; a static host needs its own `_headers`
+      // file, and app/serve.py sets the same two headers for the built site.
       name: 'isolation',
       configureServer(server) {
         server.middlewares.use((_req, res, next) => {
@@ -55,4 +73,10 @@ export default { wasm, worker: { code: worker } };
       },
     },
   ],
+  define: {
+    __HAS_APK__: JSON.stringify(HAS_APK),
+    __HAS_NOTICES__: JSON.stringify(HAS_NOTICES),
+  },
+  server: { headers: ISOLATION_HEADERS },
+  preview: { headers: ISOLATION_HEADERS },
 });

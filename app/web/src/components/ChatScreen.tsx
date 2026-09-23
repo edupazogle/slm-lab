@@ -1,288 +1,300 @@
-import { useRef, useState } from 'react';
+// The chat: the conversation, the skill bar, and the composer.
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { ImagePlus, X } from 'lucide-react';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from '../lib/localmode/conversation';
+import {
+  PromptInput,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from '../lib/localmode/prompt-input';
+import { Suggestion, Suggestions } from '../lib/localmode/suggestions';
+import { Button } from '../lib/localmode/button';
 import { useMessages } from '../utils/messages.context';
+import { useNav } from '../utils/nav.context';
 import { useWllama } from '../utils/wllama.context';
-import { MediaData, Message, Screen } from '../utils/types';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStop } from '@fortawesome/free-solid-svg-icons';
-import ScreenWrapper from './ScreenWrapper';
-import { useIntervalWhen } from '../utils/use-interval-when';
-import { MarkdownMessage } from './MarkdownMessage';
+import { useChatActions } from '../utils/chat-actions';
+import { MediaData, ModelState, Screen } from '../utils/types';
+import { SKILLS, getSkill } from '../skills';
+import { AssistantMessage, UserMessage } from './MessageItem';
+import { formatBytes } from '../utils/format';
+
+const SUGGESTIONS = [
+  {
+    label: 'Write to a customer',
+    text: 'Draft a short, plain-language email asking a customer for the two photos of the damage we still need.',
+  },
+  {
+    label: 'Explain a decision',
+    text: 'Explain in three sentences, without jargon, why a water-damage claim needs a plumber’s report before it is paid.',
+  },
+  {
+    label: 'Prepare a call',
+    text: 'List the questions a claims handler should ask the customer after a rear-end collision with no injuries.',
+  },
+  {
+    label: 'Shorten a note',
+    text: 'Summarise this claim note in two sentences a handler can read in ten seconds:\n\n',
+  },
+];
 
 export default function ChatScreen() {
-  const [input, setInput] = useState('');
-  const [pendingMedia, setPendingMedia] = useState<MediaData | null>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const {
-    currentConvId,
-    isGenerating,
-    createCompletion,
-    navigateTo,
-    loadedModel,
-    stopCompletion,
-    currRuntimeInfo,
-  } = useWllama();
-  const {
-    getConversationById,
-    addMessageToConversation,
-    editMessageInConversation,
-    newConversation,
-  } = useMessages();
+  const { convId } = useNav();
+  const { getConversation } = useMessages();
+  const { loadedModel, runtime, loadProgress, isGenerating } = useWllama();
+  const { send, regenerate, editAndResend, stop } = useChatActions();
+  const [skillId, setSkillId] = useState<string | null>(null);
+  const [text, setText] = useState('');
+  const [count, setCount] = useState(4);
+  const [image, setImage] = useState<MediaData | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
 
-  useIntervalWhen(chatScrollToBottom, 500, isGenerating, true);
+  const conv = getConversation(convId);
+  const messages = conv?.messages ?? [];
+  const skill = getSkill(skillId);
+  const lastUserId = [...messages].reverse().find((m) => m.role === 'user')?.id;
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
 
-  const currConv = getConversationById(currentConvId);
-  const supportsMedia =
-    currRuntimeInfo?.supportsImage || currRuntimeInfo?.supportsAudio;
+  // a skill takes one text and answers once: clear the composer when switching
+  useEffect(() => {
+    setText('');
+  }, [skillId]);
 
-  const onPickFile =
-    (type: 'image' | 'audio') => (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setPendingMedia({
-          type,
-          data: ev.target!.result as ArrayBuffer,
-          dataUrl: URL.createObjectURL(file),
-        });
-      };
-      reader.readAsArrayBuffer(file);
-      e.target.value = '';
-    };
+  const focusComposer = () => {
+    composerRef.current?.querySelector('textarea')?.focus();
+  };
 
-  const onSubmit = async () => {
+  const onSubmit = (value: string) => {
     if (isGenerating) return;
-
-    const currHistory = currConv?.messages ?? [];
-    const userInput = input;
-    const media = pendingMedia;
-    setInput('');
-    setPendingMedia(null);
-    const userMsg: Message = {
-      id: Date.now(),
-      content: userInput,
-      role: 'user',
-      mediaData: media ?? undefined,
-    };
-    const assistantMsg: Message = {
-      id: Date.now() + 1,
-      content: '',
-      role: 'assistant',
-    };
-
-    let convId = currConv?.id;
-    if (!convId) {
-      const newConv = newConversation(userMsg);
-      convId = newConv.id;
-      navigateTo(Screen.CHAT, convId);
-      addMessageToConversation(convId, assistantMsg);
-    } else {
-      addMessageToConversation(convId, userMsg);
-      addMessageToConversation(convId, assistantMsg);
-    }
-
-    await createCompletion([...currHistory, userMsg], (newContent) => {
-      editMessageInConversation(convId, assistantMsg.id, newContent);
+    const media = image ?? undefined;
+    setImage(null);
+    void send({
+      text: value,
+      media,
+      skillId: skill?.id,
+      skillInput: skill?.options ? { count } : undefined,
     });
+    setText('');
+  };
+
+  const onPickImage = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    void file.arrayBuffer().then((data) => setImage({ type: 'image', data, mimeType: file.type, name: file.name }));
   };
 
   return (
-    <ScreenWrapper fitScreen>
-      <div className="chat-messages grow overflow-auto" id="chat-history">
-        <div className="h-10" />
+    <div className="chat-screen">
+      <ModelStrip />
 
-        {currConv ? (
-          <>
-            {currConv.messages.map((msg) =>
-              msg.role === 'user' ? (
-                <div className="chat chat-end" key={msg.id}>
-                  <div className="chat-bubble">
-                    {msg.mediaData?.type === 'image' && (
-                      <img
-                        src={msg.mediaData.dataUrl}
-                        className="max-w-48 rounded mb-1"
-                      />
-                    )}
-                    {msg.mediaData?.type === 'audio' && (
-                      <audio
-                        controls
-                        src={msg.mediaData.dataUrl}
-                        className="mb-1"
-                      />
-                    )}
-                    {msg.content.length > 0 && (
-                      <MarkdownMessage content={msg.content} />
-                    )}
-                  </div>
-                </div>
+      <Conversation history={messages} key={convId ?? 'new'}>
+        <ConversationContent className="chat-content">
+          {messages.length === 0 ? (
+            <div className="empty-state">
+              <h1>What you type here stays on this device</h1>
+              <p>
+                The model runs inside this browser tab. Ask it something, or pick one of the skills under the box —
+                they fill a form, redact a text, triage a claim or invent test data.
+              </p>
+              <Suggestions>
+                {SUGGESTIONS.map((s) => (
+                  <Suggestion
+                    key={s.label}
+                    label={s.label}
+                    suggestion={s.text}
+                    onSelect={(t) => {
+                      setSkillId(null);
+                      setText(t);
+                      focusComposer();
+                    }}
+                  >
+                    {s.text.trim()}
+                  </Suggestion>
+                ))}
+              </Suggestions>
+            </div>
+          ) : (
+            messages.map((m, i) =>
+              m.role === 'user' ? (
+                <UserMessage
+                  key={m.id}
+                  msg={m}
+                  canEdit={m.id === lastUserId && !isGenerating && !m.skillId}
+                  onEdit={(t) => convId != null && void editAndResend(convId, m.id, t)}
+                />
               ) : (
-                <div className="chat chat-start" key={msg.id}>
-                  <div className="chat-bubble bg-base-100 text-base-content">
-                    {msg.content.length === 0 && isGenerating && (
-                      <span className="loading loading-dots"></span>
-                    )}
-                    {msg.content.length > 0 && (
-                      <MarkdownMessage content={msg.content} />
-                    )}
-                  </div>
-                </div>
+                <AssistantMessage
+                  key={m.id}
+                  msg={m}
+                  inputText={messages[i - 1]?.content ?? ''}
+                  modelName={loadedModel?.name ?? 'the model'}
+                  canRegenerate={!isGenerating && !!loadedModel && m.id === lastAssistant?.id}
+                  onRegenerate={() => convId != null && void regenerate(convId, m.id)}
+                />
               )
-            )}
-          </>
-        ) : (
-          <div className="pt-24 text-center text-xl">Ask me something 👋</div>
-        )}
-      </div>
-      <div className="flex flex-col input-message py-4">
-        {isGenerating && (
-          <div className="text-center">
+            )
+          )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
+
+      <div className="composer-area" ref={composerRef}>
+        <div className="skill-bar" role="group" aria-label="What the model should do">
+          <button
+            type="button"
+            className={`skill-chip${skill ? '' : ' is-active'}`}
+            aria-pressed={!skill}
+            onClick={() => setSkillId(null)}
+          >
+            Chat
+          </button>
+          {SKILLS.map((s) => (
             <button
-              className="btn btn-outline btn-sm mb-4"
-              onClick={stopCompletion}
+              key={s.id}
+              type="button"
+              className={`skill-chip${skill?.id === s.id ? ' is-active' : ''}`}
+              aria-pressed={skill?.id === s.id}
+              onClick={() => setSkillId(s.id)}
             >
-              <FontAwesomeIcon icon={faStop} />
-              Stop generation
+              {s.name}
             </button>
+          ))}
+        </div>
+
+        {skill && (
+          <div className="skill-help">
+            <p>{skill.purpose}</p>
+            <div className="skill-help-actions">
+              {skill.options?.map((o) => (
+                <label key={o.key} className="ff skill-option">
+                  <span className="ff-label">{o.label}</span>
+                  <input
+                    className="typed skill-option-input"
+                    type="number"
+                    min={o.min}
+                    max={o.max}
+                    value={count}
+                    onChange={(e) => setCount(Math.min(o.max, Math.max(o.min, Number(e.target.value) || o.default)))}
+                  />
+                </label>
+              ))}
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                onClick={() => {
+                  setText(skill.example);
+                  focusComposer();
+                }}
+              >
+                Use an example
+              </Button>
+            </div>
           </div>
         )}
 
-        {loadedModel && (
-          <>
-            {pendingMedia && (
-              <div className="flex items-center gap-2 mb-2">
-                {pendingMedia.type === 'image' ? (
-                  <img
-                    src={pendingMedia.dataUrl}
-                    className="h-16 w-16 object-cover rounded"
-                  />
-                ) : (
-                  <audio controls src={pendingMedia.dataUrl} />
-                )}
-                <button
-                  className="btn btn-xs btn-circle btn-outline"
-                  onClick={() => setPendingMedia(null)}
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-            <div className="flex gap-2">
-              {supportsMedia && (
-                <>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={onPickFile('image')}
-                  />
-                  <input
-                    ref={audioInputRef}
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={onPickFile('audio')}
-                  />
-                  <div className="dropdown dropdown-top">
-                    <button
-                      tabIndex={0}
-                      className="btn btn-sm btn-ghost h-full border border-base-content/20"
-                      disabled={isGenerating}
-                    >
-                      +
-                    </button>
-                    <ul className="dropdown-content menu bg-base-100 rounded-box z-[1] w-36 p-2 shadow mb-1">
-                      {currRuntimeInfo?.supportsImage && (
-                        <li>
-                          <a
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              imageInputRef.current?.click();
-                            }}
-                          >
-                            Image
-                          </a>
-                        </li>
-                      )}
-                      {currRuntimeInfo?.supportsAudio && (
-                        <li>
-                          <a
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              audioInputRef.current?.click();
-                            }}
-                          >
-                            Audio
-                          </a>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                </>
-              )}
-              <textarea
-                className="textarea textarea-bordered grow"
-                placeholder="Your message..."
-                disabled={isGenerating}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.keyCode == 13 && e.shiftKey == false) {
-                    e.preventDefault();
-                    onSubmit();
-                  }
-                }}
-              />
-            </div>
-          </>
+        {image && (
+          <div className="attachment">
+            <span className="typed">{image.name ?? 'image'} · {formatBytes(image.data.byteLength)}</span>
+            <Button type="button" size="icon-xs" variant="ghost" aria-label="Remove the image" onClick={() => setImage(null)}>
+              <X className="size-3" aria-hidden="true" />
+            </Button>
+          </div>
         )}
 
-        {!loadedModel && <WarnNoModel />}
-
-        <small className="text-center mx-auto opacity-70 pt-2">
-          wllama may generate inaccurate information. Use with your own risk.
-        </small>
-      </div>
-    </ScreenWrapper>
-  );
-}
-
-function WarnNoModel() {
-  const { navigateTo } = useWllama();
-
-  return (
-    <div role="alert" className="alert">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-6 w-6 shrink-0 stroke-current"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-        />
-      </svg>
-      <span>Model is not loaded</span>
-      <div>
-        <button
-          className="btn btn-sm btn-primary"
-          onClick={() => navigateTo(Screen.MODEL)}
+        <PromptInput
+          onSubmit={onSubmit}
+          value={text}
+          onValueChange={setText}
+          streaming={isGenerating}
+          onStop={stop}
+          allowEmpty={!!skill && !skill.requiresText}
+          label={skill ? skill.inputLabel : 'Message'}
+          disabled={!loadedModel && !loadProgress}
         >
-          Select model
-        </button>
+          <PromptInputTextarea
+            placeholder={skill ? skill.placeholder : 'Ask the model something.'}
+            aria-label={skill ? skill.inputLabel : 'Message'}
+          />
+          <PromptInputTools>
+            <span className="composer-tools">
+              {runtime?.supportsImage && (
+                <>
+                  <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPickImage} />
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={isGenerating}
+                  >
+                    <ImagePlus className="size-3" aria-hidden="true" /> Attach an image
+                  </Button>
+                </>
+              )}
+            </span>
+            <PromptInputSubmit submitLabel={skill ? 'Run the skill' : 'Send'} />
+          </PromptInputTools>
+        </PromptInput>
+
+        <p className="composer-foot">
+          {loadedModel
+            ? `Answers come from ${loadedModel.name}, running in this tab. A model this small gets facts wrong: check anything that matters.`
+            : 'No model is loaded yet.'}
+        </p>
       </div>
     </div>
   );
 }
 
-const chatScrollToBottom = () => {
-  const elem = document.getElementById('chat-history');
-  elem?.scrollTo({
-    top: elem.scrollHeight,
-    behavior: 'smooth',
-  });
-};
+function ModelStrip() {
+  const { navigate } = useNav();
+  const { loadedModel, runtime, models, loadModel, lastModelUrl, loadProgress } = useWllama();
+  if (loadProgress) {
+    const pct = loadProgress.total > 0 ? Math.round((loadProgress.loaded / loadProgress.total) * 100) : null;
+    return (
+      <div className="model-strip" role="status">
+        <span className="typed">
+          {loadProgress.phase === 'downloading'
+            ? `Downloading the model… ${formatBytes(loadProgress.loaded)}${pct != null ? ` of ${formatBytes(loadProgress.total)} (${pct}%)` : ''}`
+            : 'Starting the model in this tab…'}
+        </span>
+      </div>
+    );
+  }
+  if (loadedModel) {
+    return (
+      <div className="model-strip">
+        <span className="typed">{loadedModel.name}</span>
+        <span className="model-strip-meta">
+          {runtime?.threads ?? 0} thread{runtime?.threads === 1 ? '' : 's'} ·{' '}
+          {runtime && runtime.gpuLayers > 0 ? 'GPU' : 'processor'}
+        </span>
+        <Button type="button" size="xs" variant="ghost" onClick={() => navigate(Screen.MODEL)}>
+          Change model
+        </Button>
+      </div>
+    );
+  }
+  const last = models.find((m) => m.url === lastModelUrl && m.state === ModelState.READY);
+  return (
+    <div className="model-strip model-strip-empty">
+      <span>No model is loaded in this tab.</span>
+      {last ? (
+        <Button type="button" size="xs" onClick={() => void loadModel(last)}>
+          Load {last.name}
+        </Button>
+      ) : (
+        <Button type="button" size="xs" onClick={() => navigate(Screen.MODEL)}>
+          Choose a model
+        </Button>
+      )}
+    </div>
+  );
+}

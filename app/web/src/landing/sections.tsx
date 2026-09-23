@@ -11,18 +11,24 @@ interface FindingRow {
   prefillTokS?: number | null;
   decodeTokS?: number | null;
   status?: string | null;
+  note?: string | null;
 }
+type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 interface Findings {
   updated?: string;
   machine?: string;
   inBrowser?: FindingRow[];
+  needle3?: { [key: string]: Json } | null;
   limits?: string[];
 }
-const findings = findingsJson as Findings;
+const findings = findingsJson as unknown as Findings;
 
-// Vite resolves these at build time. An empty object means the file is not in public/, so no link.
-const apkPresent = Object.keys(import.meta.glob('/public/slm-lab.apk', { query: '?url' })).length > 0;
-const noticesPresent = Object.keys(import.meta.glob('/public/THIRD_PARTY-NOTICES.txt', { query: '?url' })).length > 0;
+// Build-time existence checks, defined in vite.config.ts and in the landing-only config. These were
+// `import.meta.glob` first, which works but makes Vite emit a hashed COPY of every matched file into
+// assets/ — measured: a 200 KB dummy APK shipped twice in dist, and it would ship twice again inside
+// the Android shell's www. A define has no such side effect.
+const apkPresent = __HAS_APK__;
+const noticesPresent = __HAS_NOTICES__;
 
 export const BENCH_HREF =
   './bench.html?' +
@@ -41,7 +47,7 @@ const GOOD = [
   'Rewriting and summarising short text.',
   'Routing a request to the right tool.',
   'Working offline, once the model is on the device.',
-  'Costing nothing per run. No provider, no per-token bill.',
+  'Costing nothing per run: no provider, no per-token bill. The electricity is the device\'s own.',
 ];
 
 const NOT_GOOD = [
@@ -51,6 +57,24 @@ const NOT_GOOD = [
   'Languages the model was not trained well on.',
   'Anything where a wrong answer is expensive and nobody checks.',
 ];
+
+/** Renders `backticked` spans from findings.json in the typed face. The words are not changed. */
+function Ticks({ text }: { text: string }) {
+  const parts = text.split(/`([^`]+)`/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <span key={i} className="typed">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
 
 export function Strengths() {
   const limits = findings.limits ?? [];
@@ -89,7 +113,9 @@ export function Strengths() {
           <h3>Limits the lab has written down</h3>
           <ul>
             {limits.map((t) => (
-              <li key={t}>{t}</li>
+              <li key={t}>
+                <Ticks text={t} />
+              </li>
             ))}
           </ul>
         </div>
@@ -98,13 +124,190 @@ export function Strengths() {
   );
 }
 
-function Num({ v, unit }: { v: number | null | undefined; unit?: string }) {
+function Num({ v, unit, digits }: { v: number | null | undefined; unit?: string; digits?: number }) {
   if (v === null || v === undefined || Number.isNaN(v)) return <span className="unmeasured">not measured yet</span>;
   return (
     <span className="typed">
-      {v}
+      {digits === undefined ? v : v.toFixed(digits)}
       {unit ? ` ${unit}` : ''}
     </span>
+  );
+}
+
+// ---- needle3 -------------------------------------------------------------------------------
+// findings.needle3 and its evalV2 are written by the supervisor, and the shape changes as the
+// evaluation grows: on 2026-09-21 evalV2 went from null to scalars + a record of conditions + two
+// delta blocks, each nested one level deeper than the first version. So this renders the tree rather
+// than a known shape: scalars become fields, a record whose values are all records becomes a table,
+// and anything else becomes a labelled sub-block. Unknown keys are printed under their own name, and
+// a null or missing value reads "not measured yet" — never a guess.
+const KEY_LABELS: Record<string, string> = {
+  paramsM: 'Parameters',
+  fileMB: 'File',
+  engine: 'Engine',
+  evalV2: 'Evaluation v2',
+  what: 'What was measured',
+  conditions: 'Conditions',
+  fieldF1: 'Field F1',
+  ci95: '95% interval',
+  toolAcc: 'Tool accuracy',
+  falseCallRate: 'False calls',
+  medianMs: 'Median time',
+  fieldF1Delta: 'Field F1 change',
+  toolAccDelta: 'Tool accuracy change',
+  fineTuningAlone: 'Fine-tuning alone',
+  quantisationAlone: 'Quantisation alone',
+};
+const KEY_UNITS: Record<string, string> = { paramsM: 'million', fileMB: 'MB', medianMs: 'ms' };
+const label = (k: string) => {
+  if (KEY_LABELS[k]) return KEY_LABELS[k];
+  // A key with a space in it is already written for a reader ("tuned 4-bit (LoRA, 1200 rows)"), so
+  // only its first letter is touched. Splitting it as camelCase turned LoRA into "lo ra".
+  const spaced = k.includes(' ')
+    ? k.trim()
+    : k.replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+};
+/** "Conditions" -> "Condition": the column header names one row, the heading names the group. */
+const singular = (text: string) => (text.length > 3 && text.endsWith('s') && !text.endsWith('ss') ? text.slice(0, -1) : text);
+const isRecord = (v: Json | undefined): v is { [key: string]: Json } =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+const allRecords = (v: { [key: string]: Json }) => {
+  const vals = Object.values(v);
+  return vals.length > 0 && vals.every((x) => isRecord(x));
+};
+
+function fmtJson(v: Json | undefined, key?: string): string {
+  if (v === null || v === undefined) return 'not measured yet';
+  if (typeof v === 'boolean') return v ? 'yes' : 'no';
+  if (typeof v === 'number') {
+    const text = Number.isInteger(v) ? String(v) : String(Number(v.toFixed(4)));
+    return key && KEY_UNITS[key] ? `${text} ${KEY_UNITS[key]}` : text;
+  }
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v))
+    return v.length === 2 && v.every((x) => typeof x === 'number')
+      ? `${fmtJson(v[0])} to ${fmtJson(v[1])}`
+      : v.map((x) => fmtJson(x)).join(', ');
+  return Object.entries(v)
+    .map(([k, x]) => `${label(k)} ${fmtJson(x, k)}`)
+    .join('; ');
+}
+
+function Field({ k, v }: { k: string; v: Json | undefined }) {
+  const missing = v === null || v === undefined;
+  return (
+    <div className="ff">
+      <span className="ff-label">{label(k)}</span>
+      <span className={missing ? 'unmeasured' : 'typed'}>{fmtJson(v, k)}</span>
+    </div>
+  );
+}
+
+/** A record whose values are all records: one row each, one column per key any of them carries. */
+function RecordTable({ rows, rowHeader }: { rows: [string, { [key: string]: Json }][]; rowHeader: string }) {
+  const cols = [...new Set(rows.flatMap(([, r]) => Object.keys(r)))];
+  return (
+    <div className="table-scroll">
+      <table className="findings">
+        <thead>
+          <tr>
+            <th scope="col">{rowHeader}</th>
+            {cols.map((c) => (
+              <th key={c} scope="col">
+                {label(c)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([name, r]) => (
+            <tr key={name}>
+              <th scope="row" data-label={rowHeader}>
+                {label(name)}
+              </th>
+              {cols.map((c) => (
+                <td key={c} data-label={label(c)}>
+                  {r[c] === undefined || r[c] === null ? (
+                    <span className="unmeasured">not measured yet</span>
+                  ) : (
+                    <span className="typed">{fmtJson(r[c], c)}</span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Renders one node of the findings tree, whatever it turns out to be. */
+function Node({ k, v, depth = 0 }: { k: string; v: Json | undefined; depth?: number }) {
+  if (!isRecord(v)) return <Field k={k} v={v} />;
+  if (allRecords(v)) {
+    return (
+      <div className="eval-block">
+        {depth > 0 && <h4>{label(k)}</h4>}
+        <RecordTable rows={Object.entries(v) as [string, { [key: string]: Json }][]} rowHeader={singular(label(k))} />
+      </div>
+    );
+  }
+  const entries = Object.entries(v);
+  const scalars = entries.filter(([, x]) => !isRecord(x));
+  const nested = entries.filter(([, x]) => isRecord(x));
+  return (
+    <div className="eval-block">
+      {depth > 0 && <h4>{label(k)}</h4>}
+      {scalars.length > 0 && (
+        <div className="spec-grid">
+          {scalars.map(([ck, cv]) => (
+            <Field key={ck} k={ck} v={cv} />
+          ))}
+        </div>
+      )}
+      {nested.map(([ck, cv]) => (
+        <Node key={ck} k={ck} v={cv} depth={depth + 1} />
+      ))}
+    </div>
+  );
+}
+
+function EvalV2({ data }: { data: Json | undefined }) {
+  if (data === null || data === undefined || (isRecord(data) && Object.keys(data).length === 0))
+    return (
+      <div className="ff eval-empty">
+        <span className="ff-label">{label('evalV2')}</span>
+        <span className="unmeasured">not measured yet</span>
+      </div>
+    );
+  return (
+    <div className="eval">
+      <h4>{label('evalV2')}</h4>
+      <Node k="evalV2" v={data} />
+    </div>
+  );
+}
+
+function Needle3() {
+  const n = findings.needle3;
+  if (!isRecord(n)) return null;
+  const specs = Object.entries(n).filter(([k]) => k !== 'evalV2');
+  return (
+    <div className="needle">
+      <h3>needle3, the other model in the lab</h3>
+      <p className="lead">
+        Not a chat model and not part of the demo above: needle3 extracts fields and calls tools, on its own engine rather than
+        wllama. Its second evaluation scores how accurately it fills fields against an untuned control.
+      </p>
+      <div className="spec-grid">
+        {specs.map(([k, v]) => (
+          <Field key={k} k={k} v={v} />
+        ))}
+      </div>
+      <EvalV2 data={n.evalV2} />
+    </div>
   );
 }
 
@@ -152,7 +355,10 @@ export function Measured({ liveRun }: { liveRun: LiveRun | null }) {
               <td data-label="Writing (decode)">
                 <Num v={r.decodeTokS} unit="tokens/s" />
               </td>
-              <td data-label="Status">{r.status ?? 'not recorded'}</td>
+              <td data-label="Status">
+                {r.status ?? 'not recorded'}
+                {r.note ? <span className="row-note">{r.note}</span> : null}
+              </td>
             </tr>
           ))}
           <tr className="live-row" data-live={liveRun ? '1' : '0'}>
@@ -164,10 +370,10 @@ export function Measured({ liveRun }: { liveRun: LiveRun | null }) {
               <Num v={liveRun?.threads} />
             </td>
             <td data-label="Reading (prefill)">
-              <Num v={liveRun?.prefillTokS != null ? Number(liveRun.prefillTokS.toFixed(1)) : null} unit="tokens/s" />
+              <Num v={liveRun?.prefillTokS} unit="tokens/s" digits={1} />
             </td>
             <td data-label="Writing (decode)">
-              <Num v={liveRun?.decodeTokS != null ? Number(liveRun.decodeTokS.toFixed(1)) : null} unit="tokens/s" />
+              <Num v={liveRun?.decodeTokS} unit="tokens/s" digits={1} />
             </td>
             <td data-label="Status">
               {liveRun
@@ -177,6 +383,8 @@ export function Measured({ liveRun }: { liveRun: LiveRun | null }) {
           </tr>
         </tbody>
       </table>
+
+      <Needle3 />
 
       <p className="after-table">
         <a className="btn btn-secondary" href={BENCH_HREF}>
@@ -247,10 +455,11 @@ export function BizLoop() {
           </p>
           <div className="ff">
             <span className="ff-label">Cost of this run</span>
-            <span className="typed">0.0000 EUR, model on device</span>
+            <span className="typed">0.0000 EUR — nothing billed; your device's electricity is not counted</span>
           </div>
           <p className="fine">
-            No provider bills for the run. The work moves to the user's device: its battery, and one download of the model.
+            No provider bills for the run. The work moves to the user's device instead: its processor, its battery and one
+            download of the model. That is a real cost, and it is not zero — it is just not on the invoice.
           </p>
         </article>
       </div>
@@ -259,15 +468,20 @@ export function BizLoop() {
 }
 
 export function OnYourPhone() {
-  const [env, setEnv] = useState<{ secure: boolean; isolated: boolean; cores: number | null } | null>(null);
+  const [env, setEnv] = useState<{ secure: boolean; isolated: boolean; storage: boolean; cores: number | null } | null>(null);
   useEffect(() => {
     setEnv({
       secure: window.isSecureContext === true,
       isolated: window.crossOriginIsolated === true,
+      // the engine keeps the model in OPFS, which a browser only exposes to a secure context
+      storage: typeof navigator.storage?.getDirectory === 'function',
       cores: typeof navigator.hardwareConcurrency === 'number' ? navigator.hardwareConcurrency : null,
     });
   }, []);
-  const lanLimit = (findings.limits ?? []).find((t) => /secure context/i.test(t));
+  // The limits are the lab's, written in findings.json. Nothing about the phone is claimed here:
+  // the earlier hand-written line ("over plain http it runs single-threaded") was measured to be
+  // wrong on 2026-09-21 — the engine finds no storage backend and the app does not start at all.
+  const phoneLimits = (findings.limits ?? []).filter((t) => /secure context|webview|phone/i.test(t));
 
   return (
     <section className="band" id="phone" aria-labelledby="phone-title">
@@ -276,12 +490,21 @@ export function OnYourPhone() {
         <div>
           <h3>Install it from the browser</h3>
           <ol className="steps">
-            <li>Open this page in the phone's browser.</li>
             <li>
-              Open the browser menu and choose Add to Home screen. In Safari on an iPhone it is under Share, then Add to Home
-              Screen.
+              <span>
+                Open this page on the phone over HTTPS, or over a tunnel, or with <span className="typed">adb reverse</span> so
+                the address really is http://localhost.
+              </span>
             </li>
-            <li>Open SLM Lab from its icon and load a model once, on Wi-Fi. The model stays in the browser's storage.</li>
+            <li>
+              <span>
+                Open the browser menu and choose Add to Home screen. In Safari on an iPhone it is under Share, then Add to Home
+                Screen.
+              </span>
+            </li>
+            <li>
+              <span>Open SLM Lab from its icon and load a model once, on Wi-Fi. The model stays in the browser's storage.</span>
+            </li>
           </ol>
           <h3>Android package</h3>
           <p>
@@ -291,20 +514,24 @@ export function OnYourPhone() {
           </p>
         </div>
         <div>
-          <h3>One honest limit</h3>
-          <p>
-            {lanLimit ??
-              'A phone reaching the app over plain http on the local network is not a secure context, so it runs single-threaded.'}
-          </p>
-          <p>
-            That is the case when the phone opens a laptop's address such as http://192.168.1.20:8097. Over https, or on the
-            laptop itself, the browser allows several threads.
-          </p>
+          <h3>What the lab has measured about phones</h3>
+          {phoneLimits.length > 0 ? (
+            <ul className="lab-limits-list">
+              {phoneLimits.map((t) => (
+                <li key={t}>
+                  <Ticks text={t} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="unmeasured">Nothing measured about phones yet.</p>
+          )}
           <div className="ff">
             <span className="ff-label">This page, on this device, right now</span>
             {env ? (
               <span className="typed env-lines">
                 <span>secure context: {env.secure ? 'yes' : 'no'}</span>
+                <span>storage the engine needs: {env.storage ? 'available' : 'not available, so the model cannot load'}</span>
                 <span>cross-origin isolated: {env.isolated ? 'yes' : 'no'}</span>
                 <span>logical cores reported: {env.cores ?? 'not reported'}</span>
                 <span>threads available to a model: {env.isolated ? 'several' : 'one'}</span>

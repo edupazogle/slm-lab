@@ -1,0 +1,946 @@
+/* SLM Lab landing. Plain CSS on top of design/tokens.css; no Tailwind here, so the landing stays light.
+ *
+ * The page is laid out like the form it borrows from: one left edge, carbon rules between real
+ * sections, tinted fields with their label inside. The canary sheet is the only loud thing on it.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+}
+:root[data-theme='carbonpaper'] {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='carbon']) {
+    color-scheme: dark;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 1.5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 var(--t-0) / 1.55 var(--font-form);
+  font-stretch: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+table {
+  margin: 0;
+}
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: var(--carbon);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.18em;
+}
+a:hover {
+  color: var(--carbon-soft);
+}
+
+.wrap {
+  width: 100%;
+  max-width: 77.5rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.skip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  left: var(--gutter);
+  top: -4rem;
+  z-index: 10;
+  background: var(--carbon);
+  color: var(--paper);
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius);
+}
+.skip:focus {
+  top: 0.5rem;
+  color: var(--paper);
+}
+
+/* ---- the form's tick box: used for the theme choice, the two lists, the experiment status ---- */
+.tick {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 0.82em;
+  height: 0.82em;
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+}
+.tick[data-on='1']::before,
+.tick[data-on='1']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -22%;
+  width: 1.6px;
+  height: 144%;
+  margin-left: -0.8px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+.tick[data-on='1']::after {
+  transform: rotate(-45deg);
+}
+
+/* ---- top bar -------------------------------------------------------------------------------- */
+.top-bar {
+  border-bottom: var(--rule);
+}
+.top-bar-in {
+  display: flex;
+  align-items: center;
+  gap: 1rem 1.75rem;
+  min-height: 3.75rem;
+}
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.6rem;
+  font: 800 1.2rem / 1 var(--font-form);
+  font-stretch: 110%;
+  letter-spacing: -0.01em;
+  color: var(--carbon);
+  text-decoration: none;
+  margin-right: auto;
+  white-space: nowrap;
+}
+/* the mark: a form sheet with its canary duplicate in front */
+.wordmark::before {
+  content: '';
+  width: 0.95rem;
+  height: 1.2rem;
+  border-radius: 1px;
+  background: var(--canary);
+  box-shadow:
+    -0.32rem -0.26rem 0 -1.5px var(--paper),
+    -0.32rem -0.26rem 0 0 var(--carbon);
+  margin-left: 0.32rem;
+  margin-top: 0.26rem;
+}
+.top-nav {
+  display: none;
+  gap: 1.5rem;
+  font-size: 0.95rem;
+  font-stretch: 95%;
+}
+.top-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+.top-nav a:hover {
+  color: var(--carbon);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.3em;
+}
+@media (min-width: 52rem) {
+  .top-nav {
+    display: flex;
+  }
+}
+
+.theme {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+.theme button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem; /* 44px: the smallest comfortable touch target */
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  font: 500 0.9rem / 1 var(--font-form);
+  font-stretch: 92%;
+  cursor: pointer;
+}
+.theme button[aria-pressed='true'] {
+  color: var(--carbon);
+}
+.theme button:hover {
+  color: var(--carbon);
+}
+
+/* ---- buttons ---------------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.7rem 1.25rem;
+  border: 1.5px solid var(--carbon);
+  border-radius: var(--radius);
+  font: 650 1rem / 1.2 var(--font-form);
+  font-stretch: 96%;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--carbon);
+  color: var(--paper);
+}
+.btn-primary:hover {
+  background: var(--carbon-soft);
+  border-color: var(--carbon-soft);
+  color: var(--paper);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--carbon);
+}
+.btn-secondary:hover {
+  background: var(--field);
+  color: var(--carbon);
+}
+.btn:disabled {
+  cursor: progress;
+  background: var(--field);
+  border-color: var(--field-line);
+  color: var(--ink-soft);
+}
+.linkish {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: var(--carbon);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+/* ---- opening + demo, with the canary sheet riding alongside ------------------------------- */
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.75rem;
+  padding-block: clamp(2rem, 6vw, 4.5rem) clamp(3rem, 7vw, 5rem);
+}
+.top > * {
+  min-width: 0;
+}
+@media (min-width: 64rem) {
+  .top {
+    grid-template-columns: minmax(0, 1fr) 21.5rem;
+    column-gap: clamp(2.5rem, 4vw, 4rem);
+    row-gap: 4rem;
+  }
+  .top-aside {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .sheet-sticky {
+    position: sticky;
+    top: 1.5rem;
+  }
+}
+
+.hero h1 {
+  font: 800 var(--t-5) / 0.98 var(--font-form);
+  font-stretch: 80%;
+  letter-spacing: -0.015em;
+  color: var(--carbon);
+  max-width: 13ch;
+  text-wrap: balance;
+}
+.hero-lead {
+  margin-top: 1.5rem;
+  max-width: 34rem;
+  font-size: var(--t-1);
+  line-height: 1.42;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+/* ---- the canary sheet ------------------------------------------------------------------------- */
+.sheet {
+  /* The sheet is canary in BOTH themes, so everything drawn on it must keep the paper theme's ink.
+   * Measured 2026-09-21: without this, the dark theme's --carbon (#9db2ff) landed on canary for the
+   * sheet's heading, which is 1.6:1 — invisible. Carbon ink on canary is 9.9:1. */
+  --stamp: #c8372d;
+  --carbon: #1b2a6b;
+  --carbon-soft: #1b2a6b;
+  --ink: var(--canary-ink);
+  --ink-soft: #3d3600;
+  color: var(--canary-ink);
+  margin-top: 6px; /* room for the perforated edge */
+}
+.sheet-title {
+  color: var(--carbon);
+  font: 800 var(--t-2) / 1 var(--font-form);
+  font-stretch: 86%;
+  letter-spacing: -0.005em;
+  word-spacing: 0.08em;
+}
+.sheet dt {
+  word-spacing: 0.06em;
+}
+.sheet-sub {
+  margin: 0.35rem 0 0.85rem;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  font-stretch: 92%;
+  opacity: 0.8;
+}
+.sheet dt.sub {
+  padding-left: 0.9rem;
+}
+.sheet dt.sub2 {
+  padding-left: 1.8rem;
+}
+.sheet dd {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.sheet-note {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-stretch: 92%;
+  opacity: 0.85;
+}
+.stamp-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 5.6rem;
+  padding: 0.8rem 0.5rem;
+  border: 1.5px dashed rgba(42, 36, 0, 0.45);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.stamp-slot[data-filled='1'] {
+  border-style: solid;
+  border-color: rgba(42, 36, 0, 0.18);
+}
+.stamp-hint {
+  max-width: 15rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-stretch: 92%;
+  opacity: 0.7;
+}
+.stamp-slot .stamp {
+  text-transform: uppercase;
+  font-size: 0.98rem;
+  white-space: nowrap;
+}
+.stamp-date {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* ---- section furniture ---------------------------------------------------------------------- */
+h2 {
+  font: 800 var(--t-3) / 1.05 var(--font-form);
+  font-stretch: 82%;
+  letter-spacing: -0.012em;
+  color: var(--carbon);
+  max-width: 26ch;
+  text-wrap: balance;
+}
+h3 {
+  font: 700 var(--t-1) / 1.2 var(--font-form);
+  font-stretch: 90%;
+  color: var(--ink);
+}
+.lead {
+  margin-top: 0.9rem;
+  max-width: var(--measure);
+}
+.band {
+  border-top: var(--rule);
+  padding-block: clamp(2.25rem, 5vw, 3.5rem) clamp(2.75rem, 6vw, 4.25rem);
+}
+.fine {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.25rem clamp(2rem, 5vw, 4.5rem);
+  margin-top: 2rem;
+}
+.two-col > * {
+  min-width: 0;
+}
+@media (min-width: 48rem) {
+  .two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- the demo ------------------------------------------------------------------------------- */
+.demo {
+  border-top: var(--rule);
+  padding-top: clamp(2.25rem, 5vw, 3.5rem);
+}
+.demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+  align-items: start;
+}
+.demo-grid > * {
+  min-width: 0;
+}
+@media (min-width: 44rem) {
+  .demo-grid {
+    grid-template-columns: minmax(0, 10fr) minmax(0, 11fr);
+  }
+}
+
+.note-field {
+  display: block;
+}
+.note-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 13.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: none;
+  overflow: hidden;
+}
+.note-field textarea:focus-visible {
+  outline: none;
+}
+.note-field:focus-within {
+  outline: 3px solid var(--carbon-soft);
+  outline-offset: 2px;
+}
+.note-field textarea:disabled {
+  color: var(--ink-soft);
+}
+.demo-go {
+  width: 100%;
+  margin-top: 0.85rem;
+}
+.demo-status {
+  margin-top: 0.75rem;
+  /* reserve the space while the phases change, so the page does not jump; give it back when done */
+  min-height: 4.2rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.demo-status b {
+  font-weight: 400;
+  color: var(--ink);
+}
+.demo-status[data-phase='done'],
+.demo-status[data-phase='error'] {
+  min-height: 0;
+  margin-top: 0;
+}
+.bar {
+  height: 0.6rem;
+  margin-bottom: 0.5rem;
+  background: var(--field);
+  border: var(--hair);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--carbon);
+}
+
+.claim-form {
+  background: var(--sheet);
+  border: var(--rule);
+  border-radius: var(--radius);
+}
+.claim-form-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.8rem 0.45rem;
+  background: var(--carbon);
+  color: var(--paper);
+  font: 750 1.05rem / 1.2 var(--font-form);
+  font-stretch: 88%;
+}
+.claim-form-by {
+  font-weight: 500;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.claim-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  padding: 0.75rem;
+}
+.claim-field {
+  min-width: 0;
+  min-height: 3.6rem;
+}
+.claim-field.wide {
+  grid-column: 1 / -1;
+}
+.claim-field.tall {
+  min-height: 6.4rem;
+}
+.claim-field[data-active='1'] {
+  border-color: var(--carbon);
+}
+.claim-value {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.12em;
+  background: var(--carbon);
+}
+
+.failure {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--stamp);
+  border-radius: var(--radius);
+  background: var(--sheet);
+  max-width: var(--measure);
+}
+.failure-what {
+  font-weight: 700;
+}
+.failure-detail {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.run-report {
+  margin-top: 1.25rem;
+}
+.run-report .receipt {
+  margin-top: 0;
+  padding: 0.6rem 0.8rem;
+  gap: 0.5rem 1.5rem;
+}
+.run-note {
+  margin-top: 0.7rem;
+  max-width: var(--measure);
+  font-size: 0.95rem;
+}
+
+/* ---- good at / not good at ------------------------------------------------------------------- */
+.checklist h3 {
+  padding-bottom: 0.55rem;
+  border-bottom: var(--rule);
+}
+.checklist li {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: var(--hair);
+}
+.checklist .tick {
+  margin-top: 0.36em;
+  color: var(--carbon);
+}
+.lab-limits {
+  margin-top: 2.5rem;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--field);
+  border: var(--hair);
+  border-radius: var(--radius);
+}
+.lab-limits h3 {
+  font-size: var(--t-0);
+}
+.lab-limits ul {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.45rem;
+}
+.lab-limits li {
+  font-family: var(--font-typed);
+  font-size: 0.97rem;
+  line-height: 1.45;
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+.lab-limits li::before {
+  content: '- ';
+}
+
+/* ---- measured ---------------------------------------------------------------------------------- */
+.machine {
+  margin-top: 1.75rem;
+  max-width: 56rem;
+}
+.machine .typed {
+  font-size: 0.97rem;
+  line-height: 1.45;
+  display: block;
+}
+.findings {
+  width: 100%;
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+  border-top: var(--rule);
+  border-bottom: var(--rule);
+  font-size: 0.95rem;
+}
+.findings th {
+  padding: 0.55rem 1rem 0.5rem 0;
+  text-align: left;
+  vertical-align: bottom;
+  font: 500 var(--t--1) / 1.25 var(--font-form);
+  font-stretch: 88%;
+  color: var(--ink-soft);
+  border-bottom: var(--hair);
+}
+.findings td {
+  padding: 0.7rem 1rem 0.7rem 0;
+  vertical-align: top;
+  border-bottom: var(--hair);
+  line-height: 1.4;
+}
+.findings tr:last-child td {
+  border-bottom: 0;
+}
+.findings th:last-child,
+.findings td:last-child {
+  padding-right: 0;
+  min-width: 15rem;
+}
+.unmeasured {
+  color: var(--ink-soft);
+}
+.live-row[data-live='1'] td {
+  background: color-mix(in srgb, var(--canary) 30%, transparent);
+}
+.live-row[data-live='1'] td:first-child {
+  box-shadow: inset 3px 0 0 var(--canary-deep);
+  padding-left: 0.7rem;
+}
+/* a second line under a table cell: the instrument's own caveat, quieter than the value */
+.row-note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* a wide table on a narrow screen scrolls sideways inside its own box, never the page */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* the evaluation tree: a heading per nested block, tables and field grids inside */
+.eval {
+  margin-top: 1.75rem;
+}
+.eval h4 {
+  margin: 0;
+  font: 700 var(--t-0) / 1.3 var(--font-form);
+  font-stretch: 92%;
+  color: var(--ink);
+}
+.eval-block > h4 {
+  margin-top: 1.5rem;
+}
+.eval-block .spec-grid {
+  margin-top: 0.75rem;
+}
+.eval-block .findings {
+  margin-top: 0.75rem;
+}
+.eval-empty {
+  margin-top: 1.25rem;
+  max-width: 26rem;
+}
+.lab-limits-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+.lab-limits-list li {
+  padding-left: 1.1rem;
+  border-left: 3px solid var(--field-line);
+  line-height: 1.45;
+}
+
+/* needle3: the lab's other model, rendered from whatever keys findings.json carries */
+.needle {
+  margin-top: 2.75rem;
+  padding-top: 1.5rem;
+  border-top: var(--hair);
+}
+.needle .lead {
+  margin-top: 0.7rem;
+}
+.needle .findings {
+  margin-top: 1rem;
+}
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+.spec-grid .ff .typed,
+.spec-grid .ff .unmeasured {
+  display: block;
+  font-size: 0.97rem;
+  line-height: 1.4;
+}
+.needle > .ff {
+  margin-top: 1.25rem;
+  max-width: 26rem;
+}
+.findings tbody th {
+  padding: 0.7rem 1rem 0.7rem 0;
+  text-align: left;
+  vertical-align: top;
+  font: 600 0.95rem / 1.4 var(--font-form);
+  font-stretch: 94%;
+  border-bottom: var(--hair);
+}
+.after-table {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1.5rem;
+}
+.after-table-note {
+  flex: 1 1 18rem;
+  max-width: 36rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+/* below tablet width a six-column table cannot fit: each row becomes a labelled block */
+@media (max-width: 47.99rem) {
+  .findings thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .findings,
+  .findings tbody,
+  .findings tr,
+  .findings td {
+    display: block;
+  }
+  .findings tr {
+    padding: 0.75rem 0;
+    border-bottom: var(--hair);
+  }
+  .findings tr:last-child {
+    border-bottom: 0;
+  }
+  .findings tbody th,
+  .findings td,
+  .findings td:last-child {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+    border: 0;
+    min-width: 0;
+  }
+  .findings tbody th::before,
+  .findings td::before {
+    content: attr(data-label);
+    font: 500 var(--t--1) / 1.6 var(--font-form);
+    font-stretch: 88%;
+    color: var(--ink-soft);
+  }
+  .live-row[data-live='1'] td,
+  .live-row[data-live='1'] td:first-child {
+    padding-left: 0.6rem;
+    box-shadow: inset 3px 0 0 var(--canary-deep);
+  }
+}
+
+/* ---- BizLoop ---------------------------------------------------------------------------------- */
+.status-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.4rem;
+  margin-top: 1rem;
+  padding: 0.55rem 0.8rem;
+  width: fit-content;
+  max-width: 100%;
+  border: var(--rule);
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-stretch: 94%;
+}
+.status-label {
+  font-weight: 500;
+  font-size: var(--t--1);
+  color: var(--ink-soft);
+  font-stretch: 88%;
+}
+@media (max-width: 30rem) {
+  .status-label {
+    flex-basis: 100%;
+  }
+}
+.status-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--carbon);
+}
+.status-box:last-child {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.scenes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem clamp(1.75rem, 3.5vw, 3rem);
+  margin-top: 2.25rem;
+}
+@media (min-width: 60rem) {
+  .scenes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.scene {
+  min-width: 0;
+  padding-top: 0.9rem;
+  border-top: var(--hair);
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+.scene .typed {
+  display: block;
+  font-size: 0.97rem;
+  line-height: 1.45;
+}
+
+/* ---- phone ------------------------------------------------------------------------------------ */
+#phone h3:not(:first-child) {
+  margin-top: 1.75rem;
+}
+#phone h3 + p,
+#phone p + p {
+  margin-top: 0.6rem;
+}
+#phone .ff {
+  margin-top: 1rem;
+}
+.steps {
+  counter-reset: step;
+  margin-top: 0.4rem;
+}
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  padding: 0.65rem 0;
+  border-bottom: var(--hair);
+}
+.steps li::before {
+  content: counter(step) '.';
+  font-family: var(--font-typed);
+  color: var(--carbon);
+}
+/* the step's text is one grid item: without this an inline <span> inside it lands in the number
+   column and reads as a vertical stack of letters (seen 2026-09-21 with "adb reverse") */
+.steps li > span {
+  min-width: 0;
+}
+.env-lines {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.95rem;
+}
+
+/* ---- footer ----------------------------------------------------------------------------------- */
+.foot {
+  border-top: var(--rule);
+  padding-block: 1.5rem 2.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bar > span {
+    transition: width 120ms linear;
+  }
+}

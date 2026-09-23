@@ -1,0 +1,582 @@
+[
+  {
+    "rank": 1,
+    "model_name": "EmbeddingGemma 300M",
+    "huggingface_url": "https://huggingface.co/google/embeddinggemma-300m",
+    "github_url": null,
+    "downloads_last_month": 2674650,
+    "loves": 1926,
+    "community_hype_score": "2.67M downloads/30d and 1,926 likes on the original repo (HF API 2026-09-21); official ggml-org GGUF has 284k downloads/30d. Card reports QAT Q8_0 MTEB multilingual v2 60.93 vs 61.15 full precision, so the Q8_0 file loses almost nothing; weaknesses: Gemma licence (gated original), 2048-token input limit, task prefixes required, activations do not support float16.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 484
+    },
+    "params_b": 0.308,
+    "license": "gemma (Gemma Terms of Use; original repo gated)",
+    "gguf_repo": "ggml-org/embeddinggemma-300M-GGUF",
+    "gguf_file": "embeddinggemma-300M-Q8_0.gguf",
+    "gguf_size_mb": 334,
+    "context_length": 2048,
+    "languages": "100+ languages incl. French (card: 'trained with data in 100+ spoken languages')",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info google/embeddinggemma-300m and ggml-org/embeddinggemma-300M-GGUF (arch 'gemma-embedding', 333.6 MB); card https://huggingface.co/google/embeddinggemma-300m ; wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED: whether llama.cpp allocates a small KV cache for gemma-embedding (would add tens of MB). Only Q8_0 is published in the ggml-org repo.",
+    "wllama_load_hint": "loadModelFromHF(..., {embeddings:true}); createEmbedding(); prefix queries with 'task: search result | query: ' per card",
+    "embedding_dim": 768,
+    "gguf_source": "ggml-org (official llama.cpp org)"
+  },
+  {
+    "rank": 2,
+    "model_name": "Granite Embedding 97M Multilingual R2",
+    "huggingface_url": "https://huggingface.co/ibm-granite/granite-embedding-97m-multilingual-r2",
+    "github_url": "https://github.com/ibm-granite/granite-embedding-models",
+    "downloads_last_month": 76559,
+    "loves": 140,
+    "community_hype_score": "76.6k downloads/30d, 140 likes (HF API 2026-09-21); released 2026-04-29. Card claims MTEB multilingual retrieval 60.3 vs 50.9 for multilingual-e5-small, 'the highest retrieval score of any open multilingual embedding model under 100M parameters' (vendor claim, not independently checked). Weakness: no official GGUF - only a community conversion (mykor, 1,035 downloads/30d).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 265
+    },
+    "params_b": 0.097,
+    "license": "apache-2.0",
+    "gguf_repo": "mykor/granite-embedding-97m-multilingual-r2-GGUF",
+    "gguf_file": "granite-embedding-97M-multilingual-r2-Q8_0.gguf",
+    "gguf_size_mb": 115,
+    "context_length": 32768,
+    "languages": "52 enhanced languages incl. French; 200+ claimed overall",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (GGUF arch 'modern-bert', 115.1 MB); card https://huggingface.co/ibm-granite/granite-embedding-97m-multilingual-r2 ; 'modern-bert' present in llama-arch.cpp at the pin. wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED: numerical parity of the community GGUF with the reference embeddings - compare cosine vs the ONNX/sentence-transformers output before adopting. The original repo also ships onnx/model_quint8_avx2.onnx (98.2 MB) as a transformers.js/onnxruntime-web fallback.",
+    "embedding_dim": 384,
+    "gguf_source": "mykor (community; no official/ggml-org/bartowski GGUF found)",
+    "wllama_load_hint": "{embeddings:true}; keep n_ctx small (512-2048) - 32k context is not needed for chunks"
+  },
+  {
+    "rank": 3,
+    "model_name": "Qwen3-Embedding-0.6B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B",
+    "github_url": "https://github.com/QwenLM/Qwen3-Embedding",
+    "downloads_last_month": 8652744,
+    "loves": 1233,
+    "community_hype_score": "8.65M downloads/30d, 1,233 likes; official GGUF repo 127k downloads/30d; GitHub 2,035 stars (gh api 2026-09-21). Card reports MTEB multilingual 64.33 for the 0.6B model - the best score in this part, above EmbeddingGemma's 61.15. Weaknesses: decoder model, so it needs a KV cache (470 MB at 4k) and is 2x the download of EmbeddingGemma; instruction prefix needed for best results.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 1259
+    },
+    "params_b": 0.596,
+    "license": "apache-2.0",
+    "gguf_repo": "Qwen/Qwen3-Embedding-0.6B-GGUF",
+    "gguf_file": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+    "gguf_size_mb": 639,
+    "context_length": 32768,
+    "languages": "100+ languages incl. French (card)",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info Qwen/Qwen3-Embedding-0.6B and -GGUF (arch 'qwen3', files Q8_0 639.2 MB and f16 1197.6 MB only - no Q4_K_M published by Qwen); config.json: 28 layers, 8 KV heads, head_dim 128 -> KV 469.8 MB at 4096 f16; card https://huggingface.co/Qwen/Qwen3-Embedding-0.6B ; wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. With n_ctx=512 the KV term falls to ~59 MB (total ~850 MB).",
+    "embedding_dim": "32-1024 (MRL)",
+    "gguf_source": "Qwen (official)",
+    "wllama_load_hint": "{embeddings:true, pooling_type:'last'}; set n_ctx 512-1024 on phones"
+  },
+  {
+    "rank": 4,
+    "model_name": "multilingual-e5-small",
+    "huggingface_url": "https://huggingface.co/intfloat/multilingual-e5-small",
+    "github_url": "https://github.com/microsoft/unilm",
+    "downloads_last_month": 12267694,
+    "loves": 422,
+    "community_hype_score": "12.3M downloads/30d, 422 likes - the most-deployed small multilingual embedder in this list. Known weaknesses: 512-token limit, requires 'query: ' / 'passage: ' prefixes, and IBM's R2 card reports it 9.4 points behind granite-embedding-97m-r2 on multilingual retrieval (50.9 vs 60.3, vendor-reported). GGUFs are community-only.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 282
+    },
+    "params_b": 0.118,
+    "license": "mit",
+    "gguf_repo": "cstr/multilingual-e5-small-GGUF",
+    "gguf_file": "multilingual-e5-small-q8_0.gguf",
+    "gguf_size_mb": 132,
+    "context_length": 512,
+    "languages": "94 languages incl. French (card metadata)",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info intfloat/multilingual-e5-small and cstr/multilingual-e5-small-GGUF (arch 'bert', 131.6 MB, 2,092 downloads/30d, modified 2026-08-04); alternative keisuke-miyako/multilingual-e5-small-gguf-q8_0 (132.0 MB); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED: embedding parity of the community GGUF (XLM-R SentencePiece tokenizer conversions have been a source of mismatch - test against sentence-transformers).",
+    "embedding_dim": 384,
+    "gguf_source": "cstr (community; no official GGUF)"
+  },
+  {
+    "rank": 5,
+    "model_name": "bge-m3",
+    "huggingface_url": "https://huggingface.co/BAAI/bge-m3",
+    "github_url": "https://github.com/FlagOpen/FlagEmbedding",
+    "downloads_last_month": 37633121,
+    "loves": 3581,
+    "community_hype_score": "37.6M downloads/30d and 3,581 likes - the highest-liked model in this part; FlagEmbedding has 12,178 GitHub stars. Weaknesses for the browser: 635 MB at Q8_0 (most of it the 250k-token XLM-R vocabulary), and llama.cpp exposes only the dense vector, not bge-m3's sparse/ColBERT outputs.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 785
+    },
+    "params_b": 0.567,
+    "license": "mit",
+    "gguf_repo": "ggml-org/bge-m3-Q8_0-GGUF",
+    "gguf_file": "bge-m3-q8_0.gguf",
+    "gguf_size_mb": 635,
+    "context_length": 8192,
+    "languages": "100+ languages incl. French (multilingual XLM-R base)",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info BAAI/bge-m3 and ggml-org/bge-m3-Q8_0-GGUF (arch 'bert', 634.6 MB, ctx 8192, 10.2k downloads/30d); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED in this pass: exact language count and the dense-only statement (known llama.cpp behaviour, not re-checked at the pin).",
+    "embedding_dim": 1024,
+    "gguf_source": "ggml-org"
+  },
+  {
+    "rank": 6,
+    "model_name": "nomic-embed-text-v2-moe",
+    "huggingface_url": "https://huggingface.co/nomic-ai/nomic-embed-text-v2-moe",
+    "github_url": "https://github.com/nomic-ai/contrastors",
+    "downloads_last_month": 1667578,
+    "loves": 500,
+    "community_hype_score": "1.67M downloads/30d, 500 likes; official Nomic GGUF repo 51k downloads/30d. Multilingual MoE (475M total). Weaknesses: 512-token context, 512 MB at Q8_0 - larger than EmbeddingGemma for a shorter context; requires 'search_query: ' / 'search_document: ' prefixes.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 662
+    },
+    "params_b": 0.475,
+    "license": "apache-2.0",
+    "gguf_repo": "nomic-ai/nomic-embed-text-v2-moe-GGUF",
+    "gguf_file": "nomic-embed-text-v2-moe.Q8_0.gguf",
+    "gguf_size_mb": 512,
+    "context_length": 512,
+    "languages": "101 languages incl. French (card metadata)",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (arch 'nomic-bert-moe' - present at the pin; Q8_0 512.2 MB, Q4_K_M 344.1 MB); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. English-only sibling for reference: nomic-ai/nomic-embed-text-v1.5 (14.5M downloads/30d, 935 likes) -> nomic-ai/nomic-embed-text-v1.5-GGUF nomic-embed-text-v1.5.Q8_0.gguf 146.1 MB, ctx 2048, arch 'nomic-bert'.",
+    "embedding_dim": 768,
+    "gguf_source": "nomic-ai (official)"
+  },
+  {
+    "rank": 7,
+    "model_name": "bge-small-en-v1.5",
+    "huggingface_url": "https://huggingface.co/BAAI/bge-small-en-v1.5",
+    "github_url": "https://github.com/FlagOpen/FlagEmbedding",
+    "downloads_last_month": 64447211,
+    "loves": 587,
+    "community_hype_score": "64.4M downloads/30d - the most-downloaded model in this part - and 587 likes. 37 MB at Q8_0 makes it the fastest download here. Weakness: English only (card metadata language=['en']), 512 tokens - not usable for French retrieval.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 187
+    },
+    "params_b": 0.033,
+    "license": "mit",
+    "gguf_repo": "CompendiumLabs/bge-small-en-v1.5-gguf",
+    "gguf_file": "bge-small-en-v1.5-q8_0.gguf",
+    "gguf_size_mb": 37,
+    "context_length": 512,
+    "languages": "English only",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info BAAI/bge-small-en-v1.5 and CompendiumLabs/bge-small-en-v1.5-gguf (arch 'bert', q8_0 36.8 MB, q4_k_m 24.8 MB, 8.5k downloads/30d); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. Same-class English alternatives measured in this pass: BAAI/bge-base-en-v1.5 (10.3M dl, 499 likes) -> CompendiumLabs/bge-base-en-v1.5-gguf q8_0 118.0 MB; Snowflake/snowflake-arctic-embed-s (105k dl, 29 likes) -> yixuan-chia/snowflake-arctic-embed-s-GGUF Q8_0 36.7 MB (community, 468 dl); ibm-granite/granite-embedding-107m-multilingual (64.5k dl, 52 likes, 12 languages incl. fr) -> bartowski/granite-embedding-107m-multilingual-GGUF Q8_0 121.0 MB, arch 'bert'.",
+    "embedding_dim": 384,
+    "gguf_source": "CompendiumLabs (community, long-standing)"
+  },
+  {
+    "rank": 8,
+    "model_name": "Qwen3-Reranker-0.6B",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3-Reranker-0.6B",
+    "github_url": "https://github.com/QwenLM/Qwen3-Embedding",
+    "downloads_last_month": 1246549,
+    "loves": 399,
+    "community_hype_score": "1.25M downloads/30d, 399 likes; ggml-org GGUF 74.6k downloads/30d. wllama 3.7.0 has a createRerank() API (src/wllama.ts:678) that needs embeddings:true and pooling_type:'rank'. Weakness: decoder reranker - each (query, doc) pair is a full forward pass plus a 470 MB KV cache at 4k, so reranking 20+ passages on a phone CPU will be slow (UNVERIFIED - not timed).",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 1259
+    },
+    "params_b": 0.596,
+    "license": "apache-2.0",
+    "gguf_repo": "ggml-org/Qwen3-Reranker-0.6B-Q8_0-GGUF",
+    "gguf_file": "qwen3-reranker-0.6b-q8_0.gguf",
+    "gguf_size_mb": 639,
+    "context_length": 40960,
+    "languages": "100+ languages incl. French (Qwen3 family claim; UNVERIFIED on the reranker card in this pass)",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (arch 'qwen3', 639.2 MB); config.json 28 layers/8 KV heads/head_dim 128; /home/edu/.cache/slm-src/ngxson_wllama/src/wllama.ts:673-683 (createRerank requirements); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED: that this GGUF carries the rank-pooling classifier metadata llama.cpp expects - the GGUF card gives no rerank instructions; test createRerank before relying on it.",
+    "gguf_source": "ggml-org",
+    "task": "rerank",
+    "wllama_load_hint": "{embeddings:true, pooling_type:'rank', n_ctx:1024}"
+  },
+  {
+    "rank": 9,
+    "model_name": "bge-reranker-v2-m3",
+    "huggingface_url": "https://huggingface.co/BAAI/bge-reranker-v2-m3",
+    "github_url": "https://github.com/FlagOpen/FlagEmbedding",
+    "downloads_last_month": 17465321,
+    "loves": 1206,
+    "community_hype_score": "17.5M downloads/30d, 1,206 likes - the de-facto multilingual cross-encoder; gpustack GGUF 27.6k downloads/30d. Encoder-only, so no KV cache and lower peak memory than Qwen3-Reranker at the same file size. Weakness: 568M parameters dominated by the XLM-R vocabulary; no official GGUF.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0",
+      "required_vram_mb": 786
+    },
+    "params_b": 0.568,
+    "license": "apache-2.0",
+    "gguf_repo": "gpustack/bge-reranker-v2-m3-GGUF",
+    "gguf_file": "bge-reranker-v2-m3-Q8_0.gguf",
+    "gguf_size_mb": 636,
+    "context_length": 8192,
+    "languages": "Multilingual incl. French (card metadata 'multilingual')",
+    "capabilities": [
+      "embedding"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (arch 'bert', Q8_0 635.7 MB, Q4_K_M 438.4 MB, FP16 1159.8 MB); wllama createRerank as above; wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. Q4_K_M (438 MB) is the smaller option; UNVERIFIED which quant keeps ranking quality - no measurement found.",
+    "gguf_source": "gpustack (community vendor)",
+    "task": "rerank",
+    "wllama_load_hint": "{embeddings:true, pooling_type:'rank'}"
+  },
+  {
+    "rank": 10,
+    "model_name": "LFM2-1.2B-Extract",
+    "huggingface_url": "https://huggingface.co/LiquidAI/LFM2-1.2B-Extract",
+    "github_url": null,
+    "downloads_last_month": 2820,
+    "loves": 132,
+    "community_hype_score": "Low traction: 2.8k downloads/30d, 132 likes (official GGUF 3.2k/30d). It is the only GGUF-native route to structured extraction (incl. PII-style fields) in this part: card says JSON/XML/YAML output in 9 languages incl. French and claims output quality 'on a level higher than Gemma 3 27B' (vendor claim). Weaknesses: single-turn only, needs temperature 0 and a carefully written schema; LFM Open License is not OSI.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 931
+    },
+    "params_b": 1.17,
+    "license": "LFM Open License v1.0 (HF tag 'other'; commercial terms UNVERIFIED - read the licence)",
+    "gguf_repo": "LiquidAI/LFM2-1.2B-Extract-GGUF",
+    "gguf_file": "LFM2-1.2B-Extract-Q4_K_M.gguf",
+    "gguf_size_mb": 731,
+    "context_length": 128000,
+    "languages": "en, ar, zh, fr, de, ja, ko, es (+pt per card text)",
+    "capabilities": [
+      "extraction",
+      "json",
+      "pii"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (arch 'lfm2' - present at the pin; Q4_K_M 730.9 MB); config.json: 16 layers of which 6 attention, 8 KV heads, head_dim 64 -> KV 50.3 MB at 4096; card https://huggingface.co/LiquidAI/LFM2-1.2B-Extract ; wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. Smaller sibling: LiquidAI/LFM2-350M-Extract (1.2k dl, 89 likes) -> LiquidAI/LFM2-350M-Extract-GGUF LFM2-350M-Extract-Q8_0.gguf 379.2 MB. 'pii' capability here means prompt-driven field extraction, not a trained PII tagger - recall is UNVERIFIED.",
+    "gguf_source": "LiquidAI (official)"
+  },
+  {
+    "rank": 11,
+    "model_name": "granite-docling-258M",
+    "huggingface_url": "https://huggingface.co/ibm-granite/granite-docling-258M",
+    "github_url": "https://github.com/docling-project/docling",
+    "downloads_last_month": 49707,
+    "loves": 1264,
+    "community_hype_score": "49.7k downloads/30d, 1,264 likes; Docling itself has 67,422 GitHub stars. Card reports gains over SmolDocling-256M (table TEDS 0.82->0.97, OCR F1 0.80->0.84) and lists llama.cpp quantisations and a WebGPU demo. Weaknesses: English only with experimental ja/ar/zh - French is not listed; emits DocTags that need the Docling post-processor; card warns small models hallucinate more.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (+ mmproj Q8_0)",
+      "required_vram_mb": 526
+    },
+    "params_b": 0.258,
+    "license": "apache-2.0",
+    "gguf_repo": "ggml-org/granite-docling-258M-GGUF",
+    "gguf_file": "granite-docling-258M-Q8_0.gguf",
+    "gguf_size_mb": 178,
+    "context_length": 8192,
+    "languages": "English; experimental Japanese, Arabic, Chinese; French NOT listed",
+    "capabilities": [
+      "vision",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (LLM arch 'llama' 177.9 MB + mmproj-granite-docling-258M-Q8_0.gguf 103.8 MB); config.json model_type idefics3, 30 layers/3 KV heads/head_dim 64 -> KV 94.4 MB; PROJECTOR_TYPE_IDEFICS3 present in clip-impl.h at the pin; wllama multimodal: guides/intro-v3.md:123-150 (mmprojUrl / mmprojQuant), CMakeLists.txt:80,133 links mtmd; card https://huggingface.co/ibm-granite/granite-docling-258M ; required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. Predecessor ds4sd/SmolDocling-256M-preview (27.4k dl, 1,621 likes, cdla-permissive-2.0): the GGUF repos checked (Mungert, mradermacher) contain NO mmproj file, so it cannot do vision in wllama as published - use granite-docling instead. UNVERIFIED: page-image throughput in WASM (a full page is many image tokens).",
+    "mmproj_file": "mmproj-granite-docling-258M-Q8_0.gguf",
+    "mmproj_size_mb": 104,
+    "gguf_source": "ggml-org"
+  },
+  {
+    "rank": 12,
+    "model_name": "SmolVLM2-500M-Video-Instruct",
+    "huggingface_url": "https://huggingface.co/HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+    "github_url": "https://github.com/huggingface/smollm",
+    "downloads_last_month": 1252958,
+    "loves": 178,
+    "community_hype_score": "1.25M downloads/30d, 178 likes; ggml-org GGUF 12.8k/30d. Smallest general VLM with an official llama.cpp GGUF + mmproj. Weaknesses: English only (card metadata), weak OCR versus Qwen-VL; wllama builds mtmd with MTMD_VIDEO OFF (CMakeLists.txt:6), so only still images work.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q8_0 (+ mmproj Q8_0)",
+      "required_vram_mb": 864
+    },
+    "params_b": 0.5,
+    "license": "apache-2.0",
+    "gguf_repo": "ggml-org/SmolVLM2-500M-Video-Instruct-GGUF",
+    "gguf_file": "SmolVLM2-500M-Video-Instruct-Q8_0.gguf",
+    "gguf_size_mb": 437,
+    "context_length": 8192,
+    "languages": "English only",
+    "capabilities": [
+      "vision",
+      "chat"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info for both repos (436.8 MB + mmproj 108.8 MB); config.json 32 layers/5 KV heads/head_dim 64 -> KV 167.8 MB; idefics3 projector at the pin; wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. Alternatives measured: HuggingFaceTB/SmolVLM-256M-Instruct (428k dl, 407 likes) -> ggml-org/SmolVLM-256M-Instruct-GGUF Q8_0 175.1 MB + mmproj 103.8 MB; LiquidAI/LFM2-VL-450M (13.6k dl, 151 likes, LFM licence) -> LiquidAI/LFM2-VL-450M-GGUF Q8_0 379.2 MB + mmproj 103.9 MB ('lfm2' projector present at the pin).",
+    "mmproj_file": "mmproj-SmolVLM2-500M-Video-Instruct-Q8_0.gguf",
+    "mmproj_size_mb": 109,
+    "gguf_source": "ggml-org"
+  },
+  {
+    "rank": 13,
+    "model_name": "Qwen3-VL-2B-Instruct",
+    "huggingface_url": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct",
+    "github_url": "https://github.com/QwenLM/Qwen3-VL",
+    "downloads_last_month": 3026688,
+    "loves": 469,
+    "community_hype_score": "3.03M downloads/30d, 469 likes; official GGUF 123k downloads/30d; GitHub 19,973 stars. The only multilingual document-capable VLM here that fits the 2 GB file limit. Weakness: 1.55 GB download (LLM + mmproj) and ~2.2 GB working set - desktop-class, not phone-class.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M (+ mmproj Q8_0)",
+      "required_vram_mb": 2172
+    },
+    "params_b": 2.0,
+    "license": "apache-2.0",
+    "gguf_repo": "Qwen/Qwen3-VL-2B-Instruct-GGUF",
+    "gguf_file": "Qwen3VL-2B-Instruct-Q4_K_M.gguf",
+    "gguf_size_mb": 1107,
+    "context_length": 262144,
+    "languages": "Multilingual incl. French (Qwen3-VL family; per-language OCR list UNVERIFIED in this pass)",
+    "capabilities": [
+      "vision",
+      "chat",
+      "tools",
+      "json",
+      "extraction"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info for both repos (arch 'qwen3vl' 1107.4 MB; mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf 445.1 MB; GGUF metadata total 1.72B for the LLM, 2.0 is the nominal size); config.json text_config 28 layers/8 KV heads/head_dim 128 -> KV 469.8 MB; 'qwen3vl' arch and 'qwen3vl_merger' projector present at the pin; required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. Both files are under 2 GB, but wllama README recommends re-splitting into <=512 MB shards (README.md:106). Larger sibling Qwen/Qwen2.5-VL-3B-Instruct (2.36M dl, 702 likes): ggml-org Q4_K_M is 1929.9 MB + mmproj Q8_0 844.8 MB - under the limit but ~3.1 GB working set, not recommended in-browser.",
+    "mmproj_file": "mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf",
+    "mmproj_size_mb": 445,
+    "gguf_source": "Qwen (official)"
+  },
+  {
+    "rank": 14,
+    "model_name": "Llama-Guard-3-1B",
+    "huggingface_url": "https://huggingface.co/meta-llama/Llama-Guard-3-1B",
+    "github_url": "https://github.com/meta-llama/PurpleLlama",
+    "downloads_last_month": 23935,
+    "loves": 121,
+    "community_hype_score": "23.9k downloads/30d, 121 likes; the smallest mainstream safety classifier, 8 languages incl. French per card metadata. Weaknesses: gated repo under the Llama 3.2 Community Licence; no official GGUF - the most-downloaded conversion (QuantFactory) has 1.1k downloads/30d and dates from 2024-09-25.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 1239
+    },
+    "params_b": 1.5,
+    "license": "llama3.2 (Llama 3.2 Community License; gated)",
+    "gguf_repo": "QuantFactory/Llama-Guard-3-1B-GGUF",
+    "gguf_file": "Llama-Guard-3-1B.Q4_K_M.gguf",
+    "gguf_size_mb": 955,
+    "context_length": 131072,
+    "languages": "en, de, fr, it, pt, hi, es, th",
+    "capabilities": [
+      "guard"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info meta-llama/Llama-Guard-3-1B and QuantFactory/Llama-Guard-3-1B-GGUF (arch 'llama', Q4_K_M 955.4 MB, GGUF total 1.498B params); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED: KV term assumes the Llama-3.2-1B shape (16 layers, 8 KV heads, head_dim 64 -> 134 MB); the gated config.json returned 401. UNVERIFIED: safety-classification accuracy after Q4 quantisation.",
+    "gguf_source": "QuantFactory (community; none of official/ggml-org/unsloth/bartowski found in search)"
+  },
+  {
+    "rank": 15,
+    "model_name": "ShieldGemma 2B",
+    "huggingface_url": "https://huggingface.co/google/shieldgemma-2b",
+    "github_url": null,
+    "downloads_last_month": 11440,
+    "loves": 132,
+    "community_hype_score": "11.4k downloads/30d, 132 likes; unchanged since 2024-08-28. GGUFs are community-only (QuantFactory 685 downloads/30d). Weaknesses: 1.7 GB at Q4_K_M with a 436 MB KV cache makes it the heaviest guard here; Gemma licence, gated; language coverage not stated in card metadata.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_K_M",
+      "required_vram_mb": 2295
+    },
+    "params_b": 2.61,
+    "license": "gemma (gated)",
+    "gguf_repo": "QuantFactory/shieldgemma-2b-GGUF",
+    "gguf_file": "shieldgemma-2b.Q4_K_M.gguf",
+    "gguf_size_mb": 1709,
+    "context_length": 8192,
+    "languages": "English (card metadata has no language field; French UNVERIFIED)",
+    "capabilities": [
+      "guard"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info google/shieldgemma-2b and QuantFactory/shieldgemma-2b-GGUF (arch 'gemma2', Q4_K_M 1708.6 MB - under the 2 GB limit; Q6_K 2151 MB and Q8_0 2785 MB are over it); wllama 3.7.0 pins llama.cpp c7bda030 (2026-09-03, gh api repos/ggml-org/llama.cpp/commits/c7bda030...); arch list checked in src/llama-arch.cpp and projector list in tools/mtmd/clip-impl.h at that commit. required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. UNVERIFIED: KV term assumes the Gemma-2-2B shape (26 layers, 4 KV heads, head_dim 256 -> 436 MB); gated config returned 401. ShieldGemma scores via the logit of a 'Yes' token - UNVERIFIED that wllama's chat API exposes token logprobs for that.",
+    "gguf_source": "QuantFactory (community)"
+  },
+  {
+    "rank": 16,
+    "model_name": "Granite Guardian 3.2 3B-A800M",
+    "huggingface_url": "https://huggingface.co/ibm-granite/granite-guardian-3.2-3b-a800m",
+    "github_url": "https://github.com/ibm-granite/granite-guardian",
+    "downloads_last_month": 6439,
+    "loves": 8,
+    "community_hype_score": "Low traction: 6.4k downloads/30d, 8 likes; the only official Granite Guardian GGUF found is the 8B (ibm-granite/granite-guardian-4.1-8b-GGUF), which is too large for the browser. MoE with ~800M active parameters, so decoding is faster than its 3.3B size suggests. Weakness: the only sub-2 GB community files are Q4_0 (1864 MB) and IQ4 variants; wllama README advises against IQ quants.",
+    "wllama_compatibility": {
+      "is_compatible": true,
+      "quantization_format": "Q4_0",
+      "required_vram_mb": 2282
+    },
+    "params_b": 3.3,
+    "license": "apache-2.0",
+    "gguf_repo": "Mungert/granite-guardian-3.2-3b-a800m-GGUF",
+    "gguf_file": "granite-guardian-3.2-3b-a800m-q4_0.gguf",
+    "gguf_size_mb": 1864,
+    "context_length": 131072,
+    "languages": "English (no language field in card metadata; French UNVERIFIED)",
+    "capabilities": [
+      "guard"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info for both repos (arch 'granitemoe' - present at the pin; q4_0 1864.4 MB, q4_1 2070.5 MB, iq4_xs 1783.2 MB; no Q4_K_M in the repo); config.json 32 layers/8 KV heads/head_dim 64 -> KV 268.4 MB; wllama README.md:107 on IQ quants; required_vram_mb = gguf_size_mb (+ mmproj_mb) + KV cache f16 at n_ctx=min(4096, model ctx) + 150; KV = 2*attn_layers*kv_heads*head_dim*n_ctx*2 bytes from config.json; encoder-only models counted with KV=0. Estimate, not measured. 1864 MB is within 13% of the 2 GB ArrayBuffer ceiling - re-split to 512 MB shards with llama-gguf-split before serving. Tiny alternative NOT runnable in wllama: ibm-granite/granite-guardian-hap-38m (1.1k dl, 48 likes, English hate/abuse classifier, transformers only).",
+    "gguf_source": "Mungert (community)"
+  },
+  {
+    "rank": 17,
+    "model_name": "Gemma 3n E2B-it",
+    "huggingface_url": "https://huggingface.co/google/gemma-3n-E2B-it",
+    "github_url": null,
+    "downloads_last_month": 170525,
+    "loves": 327,
+    "community_hype_score": "170k downloads/30d, 327 likes; unsloth GGUF 27.1k downloads/30d. Not usable in wllama as published: the smallest mainstream quant (unsloth Q4_K_M) is 3,027 MB in ONE file, over the 2 GB ArrayBuffer limit, and neither the ggml-org nor the unsloth GGUF repo contains an mmproj file, so vision/audio are unavailable even though the 'gemma3nv'/'gemma3na' projector types exist in llama.cpp at the pin.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "Q4_K_M (single 3,027 MB file - exceeds 2 GB; would need self-splitting with llama-gguf-split, text-only)",
+      "required_vram_mb": 3177
+    },
+    "params_b": 4.46,
+    "license": "gemma (gated)",
+    "gguf_repo": "unsloth/gemma-3n-E2B-it-GGUF",
+    "gguf_file": "gemma-3n-E2B-it-Q4_K_M.gguf",
+    "gguf_size_mb": 3027,
+    "context_length": 32768,
+    "languages": "Multilingual incl. French (Gemma 3n family; count UNVERIFIED in this pass)",
+    "capabilities": [
+      "chat",
+      "vision"
+    ],
+    "phone_ok": false,
+    "evidence": "HF API model_info google/gemma-3n-E2B-it, ggml-org/gemma-3n-E2B-it-GGUF (only Q8_0 4788 MB and f16) and unsloth/gemma-3n-E2B-it-GGUF (Q4_0 2965.7 MB, Q4_K_M 3026.9 MB; no file matching 'mmproj'); GGUF metadata total 4.46B raw parameters (E2B = ~2B effective); wllama README.md:38 (2 GB limit) and :155-165 (split); arch 'gemma3n' present at the pin. required_vram_mb = file + 150 only; KV cache excluded because the config is gated (UNVERIFIED). UNVERIFIED: whether some other repo publishes a gemma-3n mmproj.",
+    "gguf_source": "unsloth"
+  },
+  {
+    "rank": 18,
+    "model_name": "GLiNER multi PII v1",
+    "huggingface_url": "https://huggingface.co/urchade/gliner_multi_pii-v1",
+    "github_url": "https://github.com/urchade/GLiNER",
+    "downloads_last_month": 60222,
+    "loves": 174,
+    "community_hype_score": "60.2k downloads/30d, 174 likes; GLiNER has 3,859 GitHub stars. Zero-shot PII NER in 6 languages incl. French. NOT a llama.cpp model: GLiNER is DeBERTa-based span classification and 'deberta' is absent from llama-arch.cpp at the pin. Browser route is ONNX: onnx-community/gliner_multi_pii-v1 (int8 349 MB, 719 downloads/30d) with onnxruntime-web via Knowledgator/GLiNER.js - which has only 27 stars and was last pushed 2025-03-02, so treat it as unmaintained.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "n/a - ONNX int8 (onnxruntime-web / GLiNER.js), not GGUF",
+      "required_vram_mb": 499
+    },
+    "params_b": 0.29,
+    "license": "apache-2.0",
+    "gguf_repo": null,
+    "gguf_file": null,
+    "gguf_size_mb": null,
+    "context_length": null,
+    "languages": "en, fr, de, es, pt, it",
+    "capabilities": [
+      "pii",
+      "extraction"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info urchade/gliner_multi_pii-v1 (pytorch_model.bin 1155.9 MB fp32 -> ~0.29B params, derived) and onnx-community/gliner_multi_pii-v1 (onnx/model_int8.onnx 349.1 MB, model_q4f16.onnx 471.8 MB, model_fp16.onnx 579.7 MB); its card says Transformers.js but shows 'Unknown pipeline tag' and no usage snippet - transformers.js pipeline support for GLiNER is UNVERIFIED; gh api repos/Knowledgator/GLiNER.js (27 stars, pushed 2025-03-02); grep of llama-arch.cpp at c7bda030: no 'deberta'. required_vram_mb = ONNX int8 file + 150, not measured. Newer family: fastino/gliner2-privacy-filter-PII-multi (133k dl, 86 likes, 205M, 7 languages incl. fr, apache-2.0) - its own card reports average F1 0.477 and precision 0.35-0.37 on the SPY benchmark, Python 'gliner2' runtime only, safetensors only (1228 MB), no ONNX: not browser-ready. English-only edge option: knowledgator/gliner-pii-edge-v1.0 onnx/model_quint8.onnx 45.8 MB.",
+    "alt_runtime": "onnxruntime-web via GLiNER.js (npm 'gliner'); transformers.js support UNVERIFIED",
+    "alt_repo": "onnx-community/gliner_multi_pii-v1",
+    "alt_file": "onnx/model_int8.onnx",
+    "alt_size_mb": 349,
+    "context_length_note": "UNVERIFIED (not read from config)"
+  },
+  {
+    "rank": 19,
+    "model_name": "OpenAI Privacy Filter",
+    "huggingface_url": "https://huggingface.co/openai/privacy-filter",
+    "github_url": "https://github.com/openai/privacy-filter",
+    "downloads_last_month": 235593,
+    "loves": 1761,
+    "community_hype_score": "235.6k downloads/30d, 1,761 likes, 2,706 GitHub stars - the most-liked PII model found. Card: 1.5B-parameter sparse MoE token classifier with 50M active, 128k context, 8 PII labels, 'runs in a web browser' via Transformers.js/WebGPU. Weaknesses stated by the card: 'primarily English', performance may drop on non-English text and uncommon names. NOT loadable in wllama: the LocalAI-io GGUF ports use arch 'openai-privacy-filter', which does not exist in upstream llama.cpp at the pin, and the only file is f16 at 2,818 MB (>2 GB).",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "n/a - ONNX q4 (transformers.js + WebGPU), not GGUF",
+      "required_vram_mb": 1067
+    },
+    "params_b": 1.5,
+    "license": "apache-2.0",
+    "gguf_repo": null,
+    "gguf_file": null,
+    "gguf_size_mb": null,
+    "context_length": 128000,
+    "languages": "Primarily English; French fine-tune exists (OpenMed/privacy-filter-multilingual, 16 languages incl. fr, 164.8k dl, 23 likes) but ships safetensors only - no ONNX, so not browser-ready without conversion",
+    "capabilities": [
+      "pii"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info openai/privacy-filter (tags onnx + transformers.js; onnx/model_q4.onnx_data 917.1 MB, model_q4f16.onnx_data 809.1 MB, model_quantized 1618 MB), OpenMed/privacy-filter-multilingual, LocalAI-io/privacy-filter-multilingual-GGUF (arch 'openai-privacy-filter', privacy-filter-multilingual-f16.gguf 2817.5 MB); grep 'privacy' in llama-arch.cpp at c7bda030 -> 0 matches; card https://huggingface.co/openai/privacy-filter ; gh api repos/openai/privacy-filter. required_vram_mb = q4 ONNX data file + 150, not measured; WebGPU needed for usable speed (UNVERIFIED on phones).",
+    "alt_runtime": "transformers.js (ONNX Runtime Web, WebGPU)",
+    "alt_repo": "openai/privacy-filter",
+    "alt_file": "onnx/model_q4.onnx + onnx/model_q4.onnx_data",
+    "alt_size_mb": 917
+  },
+  {
+    "rank": 20,
+    "model_name": "Piiranha v1",
+    "huggingface_url": "https://huggingface.co/iiiorg/piiranha-v1-detect-personal-information",
+    "github_url": null,
+    "downloads_last_month": 228860,
+    "loves": 249,
+    "community_hype_score": "228.9k downloads/30d, 249 likes; 6 languages incl. French. Browser-ready through transformers.js (onnx-community conversion, int8 317 MB, 3.7k downloads/30d). Blocking weakness: licence is cc-by-nc-nd-4.0 - non-commercial and no derivatives - so it cannot ship in a commercial product. DeBERTa-family token classifier: no llama.cpp architecture for it at the pin.",
+    "wllama_compatibility": {
+      "is_compatible": false,
+      "quantization_format": "n/a - ONNX int8 (transformers.js token-classification), not GGUF",
+      "required_vram_mb": 467
+    },
+    "params_b": 0.28,
+    "license": "cc-by-nc-nd-4.0 (NON-COMMERCIAL, no derivatives)",
+    "gguf_repo": null,
+    "gguf_file": null,
+    "gguf_size_mb": null,
+    "context_length": null,
+    "languages": "en, it, fr, de, nl, es",
+    "capabilities": [
+      "pii"
+    ],
+    "phone_ok": true,
+    "evidence": "HF API model_info iiiorg/piiranha-v1-detect-personal-information (card_data.license cc-by-nc-nd-4.0) and onnx-community/piiranha-v1-detect-personal-information-ONNX (library transformers.js; onnx/model_int8.onnx 317.1 MB, model_q4f16.onnx 453.1 MB, model.onnx 1149.8 MB fp32 -> ~0.28B params, derived); no 'deberta' in llama-arch.cpp at c7bda030. required_vram_mb = ONNX int8 file + 150, not measured. context length UNVERIFIED (not read from config). Presidio itself is a Python framework with no browser build found in this pass (UNVERIFIED) - in-browser the equivalent is one of these NER models plus regex recognisers.",
+    "alt_runtime": "transformers.js pipeline('token-classification')",
+    "alt_repo": "onnx-community/piiranha-v1-detect-personal-information-ONNX",
+    "alt_file": "onnx/model_int8.onnx",
+    "alt_size_mb": 317
+  }
+]

@@ -1,8 +1,10 @@
 // Lifted from LocalMode-AI/LocalMode @ 3ef8bc4 — apps/ui/registry/localmode/conversation/conversation/conversation.tsx
 // (MIT, Copyright (c) 2025 LocalMode).
 // Changes: 'use client' and the registry import alias removed; shadcn colour tokens remapped to the daisyUI carbon
-// themes; the scroll button is square (form identity) and carries a text label; the pin threshold is a prop; the
-// viewport gets tabIndex so keyboard users can scroll it.
+// themes; the scroll button is square (form identity) and carries a text label; the viewport gets tabIndex so keyboard
+// users can scroll it; the hand-rolled scrollTop pinning was replaced by anything-llm's useAutoScroll (lifted in
+// src/lib/anythingllm/use-auto-scroll.ts), which disengages on the reader's own wheel/touch input instead of on a
+// scroll event that a streaming re-render can race; `history` replaces `streaming` as the prop that drives it.
 /**
  * @file conversation.tsx
  * @description The scrollable message-display surface for a chat. `Conversation`
@@ -18,6 +20,7 @@ import * as React from 'react';
 import { ArrowDown } from 'lucide-react';
 import { cn } from './utils';
 import { Button } from './button';
+import useAutoScroll, { type AutoScrollItem } from '../anythingllm/use-auto-scroll';
 
 /** Context shared between `Conversation` and its scroll-button/anchor. */
 interface ConversationContextValue {
@@ -44,13 +47,10 @@ export function useConversation() {
 /** Props for {@link Conversation}. */
 export interface ConversationProps extends React.ComponentProps<'div'> {
   /**
-   * When true (typically `useChat().isStreaming`), the view auto-pins to the
-   * bottom as content grows — unless the user has scrolled up.
-   * @default false
+   * The messages on screen. While the last one is `pending`, the view follows
+   * new content to the bottom — unless the reader has scrolled up.
    */
-  streaming?: boolean;
-  /** Distance (px) from the bottom under which the view counts as pinned. @default 24 */
-  pinThreshold?: number;
+  history: ReadonlyArray<AutoScrollItem>;
 }
 
 /**
@@ -69,41 +69,24 @@ export interface ConversationProps extends React.ComponentProps<'div'> {
  * ```
  */
 export function Conversation({
-  streaming = false,
-  pinThreshold = 24,
+  history,
   className,
   children,
   ...props
 }: ConversationProps) {
-  const viewportRef = React.useRef<HTMLDivElement | null>(null);
-  const [isPinned, setIsPinned] = React.useState(true);
-
-  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = 'smooth') => {
-    const el = viewportRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior });
-    setIsPinned(true);
-  }, []);
-
-  // Track whether the user is at the bottom; release the pin on scroll-up.
-  const handleScroll = React.useCallback(() => {
-    const el = viewportRef.current;
-    if (!el) return;
-    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setIsPinned(distance < pinThreshold);
-  }, [pinThreshold]);
-
-  // Auto-pin while streaming/growing, but only if the user hasn't scrolled up.
-  React.useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) return;
-    if (!isPinned) return;
-    el.scrollTop = el.scrollHeight;
-  });
+  const { chatHistoryRef, isAtBottom, scrollToBottom, scrollHandlers } =
+    useAutoScroll(history);
+  const last = history[history.length - 1];
+  const streaming = !!(last?.pending || last?.animate);
 
   const ctx = React.useMemo<ConversationContextValue>(
-    () => ({ viewportRef, isPinned, scrollToBottom }),
-    [isPinned, scrollToBottom],
+    () => ({
+      viewportRef: chatHistoryRef,
+      isPinned: isAtBottom,
+      scrollToBottom: (behavior: ScrollBehavior = 'smooth') =>
+        scrollToBottom(behavior === 'smooth'),
+    }),
+    [chatHistoryRef, isAtBottom, scrollToBottom],
   );
 
   return (
@@ -114,13 +97,13 @@ export function Conversation({
         {...props}
       >
         <div
-          ref={viewportRef}
-          onScroll={handleScroll}
-          data-pinned={isPinned || undefined}
-          className="flex-1 overflow-y-auto overscroll-contain"
+          ref={chatHistoryRef}
+          {...scrollHandlers}
+          data-pinned={isAtBottom || undefined}
+          className="conversation-viewport flex-1 overflow-y-auto overscroll-contain"
           tabIndex={0}
           role="log"
-          aria-live="polite"
+          aria-label="Conversation"
         >
           {children}
         </div>

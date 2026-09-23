@@ -3,13 +3,30 @@
   "updated": "2026-09-21",
   "machine": "Ryzen 7 7800X3D (WSL2 VM: 4 cores / 8 threads, 12 GB RAM), headless Chromium 153, WASM CPU (no WebGPU in headless WSL)",
   "inBrowser": [
-    { "model": "SmolLM2-360M-Instruct Q8_0", "sizeMB": 386, "threads": 4, "prefillTokS": null, "decodeTokS": null,
-      "status": "functional run verified; timed run pending a quiet machine" }
+    { "model": "SmolLM2-360M-Instruct Q8_0", "sizeMB": 386, "threads": 4, "prefillTokS": 29, "decodeTokS": 12.3,
+      "status": "provisional: measured while a GPU fine-tune shared the machine; a quiet-machine re-run is pending",
+      "note": "the engine's own timings and the wall clock agreed to within 2%, so the instrument is consistent; the machine was not" }
   ],
-  "needle3": { "paramsM": 121, "fileMB": 35, "engine": "own .cact engine (not GGUF/wllama)", "evalV2": null },
+  "needle3": {
+    "paramsM": 121,
+    "fileMB": 35,
+    "engine": "own .cact engine (not GGUF/wllama)",
+    "evalV2": {
+      "what": "240 held-out cases (117 French / 123 English), field micro-F1, 95% bootstrap CIs, paired bootstrap between conditions",
+      "date": "2026-09-21",
+      "conditions": {
+        "base 2-bit (as shipped)": { "fieldF1": 0.634, "ci95": [0.594, 0.675], "toolAcc": 0.842, "falseCallRate": 0.109, "medianMs": 221 },
+        "base 4-bit (untuned control)": { "fieldF1": 0.703, "ci95": [0.675, 0.731], "toolAcc": 0.846, "falseCallRate": 0.281, "medianMs": 264 },
+        "tuned 4-bit (LoRA, 1200 rows)": { "fieldF1": 0.879, "ci95": [0.852, 0.902], "toolAcc": 0.942, "falseCallRate": 0.0, "medianMs": 340 }
+      },
+      "fineTuningAlone": { "fieldF1Delta": 0.176, "ci95": [0.141, 0.210], "toolAccDelta": 0.096, "note": "tuned minus the 4-bit untuned control, so quantisation is held constant" },
+      "quantisationAlone": { "fieldF1Delta": 0.069, "ci95": [0.033, 0.106], "note": "the 4-bit export alone already beats the shipped 2-bit build; phase 1 changed both at once" }
+    }
+  },
   "limits": [
     "Open-ended reasoning and factual recall are weak in models under 2B parameters.",
     "Prompt processing in WebAssembly is slow: long prompts cost seconds before the first word. Keep prompts short.",
-    "A phone reaching the app over plain http on the LAN is not a secure context, so it runs single-threaded."
+    "A phone opening this over plain http on a LAN has no secure context, and then the app does not start at all: the engine finds no storage backend (measured, not assumed). Use HTTPS, or `adb reverse` and open http://localhost.",
+    "Inside the Android app the system WebView never becomes cross-origin isolated, so the model runs single-threaded with no WebGPU. That is an Android WebView limitation, not a setting we can change."
   ]
 }

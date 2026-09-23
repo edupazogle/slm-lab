@@ -1,0 +1,36 @@
+condition         n  tool_acc  field_F1          95% CI   exact  false_call  ms/case
+base4bit/nosys  240     0.850     0.697   [0.670,0.723]   0.296       0.281      351
+base4bit/sys    240     0.846     0.703   [0.675,0.731]   0.292       0.281      264
+base/nosys      240     0.829     0.640   [0.601,0.678]   0.383       0.000      361
+base/sys        240     0.842     0.634   [0.594,0.675]   0.317       0.109      221
+tuned/nosys     240     0.946     0.882   [0.856,0.908]   0.733       0.000      293
+tuned/sys       240     0.942     0.879   [0.852,0.902]   0.725       0.000      340
+  [sys] tuned minus base4bit  (fine-tuning alone (both 4-bit))
+      field_f1  delta=+0.176  95% CI [+0.141,+0.210]  P(delta<=0)=0.000
+      tool_acc  delta=+0.096  95% CI [+0.054,+0.138]  P(delta<=0)=0.000
+      exact     delta=+0.433  95% CI [+0.362,+0.500]  P(delta<=0)=0.000
+  [sys] base4bit minus base  (quantisation alone (2-bit shipped -> 4-bit export))
+      field_f1  delta=+0.069  95% CI [+0.033,+0.106]  P(delta<=0)=0.000
+      tool_acc  delta=+0.004  95% CI [-0.042,+0.054]  P(delta<=0)=0.455
+      exact     delta=-0.025  95% CI [-0.067,+0.013]  P(delta<=0)=0.910
+  [sys] tuned minus base  (what a user would see)
+      field_f1  delta=+0.245  95% CI [+0.201,+0.289]  P(delta<=0)=0.000
+      tool_acc  delta=+0.100  95% CI [+0.058,+0.142]  P(delta<=0)=0.000
+      exact     delta=+0.408  95% CI [+0.342,+0.475]  P(delta<=0)=0.000
+  [nosys] tuned minus base4bit  (fine-tuning alone (both 4-bit))
+      field_f1  delta=+0.185  95% CI [+0.152,+0.220]  P(delta<=0)=0.000
+      tool_acc  delta=+0.096  95% CI [+0.054,+0.138]  P(delta<=0)=0.000
+      exact     delta=+0.437  95% CI [+0.367,+0.508]  P(delta<=0)=0.000
+  [nosys] base4bit minus base  (quantisation alone (2-bit shipped -> 4-bit export))
+      field_f1  delta=+0.057  95% CI [+0.020,+0.094]  P(delta<=0)=0.002
+      tool_acc  delta=+0.021  95% CI [-0.038,+0.079]  P(delta<=0)=0.262
+      exact     delta=-0.088  95% CI [-0.133,-0.042]  P(delta<=0)=1.000
+  [nosys] tuned minus base  (what a user would see)
+      field_f1  delta=+0.242  95% CI [+0.200,+0.288]  P(delta<=0)=0.000
+      tool_acc  delta=+0.117  95% CI [+0.075,+0.162]  P(delta<=0)=0.000
+      exact     delta=+0.350  95% CI [+0.283,+0.417]  P(delta<=0)=0.000
+
+slices (field_F1 / tool_acc), system turn ON:
+ base4bit/sys: amount:fr_decimal_comma=0.69/1.00(n12)  amount:fr_thousand_space=0.77/1.00(n7)  amount:plain=0.75/0.89(n102)  callback=0.66/1.00(n32)  claim=0.75/0.95(n82)  en=0.73/0.89(n123)  flag=0.39/0.65(n23)  fr=0.67/0.80(n117)  incomplete=0.00/0.53(n38)  multi=0.73/0.82(n39)  offtopic=1.00/1.00(n26)
+ base/sys: amount:fr_decimal_comma=0.56/0.92(n12)  amount:fr_thousand_space=0.57/0.71(n7)  amount:plain=0.71/0.89(n102)  callback=0.58/1.00(n32)  claim=0.73/0.93(n82)  en=0.68/0.82(n123)  flag=0.12/0.26(n23)  fr=0.58/0.86(n117)  incomplete=0.00/0.82(n38)  multi=0.63/0.79(n39)  offtopic=1.00/1.00(n26)
+ tuned/sys: amount:fr_decimal_comma=0.87/0.83(n12)  amount:fr_thousand_space=0.95/1.00(n7)  amount:plain=0.88/0.96(n102)  callback=0.98/1.00(n32)  claim=0.92/1.00(n82)  en=0.85/0.97(n123)  flag=0.63/0.65(n23)  fr=0.91/0.91(n117)  incomplete=1.00/1.00(n38)  multi=0.83/0.85(n39)  offtopic=1.00/1.00(n26)

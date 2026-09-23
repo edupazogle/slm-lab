@@ -1,0 +1,92 @@
+{
+  "qwen2.5-1.5b": {
+    "model": "qwen2.5-1.5b",
+    "speed": {
+      "tok_s": 16.1,
+      "latency_s": 11.2,
+      "chars": 280
+    },
+    "responses": {
+      "factual": {
+        "text": "Insurance subrogation is the process where an insurer recovers a claim on behalf of a policyholder from the party responsible for the loss.",
+        "latency_s": 5.18,
+        "tok_s": 5.4
+      },
+      "json_extract": {
+        "text": "```json\n{\n  \"policyNumber\": \"AXA-9911\",\n  \"amount\": \"1200 euros\"\n}\n```",
+        "latency_s": 3.82,
+        "tok_s": 8.1
+      },
+      "french": {
+        "text": "La subrogation en assurance est une pratique consistant dans la r\u00e9clamation d'une indemisation par le tiers qui a \u00e9t\u00e9 victime d'un dommage ou d'une perte, au lieu du titulaire de l'assurance.",
+        "latency_s": 14.34,
+        "tok_s": 3.3
+      },
+      "synthetic_claim": {
+        "text": "Voici un exemple de requ\u00eate d'indemnisation motoriste en fran\u00e7ais :\n\n**Num\u00e9ro de polyclinique :** 123456789\n\n**Type de dommage :** D\u00e9tachement de frein\n\n**Montant :** 1500 \u20ac\n\nCette requ\u00eate indique que le client a d\u00e9clar\u00e9 un dommage \u00e0 cause d'un d\u00e9tachement de frein sur son v\u00e9hicu",
+        "latency_s": 12.28,
+        "tok_s": 9.2
+      }
+    }
+  },
+  "llama3.2-3b": {
+    "model": "llama3.2-3b",
+    "speed": {
+      "tok_s": 3.2,
+      "latency_s": 37.54,
+      "chars": 280
+    },
+    "responses": {
+      "factual": {
+        "text": "Insurance subrogation is the process by which an insurance company seeks to recover damages or losses it has paid out to a policyholder from the party responsible for the loss, typically through a lawsuit or settlement.",
+        "latency_s": 11.18,
+        "tok_s": 3.7
+      },
+      "json_extract": {
+        "text": "Here is the extracted policy number and amount as JSON:\n\n```\n{\n  \"policyNumber\": \"AXA-9911\",\n  \"amount\": 1200\n}\n```",
+        "latency_s": 18.43,
+        "tok_s": 2.0
+      },
+      "french": {
+        "text": "La subrogation en assurance est une clause qui permet \u00e0 l'assureur de prendre en charge les frais d'une personne qui a subi un dommage ou une perte en raison d'un \u00e9v\u00e9nement couvert par l'assurance.",
+        "latency_s": 31.68,
+        "tok_s": 1.6
+      },
+      "synthetic_claim": {
+        "text": "Voici un exemple de revendication d'assurance responsabilit\u00e9 civile pour accident de la route en fran\u00e7ais :\n\n**Police n\u00b0** : 123456789\n**Date de l'accident** : 2022-02-15\n**Type de dommage** : Endommagement de la voiture (chassis et toit)\n**Montant de la revendication** : 8 500 \u20ac",
+        "latency_s": 96.14,
+        "tok_s": 1.4
+      }
+    }
+  },
+  "gemma2-2b": {
+    "model": "gemma2-2b",
+    "speed": {
+      "tok_s": 7.2,
+      "latency_s": 19.52,
+      "chars": 280
+    },
+    "responses": {
+      "factual": {
+        "text": "Insurance subrogation is the process where an insurer can step into the shoes of the insured and pursue legal action against a third party responsible for the insured loss to recover the amount they paid out.",
+        "latency_s": 14.72,
+        "tok_s": 2.7
+      },
+      "json_extract": {
+        "text": "```json\n{\n  \"policy_number\": \"AXA-9911\",\n  \"amount\": \"1200 euros\"\n}\n```",
+        "latency_s": 3.77,
+        "tok_s": 10.1
+      },
+      "french": {
+        "text": "La subrogation en assurance est un m\u00e9canisme qui permet \u00e0 l'assureur de se substituer \u00e0 l'assur\u00e9 pour r\u00e9cup\u00e9rer les sommes vers\u00e9es en cas de sinistre, en vertu d'un accord pr\u00e9alable.",
+        "latency_s": 12.43,
+        "tok_s": 3.7
+      },
+      "synthetic_claim": {
+        "text": "## Claim for Motor Insurance\n\n**Policy Number:** 1234567890\n\n**Damage Type:** Collision with another vehicle\n\n**Amount:** 2,500\u20ac \n\n\n**Description:**\n\nLe 15 octobre 2023, j'ai eu un accident de la route avec un autre v\u00e9hicule. L'autre v\u00e9hicule a heurt\u00e9 mon v\u00e9hicule \u00e0 la droite, ca",
+        "latency_s": 24.6,
+        "tok_s": 6.2
+      }
+    }
+  }
+}

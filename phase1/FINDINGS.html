@@ -1,0 +1,257 @@
+<title>SLM Field Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #16202b;
+    --muted: #5c6876;
+    --line: #dfe4ea;
+    --accent: #0a7ea4;
+    --accent-ink: #075c78;
+    --positive: #0b8a5f;
+    --warn: #b4750a;
+    --danger: #bf3b30;
+    --code-bg: #0f1722;
+    --code-ink: #d8e2ee;
+    --shadow: 0 1px 2px rgba(20,30,45,.06), 0 8px 24px rgba(20,30,45,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1017;
+      --surface: #131b26;
+      --surface-2: #1a232f;
+      --ink: #e7edf5;
+      --muted: #96a3b4;
+      --line: #27323f;
+      --accent: #3cb8dd;
+      --accent-ink: #8fd6ee;
+      --positive: #35c48b;
+      --warn: #e2a73c;
+      --danger: #ef7a6d;
+      --code-bg: #070b11;
+      --code-ink: #cbd6e4;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1017; --surface: #131b26; --surface-2: #1a232f; --ink: #e7edf5;
+    --muted: #96a3b4; --line: #27323f; --accent: #3cb8dd; --accent-ink: #8fd6ee;
+    --positive: #35c48b; --warn: #e2a73c; --danger: #ef7a6d; --code-bg: #070b11; --code-ink: #cbd6e4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 400 16px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 0 20px; padding-block: 32px 72px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .eyebrow {
+    font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h1 {
+    font: 600 clamp(34px, 7vw, 52px)/1.04 "Fraunces", Georgia, serif;
+    margin: 0 0 16px; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .lede { font-size: 18px; line-height: 1.5; color: var(--muted); margin: 0 0 8px; max-width: 60ch; }
+  .meta { font: 400 13px/1.5 "IBM Plex Mono", monospace; color: var(--muted); margin: 0 0 30px; }
+  h2 {
+    font: 600 22px/1.2 "Fraunces", Georgia, serif; margin: 44px 0 14px; letter-spacing: -.005em;
+    padding-top: 2px; text-wrap: balance;
+  }
+  h2 .n { color: var(--accent); font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: .8em; margin-right: 8px; }
+  h3 { font: 600 16px/1.3 "IBM Plex Sans", sans-serif; margin: 26px 0 8px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  a { color: var(--accent-ink); }
+  code, .mono { font-family: "IBM Plex Mono", monospace; font-size: .86em; }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+  strong { font-weight: 600; }
+  .hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+
+  .verdict {
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); margin: 22px 0 26px;
+  }
+  .verdict .t { font: 600 12px/1 "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .verdict p { margin: 0; font-size: 17px; line-height: 1.55; max-width: 64ch; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tbl { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table th, table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table th { font: 500 12px/1.2 "IBM Plex Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+  table tr:last-child td { border-bottom: 0; }
+  table td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .good { color: var(--positive); font-weight: 600; }
+  .bad { color: var(--danger); font-weight: 600; }
+  .warn { color: var(--warn); font-weight: 600; }
+
+  .bands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 22px; }
+  .band { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 15px; }
+  .band .k { font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+  .band.act .k { color: var(--positive); } .band.act { border-top: 3px solid var(--positive); }
+  .band.confirm .k { color: var(--warn); } .band.confirm { border-top: 3px solid var(--warn); }
+  .band.refuse .k { color: var(--danger); } .band.refuse { border-top: 3px solid var(--danger); }
+  .band p { font-size: 13.5px; margin: 0; color: var(--muted); }
+
+  .kf { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 16px 0 8px; }
+  .kf > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kf b { font-weight: 600; }
+  .kf .tag { font: 500 11px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 3px; }
+
+  .pill { display: inline-block; font: 500 11px/1 "IBM Plex Mono", monospace; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
+  ul { margin: 0 0 16px; padding-left: 20px; } li { margin-bottom: 7px; max-width: 66ch; }
+  blockquote { margin: 18px 0; padding: 12px 16px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0; color: var(--muted); font-size: 15px; }
+
+  @media (max-width: 520px) {
+    .bands { grid-template-columns: 1fr; }
+    body { padding: 0 16px; padding-block: 24px 60px; }
+  }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Research memo · 2026-09-20 · Valheim / BizLoop</div>
+  <h1>Small models, real triage.</h1>
+  <p class="lede">Hands-on findings from testing <strong>needle3</strong> — a 121M-parameter on-device model for tool-calling and structured extraction — alongside AnythingLLM, docling, and three general-purpose chat SLMs, against a claims-triage use case.</p>
+  <p class="meta">By the supervisor session (deepseek-v4-pro) · all figures measured on a Ryzen 7 7800X3D + RTX 4070 (12 GB), WSL2 · full source in <code>docs/slm-research/FINDINGS.md</code></p>
+
+  <div class="verdict">
+    <div class="t">The headline</div>
+    <p>needle3 is <strong>not a chatbot</strong> — it's a claims-triage primitive. It extracted a full claim record and a PII record (name, phone, email, address, policy, national ID) <strong>perfectly in ~0.5&nbsp;s on CPU with zero GPU</strong>, and its <strong>grounding gate suppressed a hallucinated claim</strong> on sparse input. Its weaknesses are real too: relative-time resolution fails, and confidence can read <strong>0.99 while wrong</strong>. Fine-tuning the pipeline works end-to-end, but my 179-example synthetic dataset was too small to help (0.72 → 0.72) — <strong>data, not tooling, is the bottleneck.</strong></p>
+  </div>
+
+  <h2><span class="n">01</span>Answers up front</h2>
+  <div class="tbl"><table>
+    <tr><th>Question</th><th>Answer</th></tr>
+    <tr><td>Is needle3 useful for claims triage?</td><td><strong class="good">Yes</strong> — extraction is excellent; tool-calling + confidence gating fit "act / confirm / refuse" routing.</td></tr>
+    <tr><td>Safe to run unattended?</td><td>Partly — the grounding gate catches full hallucination, but confidence isn't a silver bullet (0.99 on a wrong answer). Keep a human/big-model in the loop.</td></tr>
+    <tr><td>Does it work in French?</td><td class="bad">Weak</td> — non-English fragments ~1.7× more tokens, and confidence is English-calibrated. Fine-tuning is the fix (needs real data).</td></tr>
+    <tr><td>Can it anonymise data?</td><td><strong class="good">Yes</strong> — extracts PII into typed fields on-device, driving a redaction step before raw text leaves the machine.</td></tr>
+    <tr><td>General chat SLMs?</td><td>Work and answer correctly, but <strong class="warn">too slow on CPU</strong> (3–16 tok/s). Need GPU (Ollama/LM Studio) or a dedicated server.</td></tr>
+    <tr><td>Does docling work here?</td><td><strong class="good">Yes</strong> — HTML + PDF → clean Markdown, table reconstruction, OCR on GPU. Combine with needle3 for doc → fields.</td></tr>
+    <tr><td>Can needle3 be fine-tuned locally?</td><td>Yes — LoRA on GPU (22 min → 63 MB artifact), but 179 synthetic examples didn't move accuracy (0.72 → 0.72). <strong>Data is the bottleneck.</strong></td></tr>
+  </table></div>
+
+  <h2><span class="n">02</span>The ecosystem</h2>
+  <p>Cactus Compute ships a <strong>ladder</strong> of tiny foundation models for tool-calling / structured extraction / embeddings — not general chat. Apache-2.0 (needle is MIT).</p>
+  <div class="tbl"><table>
+    <tr><th>Model</th><th>Params</th><th>Size</th><th>Notes</th></tr>
+    <tr><td><code>needle</code> (v1)</td><td>26M</td><td>—</td><td>Encoder-decoder, pure attention (no FFN), distilled from Gemini 3.1. MIT.</td></tr>
+    <tr><td><code>needle2</code></td><td>45M</td><td>14 MB</td><td>CQ2-bit; ~28 MB RAM; runs on ESP32 / Raspberry Pi / VR; 500 tok/s on a Pi 5.</td></tr>
+    <tr><td><code>needle3</code></td><td>29–121M</td><td>8–29 MB</td><td><strong>Laddered</strong> 2–20 layers — one weights file, every depth deployable.</td></tr>
+    <tr><td><code>parakeet-tdt-0.6b</code></td><td>0.6B</td><td>—</td><td>Automatic speech recognition (NVIDIA Parakeet derivative).</td></tr>
+    <tr><td><code>gemma-4-e2b-it-hybrid</code></td><td>5B</td><td>3.4 GB</td><td>Multimodal + a <strong>confidence probe</strong> that re-routes to a bigger model when unsure.</td></tr>
+  </table></div>
+
+  <p><strong>Three ideas matter more than parameter count:</strong> (1) <em>intelligence laddering</em> — pick the depth that fits the device <em>and</em> the task; (2) <em>grammar-constrained decoding</em> — output is compiled against your schema, so JSON can't be malformed and enums can't leave their set; (3) <em>confidence + grounding</em> — a calibrated "am I sure?" score plus a gate that withholds calls it can't justify from the input.</p>
+
+  <h2><span class="n">03</span>The stack I built</h2>
+  <div class="tbl"><table>
+    <tr><th>Component</th><th>How</th><th>Where</th><th>Status</th></tr>
+    <tr><td>AnythingLLM</td><td>Docker (<code>--network host</code>)</td><td><code>localhost:3001</code></td><td class="good">serving</td></tr>
+    <tr><td>Model server</td><td>llama-cpp-python (OpenAI-compatible)</td><td><code>127.0.0.1:8000/v1</code></td><td class="good">serving (CPU)</td></tr>
+    <tr><td>Chat SLMs</td><td>GGUF via <code>huggingface_hub</code></td><td><code>E:\VF\gguf-models\</code></td><td class="good">3 models</td></tr>
+    <tr><td>docling</td><td>pip (torch 2.14 + CUDA)</td><td>venv</td><td class="good">verified</td></tr>
+    <tr><td>cactus-needle</td><td>pip (+ <code>[train,gpu]</code> JAX)</td><td>venv</td><td class="good">inference + fine-tune</td></tr>
+  </table></div>
+
+  <h2><span class="n">04</span>needle3 experiments</h2>
+  <p>All results real runs, CPU, ~105 MB peak RAM, ~0.5 s mean latency.</p>
+
+  <h3>Structured extraction — excellent</h3>
+  <p>A messy claim paragraph → typed record, all five fields correct: <code>policy AXA-77812, claimant "Mr. Jean Dupont", date 2026-08-30, type "car collision", amount 2150.5</code>.</p>
+
+  <h3>PII extraction (anonymisation feed) — excellent</h3>
+  <p>From a customer email, every PII field came back correctly: <code>full_name, phone, email, address, policy_number, id_number</code> (French national ID). That's the raw material for a local redaction/pseudonymisation step before text ever leaves the device.</p>
+
+  <h3>Confidence tracks completeness — in simple cases</h3>
+  <p>Five claims benchmarked: confidences <code>[0.98, 0.55, 0.77, 0.94, 0.99]</code>. The <code>0.55</code> was the one claim with <strong>no amount</strong> — the score dropped exactly where a human would pause. Mean latency 0.59 s, p50 0.50 s.</p>
+
+  <h3>The grounding gate is the safety feature — and it works</h3>
+  <p>Sparse input ("A customer wants to file a claim for a stolen bicycle") → the model <em>tried</em> to hallucinate a full claim (<code>policy "AC-777", amount 50.0</code>) but the engine <strong>suppressed the call</strong> and flagged 4 ungrounded fields. A client that does nothing gets a refusal, not a fabricated claim.</p>
+
+  <h3>Weaknesses — measured, not guessed</h3>
+  <ul>
+    <li><strong>Relative time fails.</strong> "call back the day after tomorrow at 3pm on 04 11 22 33 44" → the name landed in <code>contact_number</code>, the phone in <code>when</code>, and confidence read <strong class="bad">0.99</strong>.</li>
+    <li><strong>Disambiguation scrambles.</strong> Under multi-action pressure the claimant name became <code>MRD-7843</code>.</li>
+    <li><strong>Partial claims fabricate.</strong> "Log a theft claim for 800 euros" → <code>policy_number="800 euros"</code>, <code>claimant="theft"</code>, at confidence 0.87.</li>
+    <li><strong>Non-English degrades.</strong> Spanish ~1.7× tokens; "correct Spanish calls measured at 0.0" confidence. French carries the same risk.</li>
+    <li><strong>Markdown tables break it.</strong> Feeding docling's table output made it hallucinate; flattening to <code>key: value</code> prose fixed it.</li>
+  </ul>
+
+  <h3>Classification is label-sensitive</h3>
+  <p>An enum field is a classifier, but <strong>labels must match user vocabulary</strong>. Abstract labels like <code>line_of_business: ["motor","home","liability"]</code> misfired ("…before I <em>travel</em>" → travel; a store slip-and-fall → motor). Sentiment/urgency (labels with surface cues) worked far better.</p>
+
+  <h3>The full agentic loop works — and smaller rungs suffice</h3>
+  <p><code>run()</code> chained a two-step request ("log … then flag …") into two sequential calls correctly. And <strong>needle2 (45M) produced byte-identical output to needle3 (121M)</strong> on clean extraction — the ladder means you run the smallest rung that fits.</p>
+
+  <h2><span class="n">05</span>The triage contract</h2>
+  <p>needle3's confidence score maps onto a routing queue. This is the pattern the whole thing is built around:</p>
+  <div class="bands">
+    <div class="band act"><div class="k">Act — ≥ 0.7</div><p>Confident call → auto-execute (log the claim, schedule the callback).</p></div>
+    <div class="band confirm"><div class="k">Confirm — middle band</div><p>Show the extracted call + its <code>reasoning</code> to a human (or route to a bigger model) for one-tap approval.</p></div>
+    <div class="band refuse"><div class="k">Refuse — empty</div><p>Off-topic / no tool covers it → empty call. Treat as "I can't do that here."</p></div>
+  </div>
+  <p><code>gemma-4-e2b-hybrid</code> does the same "escalate when unsure" <em>inside</em> a 5B multimodal model via a probe head — matching Gemini 3.1 Flash-Lite while running only 15–35% of queries through the big model.</p>
+
+  <h2><span class="n">06</span>docling, and the doc → fields pipeline</h2>
+  <ul>
+    <li><strong>HTML → Markdown</strong>: correct, 0.6 s, table reconstructed.</li>
+    <li><strong>PDF → Markdown</strong> (a motor-claim form): correct table + description, OCR on GPU (RapidOCR). 45 s incl. first-run model downloads.</li>
+  </ul>
+  <blockquote>docling turns a PDF into clean Markdown; a <strong>flatten step</strong> (table → <code>key: value</code> prose); needle3 turns that into a typed claim + PII record. Document in → fields out, both locally.</blockquote>
+
+  <h2><span class="n">07</span>General chat SLMs (CPU benchmark)</h2>
+  <div class="tbl"><table>
+    <tr><th>Model</th><th class="num">tok/s</th><th>Factual</th><th>JSON</th><th>French</th><th>Synthetic</th></tr>
+    <tr><td><code>Qwen2.5-1.5B</code></td><td class="num">16.1</td><td class="good">✓</td><td class="good">✓</td><td class="warn">~</td><td class="good">✓</td></tr>
+    <tr><td><code>Gemma-2-2B</code></td><td class="num">7.2</td><td class="good">✓</td><td class="good">✓</td><td class="good">✓</td><td class="good">✓</td></tr>
+    <tr><td><code>Llama-3.2-3B</code></td><td class="num">3.2</td><td class="good">✓</td><td class="good">✓</td><td class="warn">~</td><td class="good">✓</td></tr>
+  </table></div>
+  <p>Quality is <strong>surprisingly good for the size</strong> — all three answered insurance subrogation correctly and produced valid JSON and plausible French synthetic claims. But CPU speed is not interactive. That's the sharp contrast that makes needle3 interesting: <strong>needle3 does a <em>narrow</em> task at 0.5 s on CPU where a general 3B chatbot crawls.</strong> Specialisation, not raw size, is the lever.</p>
+
+  <h2><span class="n">08</span>Fine-tuning (LoRA on GPU)</h2>
+  <p>Since <code>needle generate-data</code> needs an unavailable OpenRouter key, I wrote a <strong>synthetic-data generator</strong> (template + entity substitution, answers derived deterministically) → 179 grounded EN+FR examples → LoRA (rank 16), 20 epochs on the 4070, <strong>22m35s, val loss 0.294 → 0.032</strong>, exported a 63.5 MB <code>tuned.cact</code>.</p>
+  <div class="tbl"><table>
+    <tr><th>Held-out metric</th><th>Base</th><th>Fine-tuned</th></tr>
+    <tr><td>Accuracy (6 cases)</td><td class="num">0.72</td><td class="num">0.72</td></tr>
+    <tr><td>French "dégât des eaux"</td><td>truncates to <code>"eaux"</code></td><td>same (unfixed)</td></tr>
+    <tr><td>Sparse claim → flag</td><td>hallucinates (grounding suppresses)</td><td>same (unfixed)</td></tr>
+    <tr><td>Off-topic refusal</td><td class="good">✓</td><td class="good">✓ (not broken)</td></tr>
+    <tr><td>Confidence</td><td>calibrated</td><td class="bad">None (head not updated)</td></tr>
+  </table></div>
+  <p><strong>The lesson:</strong> the <em>pipeline</em> is a real asset — train a 121M model to a custom toolset in ~20 min, export a 63 MB artifact that runs on the same CPU engine. The <em>hard part is the dataset</em>: argument grounding (exactly what claims needs) takes <strong>thousands</strong> of varied, reasoning-labelled examples with ~1/8 off-topic. My generator is the right start; it needs real (anonymised) claims phrasing and 5–10× more volume.</p>
+
+  <h2><span class="n">09</span>The four patterns people deploy</h2>
+  <div class="kf">
+    <div><span class="tag">Pattern 1</span><b>Distil big → tiny specialist.</b> needle v1 = Gemini 3.1 distilled into 26M params. Take frontier behaviour on one task, distil it down, ship at a fraction of the cost.</div>
+    <div><span class="tag">Pattern 2</span><b>Confidence-gated escalation.</b> Run the cheap model; below a threshold, route to a bigger model or a human. The single most relevant pattern for claims.</div>
+    <div><span class="tag">Pattern 3</span><b>On-device extraction as the anonymisation gate.</b> Extract PII/fields locally so raw text never leaves the boundary. Privacy by construction.</div>
+    <div><span class="tag">Pattern 4</span><b>Fine-tune-to-schema.</b> "The schema is the product." A 4-layer subnetwork tuned on one product's tools matches a frontier model on that task.</div>
+  </div>
+
+  <h2><span class="n">10</span>For AXA / BizLoop — and the asks</h2>
+  <ul>
+    <li><strong>Anonymisation:</strong> needle3's PII extraction is the enabling step — pull structured PII on-device, redact/pseudonymise the matched spans <em>before</em> sharing with a cloud LLM or partner platform. (Microsoft Presidio does the same job; needle3 does it locally, ~0.5 s, no network.)</li>
+    <li><strong>Synthetic data:</strong> chat SLMs generate plausible synthetic claims; needle3 structures/validates them so downstream systems can be tested without touching real policyholder data. (I used template+entity generation to build the fine-tune set.)</li>
+    <li><strong>Document understanding:</strong> docling → flatten → needle3 is the "document in, fields out" primitive for claims letters and policy PDFs.</li>
+    <li><strong>Claims triage:</strong> the strongest fit — read a request, decide <em>what</em> it wants, fill fields, decide <em>confidence</em>, route act/confirm/refuse.</li>
+    <li><strong>Copilot / MCPs:</strong> needle3 already accepts OpenAI function-calling wrappers, so it can act as a fast, local, grammar-constrained <em>tool-router</em> in front of an MCP host; hybrid small→large keeps frontier-model calls (and cost) on the hard minority only.</li>
+  </ul>
+  <p class="meta" style="margin-top:20px">AXA-specific applications above are domain reasoning (web search was blocked in this environment); everything else is measured.</p>
+
+  <h2><span class="n">11</span>Recommendations</h2>
+  <ol>
+    <li><strong>Approve Ollama</strong> for the chat models — GPU-automatic, AnythingLLM-native; removes the CPU slowness in §07. (The <code>curl|sh</code> installer was denied by the permission policy; one approval unblocks it.)</li>
+    <li><strong>Mobile access</strong> — run once in an admin PowerShell: <code>netsh interface portproxy add v4tov4 listenaddress=192.168.1.36 listenport=3001 connectaddress=172.20.139.222 connectport=3001</code> + a firewall allow rule for TCP 3001.</li>
+    <li><strong>Fine-tune on real French claims</strong> to fix the French weakness — swap in anonymised phrasing, scale to ≥1k examples.</li>
+    <li><strong>Run docling→needle3 end-to-end</strong> on a real claims PDF and score it against human extraction.</li>
+    <li><strong>Build the triage queue</strong> around needle3's act/confirm/refuse bands with a human-in-the-loop review surface.</li>
+  </ol>
+
+  <hr class="hr">
+  <p class="meta">Operator quick-start: <code>docs/slm-research/SETUP.md</code> · experiment scripts + raw results: <code>docs/slm-research/experiments/</code> · services live at <code>localhost:3001</code> (AnythingLLM) and <code>127.0.0.1:8000</code> (model server).</p>
+</div>

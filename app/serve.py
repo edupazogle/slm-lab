@@ -8,10 +8,13 @@ sets them, serves .wasm with the right MIME type, and collects benchmark results
   serve.py [--port 8097] [--dir web/dist] [--lan]
 
 Binds 127.0.0.1 unless --lan is given (this repo's convention: everything is loopback by default).
---lan is for a phone on the same network. NOTE: a phone reaching this over plain http://<lan-ip> is
-NOT a secure context, so the browser withholds SharedArrayBuffer, service workers and WebGPU there;
-the page still runs single-threaded. For full speed on a phone use HTTPS (tunnel or static host) or
-`adb reverse tcp:8097 tcp:8097` and open http://localhost:8097 on the device.
+--lan is for a phone on the same network, but be warned: a phone reaching this over plain
+http://<lan-ip> is NOT a secure context, and the app then does not merely run single-threaded — it
+does not start at all. `new Wllama()` throws "No supported storage backend found", because the OPFS
+backend needs navigator.storage, which a non-secure context does not expose (measured in Chromium
+153 on 2026-09-21; the earlier version of this comment claimed single-threaded operation, and was
+wrong). For a phone use HTTPS (tunnel or static host), or `adb reverse tcp:8097 tcp:8097` and open
+http://localhost:8097 on the device — localhost IS a secure origin.
 
 POST /api/bench  (application/json, same-origin only) appends one line to bench_results.jsonl.
 """

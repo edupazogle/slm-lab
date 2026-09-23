@@ -1,0 +1,558 @@
+{
+ "n_eval": 240,
+ "conditions": {
+  "base4bit/nosys": {
+   "n": 240,
+   "tool_acc": 0.85,
+   "exact": 0.29583333333333334,
+   "field_f1": 0.6968215158924205,
+   "field_p": 0.6761565836298933,
+   "field_r": 0.7187894073139974,
+   "false_call_rate": 0.28125,
+   "field_f1_ci95": [
+    0.6698049764626766,
+    0.7231980617807389
+   ],
+   "median_latency_ms": 351.1
+  },
+  "base4bit/sys": {
+   "n": 240,
+   "tool_acc": 0.8458333333333333,
+   "exact": 0.2916666666666667,
+   "field_f1": 0.702801461632156,
+   "field_p": 0.6796230859835101,
+   "field_r": 0.7276166456494325,
+   "false_call_rate": 0.28125,
+   "field_f1_ci95": [
+    0.6752450980392157,
+    0.7314606741573034
+   ],
+   "median_latency_ms": 263.7
+  },
+  "base/nosys": {
+   "n": 240,
+   "tool_acc": 0.8291666666666667,
+   "exact": 0.38333333333333336,
+   "field_f1": 0.6395631067961165,
+   "field_p": 0.6163742690058479,
+   "field_r": 0.6645649432534678,
+   "false_call_rate": 0.0,
+   "field_f1_ci95": [
+    0.6009227220299885,
+    0.6775757575757575
+   ],
+   "median_latency_ms": 361.20000000000005
+  },
+  "base/sys": {
+   "n": 240,
+   "tool_acc": 0.8416666666666667,
+   "exact": 0.31666666666666665,
+   "field_f1": 0.633966891477621,
+   "field_p": 0.616945107398568,
+   "field_r": 0.6519546027742749,
+   "false_call_rate": 0.109375,
+   "field_f1_ci95": [
+    0.5938697318007663,
+    0.6745144202472042
+   ],
+   "median_latency_ms": 220.79999999999998
+  },
+  "tuned/nosys": {
+   "n": 240,
+   "tool_acc": 0.9458333333333333,
+   "exact": 0.7333333333333333,
+   "field_f1": 0.881940012763242,
+   "field_p": 0.8927648578811369,
+   "field_r": 0.8713745271122321,
+   "false_call_rate": 0.0,
+   "field_f1_ci95": [
+    0.8561872909698995,
+    0.9077580940745266
+   ],
+   "median_latency_ms": 293.0
+  },
+  "tuned/sys": {
+   "n": 240,
+   "tool_acc": 0.9416666666666667,
+   "exact": 0.725,
+   "field_f1": 0.8785166240409207,
+   "field_p": 0.8910505836575876,
+   "field_r": 0.8663303909205549,
+   "false_call_rate": 0.0,
+   "field_f1_ci95": [
+    0.8518518518518519,
+    0.9021538461538461
+   ],
+   "median_latency_ms": 340.1
+  }
+ },
+ "paired": {
+  "sys:tuned-base4bit:field_f1": {
+   "delta": 0.17571516240876472,
+   "ci95": [
+    0.1405557273753676,
+    0.21041676375102902
+   ],
+   "p_le_0": 0.0,
+   "meaning": "fine-tuning alone (both 4-bit)"
+  },
+  "sys:tuned-base4bit:tool_acc": {
+   "delta": 0.09583333333333333,
+   "ci95": [
+    0.054166666666666696,
+    0.13750000000000007
+   ],
+   "p_le_0": 0.0,
+   "meaning": "fine-tuning alone (both 4-bit)"
+  },
+  "sys:tuned-base4bit:exact": {
+   "delta": 0.4333333333333333,
+   "ci95": [
+    0.3625,
+    0.5
+   ],
+   "p_le_0": 0.0,
+   "meaning": "fine-tuning alone (both 4-bit)"
+  },
+  "sys:base4bit-base:field_f1": {
+   "delta": 0.06883457015453498,
+   "ci95": [
+    0.0334037711313393,
+    0.10607788176793831
+   ],
+   "p_le_0": 0.0,
+   "meaning": "quantisation alone (2-bit shipped -> 4-bit export)"
+  },
+  "sys:base4bit-base:tool_acc": {
+   "delta": 0.004166666666666652,
+   "ci95": [
+    -0.04166666666666663,
+    0.054166666666666696
+   ],
+   "p_le_0": 0.4545,
+   "meaning": "quantisation alone (2-bit shipped -> 4-bit export)"
+  },
+  "sys:base4bit-base:exact": {
+   "delta": -0.024999999999999967,
+   "ci95": [
+    -0.06666666666666668,
+    0.012500000000000011
+   ],
+   "p_le_0": 0.91,
+   "meaning": "quantisation alone (2-bit shipped -> 4-bit export)"
+  },
+  "sys:tuned-base:field_f1": {
+   "delta": 0.2445497325632997,
+   "ci95": [
+    0.20145374518836368,
+    0.28873288248480233
+   ],
+   "p_le_0": 0.0,
+   "meaning": "what a user would see"
+  },
+  "sys:tuned-base:tool_acc": {
+   "delta": 0.09999999999999998,
+   "ci95": [
+    0.05833333333333335,
+    0.14166666666666672
+   ],
+   "p_le_0": 0.0,
+   "meaning": "what a user would see"
+  },
+  "sys:tuned-base:exact": {
+   "delta": 0.4083333333333333,
+   "ci95": [
+    0.3416666666666666,
+    0.47500000000000003
+   ],
+   "p_le_0": 0.0,
+   "meaning": "what a user would see"
+  },
+  "nosys:tuned-base4bit:field_f1": {
+   "delta": 0.1851184968708215,
+   "ci95": [
+    0.15180670458278755,
+    0.2197327925320507
+   ],
+   "p_le_0": 0.0,
+   "meaning": "fine-tuning alone (both 4-bit)"
+  },
+  "nosys:tuned-base4bit:tool_acc": {
+   "delta": 0.09583333333333333,
+   "ci95": [
+    0.054166666666666696,
+    0.13750000000000007
+   ],
+   "p_le_0": 0.0,
+   "meaning": "fine-tuning alone (both 4-bit)"
+  },
+  "nosys:tuned-base4bit:exact": {
+   "delta": 0.43749999999999994,
+   "ci95": [
+    0.36666666666666664,
+    0.5083333333333333
+   ],
+   "p_le_0": 0.0,
+   "meaning": "fine-tuning alone (both 4-bit)"
+  },
+  "nosys:base4bit-base:field_f1": {
+   "delta": 0.057258409096303975,
+   "ci95": [
+    0.01973239890891043,
+    0.09409487838851371
+   ],
+   "p_le_0": 0.002,
+   "meaning": "quantisation alone (2-bit shipped -> 4-bit export)"
+  },
+  "nosys:base4bit-base:tool_acc": {
+   "delta": 0.02083333333333326,
+   "ci95": [
+    -0.03750000000000009,
+    0.07916666666666672
+   ],
+   "p_le_0": 0.262,
+   "meaning": "quantisation alone (2-bit shipped -> 4-bit export)"
+  },
+  "nosys:base4bit-base:exact": {
+   "delta": -0.08750000000000002,
+   "ci95": [
+    -0.13333333333333336,
+    -0.04166666666666663
+   ],
+   "p_le_0": 1.0,
+   "meaning": "quantisation alone (2-bit shipped -> 4-bit export)"
+  },
+  "nosys:tuned-base:field_f1": {
+   "delta": 0.24237690596712547,
+   "ci95": [
+    0.19985647507543003,
+    0.28767577094655683
+   ],
+   "p_le_0": 0.0,
+   "meaning": "what a user would see"
+  },
+  "nosys:tuned-base:tool_acc": {
+   "delta": 0.11666666666666659,
+   "ci95": [
+    0.07499999999999996,
+    0.16249999999999998
+   ],
+   "p_le_0": 0.0,
+   "meaning": "what a user would see"
+  },
+  "nosys:tuned-base:exact": {
+   "delta": 0.3499999999999999,
+   "ci95": [
+    0.2833333333333333,
+    0.41666666666666663
+   ],
+   "p_le_0": 0.0,
+   "meaning": "what a user would see"
+  }
+ },
+ "slices": {
+  "base4bit/sys": {
+   "fr": {
+    "n": 117,
+    "tool_acc": 0.8034188034188035,
+    "exact": 0.23076923076923078,
+    "field_f1": 0.6709346991037133,
+    "field_p": 0.6517412935323383,
+    "field_r": 0.6912928759894459,
+    "false_call_rate": 0.3142857142857143
+   },
+   "claim": {
+    "n": 82,
+    "tool_acc": 0.9512195121951219,
+    "exact": 0.13414634146341464,
+    "field_f1": 0.7476190476190477,
+    "field_p": 0.7302325581395349,
+    "field_r": 0.7658536585365854,
+    "false_call_rate": null
+   },
+   "amount:plain": {
+    "n": 102,
+    "tool_acc": 0.8921568627450981,
+    "exact": 0.13725490196078433,
+    "field_f1": 0.7457912457912457,
+    "field_p": 0.7238562091503268,
+    "field_r": 0.7690972222222222,
+    "false_call_rate": null
+   },
+   "incomplete": {
+    "n": 38,
+    "tool_acc": 0.5263157894736842,
+    "exact": 0.5263157894736842,
+    "field_f1": 0.0,
+    "field_p": 0.0,
+    "field_r": 1.0,
+    "false_call_rate": 0.47368421052631576
+   },
+   "en": {
+    "n": 123,
+    "tool_acc": 0.8861788617886179,
+    "exact": 0.34959349593495936,
+    "field_f1": 0.7317073170731707,
+    "field_p": 0.7046979865771812,
+    "field_r": 0.7608695652173914,
+    "false_call_rate": 0.2413793103448276
+   },
+   "offtopic": {
+    "n": 26,
+    "tool_acc": 1.0,
+    "exact": 1.0,
+    "field_f1": 1.0,
+    "field_p": 1.0,
+    "field_r": 1.0,
+    "false_call_rate": 0.0
+   },
+   "multi": {
+    "n": 39,
+    "tool_acc": 0.8205128205128205,
+    "exact": 0.07692307692307693,
+    "field_f1": 0.7330960854092526,
+    "field_p": 0.71280276816609,
+    "field_r": 0.7545787545787546,
+    "false_call_rate": null
+   },
+   "callback": {
+    "n": 32,
+    "tool_acc": 1.0,
+    "exact": 0.3125,
+    "field_f1": 0.65625,
+    "field_p": 0.65625,
+    "field_r": 0.65625,
+    "false_call_rate": null
+   },
+   "amount:fr_thousand_space": {
+    "n": 7,
+    "tool_acc": 1.0,
+    "exact": 0.0,
+    "field_f1": 0.7692307692307693,
+    "field_p": 0.7692307692307693,
+    "field_r": 0.7692307692307693,
+    "false_call_rate": null
+   },
+   "flag": {
+    "n": 23,
+    "tool_acc": 0.6521739130434783,
+    "exact": 0.0,
+    "field_f1": 0.39473684210526316,
+    "field_p": 0.5,
+    "field_r": 0.32608695652173914,
+    "false_call_rate": null
+   },
+   "amount:fr_decimal_comma": {
+    "n": 12,
+    "tool_acc": 1.0,
+    "exact": 0.0,
+    "field_f1": 0.6911764705882353,
+    "field_p": 0.6911764705882353,
+    "field_r": 0.6911764705882353,
+    "false_call_rate": null
+   }
+  },
+  "base/sys": {
+   "fr": {
+    "n": 117,
+    "tool_acc": 0.8632478632478633,
+    "exact": 0.3162393162393162,
+    "field_f1": 0.5789473684210528,
+    "field_p": 0.5774278215223098,
+    "field_r": 0.5804749340369393,
+    "false_call_rate": 0.0
+   },
+   "claim": {
+    "n": 82,
+    "tool_acc": 0.926829268292683,
+    "exact": 0.15853658536585366,
+    "field_f1": 0.7256857855361596,
+    "field_p": 0.7423469387755102,
+    "field_r": 0.7097560975609756,
+    "false_call_rate": null
+   },
+   "amount:plain": {
+    "n": 102,
+    "tool_acc": 0.8921568627450981,
+    "exact": 0.13725490196078433,
+    "field_f1": 0.7060839760068552,
+    "field_p": 0.6971235194585449,
+    "field_r": 0.7152777777777778,
+    "false_call_rate": null
+   },
+   "incomplete": {
+    "n": 38,
+    "tool_acc": 0.8157894736842105,
+    "exact": 0.8157894736842105,
+    "field_f1": 0.0,
+    "field_p": 0.0,
+    "field_r": 1.0,
+    "false_call_rate": 0.18421052631578946
+   },
+   "en": {
+    "n": 123,
+    "tool_acc": 0.8211382113821138,
+    "exact": 0.3170731707317073,
+    "field_f1": 0.6819747416762342,
+    "field_p": 0.649890590809628,
+    "field_r": 0.717391304347826,
+    "false_call_rate": 0.2413793103448276
+   },
+   "offtopic": {
+    "n": 26,
+    "tool_acc": 1.0,
+    "exact": 1.0,
+    "field_f1": 1.0,
+    "field_p": 1.0,
+    "field_r": 1.0,
+    "false_call_rate": 0.0
+   },
+   "multi": {
+    "n": 39,
+    "tool_acc": 0.7948717948717948,
+    "exact": 0.02564102564102564,
+    "field_f1": 0.6267123287671232,
+    "field_p": 0.5884244372990354,
+    "field_r": 0.6703296703296703,
+    "false_call_rate": null
+   },
+   "callback": {
+    "n": 32,
+    "tool_acc": 1.0,
+    "exact": 0.15625,
+    "field_f1": 0.578125,
+    "field_p": 0.578125,
+    "field_r": 0.578125,
+    "false_call_rate": null
+   },
+   "amount:fr_thousand_space": {
+    "n": 7,
+    "tool_acc": 0.7142857142857143,
+    "exact": 0.0,
+    "field_f1": 0.5714285714285714,
+    "field_p": 0.6451612903225806,
+    "field_r": 0.5128205128205128,
+    "false_call_rate": null
+   },
+   "flag": {
+    "n": 23,
+    "tool_acc": 0.2608695652173913,
+    "exact": 0.0,
+    "field_f1": 0.11650485436893204,
+    "field_p": 0.10526315789473684,
+    "field_r": 0.13043478260869565,
+    "false_call_rate": null
+   },
+   "amount:fr_decimal_comma": {
+    "n": 12,
+    "tool_acc": 0.9166666666666666,
+    "exact": 0.0,
+    "field_f1": 0.5637583892617448,
+    "field_p": 0.5185185185185185,
+    "field_r": 0.6176470588235294,
+    "false_call_rate": null
+   }
+  },
+  "tuned/sys": {
+   "fr": {
+    "n": 117,
+    "tool_acc": 0.9145299145299145,
+    "exact": 0.7692307692307693,
+    "field_f1": 0.9061224489795918,
+    "field_p": 0.9353932584269663,
+    "field_r": 0.8786279683377308,
+    "false_call_rate": 0.0
+   },
+   "claim": {
+    "n": 82,
+    "tool_acc": 1.0,
+    "exact": 0.6829268292682927,
+    "field_f1": 0.9195121951219514,
+    "field_p": 0.9195121951219513,
+    "field_r": 0.9195121951219513,
+    "false_call_rate": null
+   },
+   "amount:plain": {
+    "n": 102,
+    "tool_acc": 0.9607843137254902,
+    "exact": 0.5686274509803921,
+    "field_f1": 0.8794449262792715,
+    "field_p": 0.878682842287695,
+    "field_r": 0.8802083333333334,
+    "false_call_rate": null
+   },
+   "incomplete": {
+    "n": 38,
+    "tool_acc": 1.0,
+    "exact": 1.0,
+    "field_f1": 1.0,
+    "field_p": 1.0,
+    "field_r": 1.0,
+    "false_call_rate": 0.0
+   },
+   "en": {
+    "n": 123,
+    "tool_acc": 0.967479674796748,
+    "exact": 0.6829268292682927,
+    "field_f1": 0.8540410132689988,
+    "field_p": 0.8530120481927711,
+    "field_r": 0.855072463768116,
+    "false_call_rate": 0.0
+   },
+   "offtopic": {
+    "n": 26,
+    "tool_acc": 1.0,
+    "exact": 1.0,
+    "field_f1": 1.0,
+    "field_p": 1.0,
+    "field_r": 1.0,
+    "false_call_rate": 0.0
+   },
+   "multi": {
+    "n": 39,
+    "tool_acc": 0.8461538461538461,
+    "exact": 0.358974358974359,
+    "field_f1": 0.825925925925926,
+    "field_p": 0.8352059925093633,
+    "field_r": 0.8168498168498168,
+    "false_call_rate": null
+   },
+   "callback": {
+    "n": 32,
+    "tool_acc": 1.0,
+    "exact": 0.96875,
+    "field_f1": 0.984375,
+    "field_p": 0.984375,
+    "field_r": 0.984375,
+    "false_call_rate": null
+   },
+   "amount:fr_thousand_space": {
+    "n": 7,
+    "tool_acc": 1.0,
+    "exact": 0.7142857142857143,
+    "field_f1": 0.9487179487179487,
+    "field_p": 0.9487179487179487,
+    "field_r": 0.9487179487179487,
+    "false_call_rate": null
+   },
+   "flag": {
+    "n": 23,
+    "tool_acc": 0.6521739130434783,
+    "exact": 0.391304347826087,
+    "field_f1": 0.6315789473684211,
+    "field_p": 0.8,
+    "field_r": 0.5217391304347826,
+    "false_call_rate": null
+   },
+   "amount:fr_decimal_comma": {
+    "n": 12,
+    "tool_acc": 0.8333333333333334,
+    "exact": 0.5833333333333334,
+    "field_f1": 0.868217054263566,
+    "field_p": 0.9180327868852459,
+    "field_r": 0.8235294117647058,
+    "false_call_rate": null
+   }
+  }
+ }
+}

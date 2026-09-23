@@ -1,7 +1,10 @@
+// Adapted from the vendored wllama examples/main (MIT, ngxson/wllama @ 46af429): the model row the UI shows, merged
+// from the curated list in config.ts, the models the person added by URL, and what is already in the browser's cache.
 import { Model } from '@wllama/wllama';
 import { ModelState } from './types';
 import { WllamaStorage } from './utils';
-import { LIST_MODELS } from '../config';
+import { LIST_MODELS, ListedModel, ModelTier, tierOf } from '../config';
+import { modelDisplayName } from './format';
 
 export class DisplayedModel {
   url: string;
@@ -10,9 +13,13 @@ export class DisplayedModel {
   isUserAdded: boolean;
   modalities?: ('image' | 'audio')[];
   cachedModel?: Model;
+  /** curated notes; undefined for a model the person added by URL */
+  info?: ListedModel;
 
   state: ModelState = ModelState.NOT_DOWNLOADED;
-  downloadPercent: number = -1; // from 0.0 to 1.0; -1 means not downloading
+  /** bytes received so far while downloading; -1 when not downloading */
+  downloadLoaded = -1;
+  downloadTotal = 0;
 
   constructor(
     url: string,
@@ -20,42 +27,55 @@ export class DisplayedModel {
     isUserAdded: boolean,
     cachedModel?: Model,
     mmprojUrl?: string,
-    modalities?: ('image' | 'audio')[]
+    modalities?: ('image' | 'audio')[],
+    info?: ListedModel
   ) {
     this.url = url;
     this.mmprojUrl = mmprojUrl;
     this.size = size;
     this.isUserAdded = isUserAdded;
     this.modalities = modalities;
-    this.state = !!cachedModel ? ModelState.READY : ModelState.NOT_DOWNLOADED;
+    this.info = info;
+    this.state = cachedModel ? ModelState.READY : ModelState.NOT_DOWNLOADED;
     this.cachedModel = cachedModel;
   }
 
-  get hfModel() {
-    const parts = this.url
-      .replace(/https:\/\/(huggingface.co|hf.co)\/+/, '')
-      .split('/');
+  get name(): string {
+    return this.info?.name ?? modelDisplayName(this.url);
+  }
+
+  get tier(): ModelTier {
+    return tierOf(this.size);
+  }
+
+  get hfRepo(): string {
+    const parts = this.url.replace(/https:\/\/(huggingface.co|hf.co)\/+/, '').split('/');
     return `${parts[0]}/${parts[1]}`;
   }
 
-  get hfPath() {
-    const parts = this.url
-      .replace(/https:\/\/(huggingface.co|hf.co)\/+/, '')
-      .split('/');
-    return parts.slice(4).join('/');
+  get fileName(): string {
+    return decodeURIComponent(this.url.split('/').pop() ?? this.url).replace(/-\d{5}-of-(\d{5})\.gguf$/, ' ($1 parts)');
   }
 
-  clone(overwrite: Partial<DisplayedModel>): DisplayedModel {
+  get downloadPercent(): number {
+    if (this.downloadLoaded < 0) return -1;
+    const total = this.downloadTotal || this.size;
+    return total > 0 ? Math.min(1, this.downloadLoaded / total) : 0;
+  }
+
+  clone(overwrite: Partial<Pick<DisplayedModel, 'state' | 'downloadLoaded' | 'downloadTotal'>>): DisplayedModel {
     const obj = new DisplayedModel(
       this.url,
       this.size,
       this.isUserAdded,
       this.cachedModel,
       this.mmprojUrl,
-      this.modalities
+      this.modalities,
+      this.info
     );
     obj.state = overwrite.state ?? this.state;
-    obj.downloadPercent = overwrite.downloadPercent ?? this.downloadPercent;
+    obj.downloadLoaded = overwrite.downloadLoaded ?? this.downloadLoaded;
+    obj.downloadTotal = overwrite.downloadTotal ?? this.downloadTotal;
     return obj;
   }
 }
@@ -67,11 +87,8 @@ interface UserAddedModel {
 }
 
 export function getUserAddedModels(cachedModels: Model[]): DisplayedModel[] {
-  const userAddedModels: UserAddedModel[] = WllamaStorage.load(
-    'custom_models',
-    []
-  );
-  return userAddedModels.map((m: any) => {
+  const userAddedModels: UserAddedModel[] = WllamaStorage.load('custom_models', []);
+  return userAddedModels.map((m) => {
     const cachedModel = cachedModels.find((cm) => cm.url === m.url);
     return new DisplayedModel(m.url, m.size, true, cachedModel, m.mmprojUrl);
   });
@@ -87,20 +104,10 @@ export function updateUserAddedModels(models: DisplayedModel[]) {
 export function getPresetModels(cachedModels: Model[]): DisplayedModel[] {
   return LIST_MODELS.map((m) => {
     const cachedModel = cachedModels.find((cm) => cm.url === m.url);
-    return new DisplayedModel(
-      m.url,
-      m.size,
-      false,
-      cachedModel,
-      m.mmprojUrl,
-      m.modalities
-    );
+    return new DisplayedModel(m.url, m.size, false, cachedModel, m.mmprojUrl, m.modalities, m);
   });
 }
 
 export function getDisplayedModels(cachedModels: Model[]): DisplayedModel[] {
-  return [
-    ...getUserAddedModels(cachedModels),
-    ...getPresetModels(cachedModels),
-  ];
+  return [...getUserAddedModels(cachedModels), ...getPresetModels(cachedModels)];
 }

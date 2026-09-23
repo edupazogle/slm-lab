@@ -1,9 +1,9 @@
 """Same forensic, but the tuned model is called the way it was TRAINED: no system turn, no auto date."""
 import json, sys
-sys.path.insert(0, "/home/edu/Public/Valheim/docs/slm-research/experiments")
+sys.path.insert(0, "/home/edu/Public/bizloop/slm/phase1/experiments")
 import needle
 from expand_data import TOOLS
-P1 = "/home/edu/Public/Valheim/docs/slm-research/experiments"
+P1 = "/home/edu/Public/bizloop/slm/phase1/experiments"
 which = sys.argv[1]; weights = None if which == "base" else f"{P1}/tuned.cact"
 prev = json.load(open(f"ft_forensic_{which}.json"))
 def norm(v): return v.lower().strip() if isinstance(v, str) else (round(v, 2) if isinstance(v, float) else v)

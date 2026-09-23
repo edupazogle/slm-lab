@@ -1,15 +1,38 @@
 <!doctype html>
-<html lang="en" data-theme="carbon">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- interactive-widget: shrink the layout viewport when the on-screen keyboard opens, so the composer stays above it -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <title>SLM Lab chat</title>
     <meta name="theme-color" content="#1B2A6B" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta
+      name="description"
+      content="Chat with a small language model that runs inside this browser. Nothing you type leaves the device."
+    />
+    <script>
+      // Apply the remembered theme before first paint; with no stored choice the page follows the system setting.
+      // Same key and values as the landing page (src/landing/ThemeToggle.tsx).
+      try {
+        var t = localStorage.getItem('slm-lab-theme');
+        document.documentElement.setAttribute(
+          'data-theme',
+          t === 'carbon' || t === 'carbonpaper'
+            ? t
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'carbonpaper'
+              : 'carbon'
+        );
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>SLM Lab runs a language model in your browser, so it needs JavaScript switched on.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

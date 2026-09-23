@@ -6,11 +6,11 @@ Base and tuned run in SEPARATE processes (the engine cannot unload weights).
 usage: ft_forensic.py base|tuned
 """
 import json, sys, os, hashlib
-sys.path.insert(0, "/home/edu/Public/Valheim/docs/slm-research/experiments")
+sys.path.insert(0, "/home/edu/Public/bizloop/slm/phase1/experiments")
 import needle
 from expand_data import TOOLS
 
-P1 = "/home/edu/Public/Valheim/docs/slm-research/experiments"
+P1 = "/home/edu/Public/bizloop/slm/phase1/experiments"
 which = sys.argv[1]
 weights = None if which == "base" else f"{P1}/tuned.cact"
 rows = [json.loads(l) for l in open(f"{P1}/data.jsonl")]

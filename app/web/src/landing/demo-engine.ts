@@ -17,31 +17,35 @@ export const DEMO_MODEL = {
   bytes: 386404992,
 };
 
-export const FIELD_KEYS = ['policy_number', 'claimant', 'date_of_incident', 'damage', 'amount_eur', 'phone'] as const;
+export const FIELD_KEYS = ['policy_number', 'claimant_name', 'date_of_incident', 'what_was_damaged', 'amount_claimed_eur', 'phone_number'] as const;
 export type FieldKey = (typeof FIELD_KEYS)[number];
 export type FieldValues = Partial<Record<FieldKey, string>>;
 
 // Property order is the order the grammar emits them in, which is the order the form is typed in.
+// The key names do real work: the grammar makes the model write each key before its value, so a key
+// like "what_was_damaged" is the instruction for that field. Compared on 2026-09-21 in headless
+// Chromium with this model and the sample note: keys "claimant"/"damage" plus a written instruction
+// ("damage is one short sentence") got "One short sentence" copied into the damage field, and an
+// ISO-date pattern made the model invent "1499-09-20". These keys, a date copied as written and a
+// two-sentence prompt got all six fields right, with a shorter prompt (144 tokens instead of 179).
 const CLAIM_SCHEMA = {
   type: 'object',
   properties: {
     policy_number: { type: 'string', maxLength: 24 },
-    claimant: { type: 'string', maxLength: 60 },
-    date_of_incident: { type: 'string', pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' },
-    damage: { type: 'string', maxLength: 140 },
-    amount_eur: { type: 'number' },
-    phone: { type: 'string', maxLength: 24 },
+    claimant_name: { type: 'string', maxLength: 60 },
+    date_of_incident: { type: 'string', maxLength: 30 },
+    what_was_damaged: { type: 'string', maxLength: 140 },
+    amount_claimed_eur: { type: 'number' },
+    phone_number: { type: 'string', maxLength: 24 },
   },
   required: [...FIELD_KEYS],
   additionalProperties: false,
 };
 
 // Kept short on purpose: prompt processing in WebAssembly is slow, and every token here is waited for.
-const SYSTEM_PROMPT =
-  'You fill in an insurance claim form from a note. Copy values exactly as written in the note. ' +
-  'date_of_incident is YYYY-MM-DD. damage is one short sentence. amount_eur is a number. Reply with JSON only.';
+const SYSTEM_PROMPT = 'Copy facts from the claim note into the form. Every value must be copied from the note.';
 
-export type FailureKind = 'no-wasm' | 'offline' | 'download' | 'storage' | 'memory' | 'inference' | 'unknown';
+export type FailureKind = 'no-wasm' | 'offline' | 'engine' | 'download' | 'storage' | 'memory' | 'inference' | 'unknown';
 
 export class DemoFailure extends Error {
   kind: FailureKind;

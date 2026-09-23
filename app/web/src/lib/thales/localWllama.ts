@@ -1,209 +1,197 @@
-import { LoggerWithoutDebug, Wllama } from '@wllama/wllama'
-import wasmUrl from '@wllama/wllama/esm/wasm/wllama.wasm?url'
-import type { ChatMessage } from '../types'
-
-const MODEL = {
-  repo: 'LiquidAI/LFM2.5-350M-GGUF',
-  file: 'LFM2.5-350M-Q4_K_M.gguf',
-}
-
-const SYSTEM_PROMPT = `You are Ferris, the Rust Dojo AI mentor. Help learners understand Rust with short, educational, and encouraging explanations. Respond in English by default. If the question concerns a kata, give progressive hints and do not write the full solution unless explicitly asked. Rely on the kata context, current code, and provided test results.`
-
-export interface FerrisContext {
-  kataTitle: string
-  kataDescription?: string
-  kataConcept?: string
-  kataDifficulty?: string
-  code: string
-  tests?: Array<{ name: string; pass: boolean }>
-  output?: Array<{ text: string; color?: string }>
-  history?: ChatMessage[]
-}
-
-let wllama: Wllama | null = null
-let loadPromise: Promise<void> | null = null
-let actualThreads = 1
-let multithreadAvailable = false
+// Lifted from ThalesGroup/rust-coding-dojo @ 0c6340c — academy/src/llm/localWllama.ts (Apache-2.0, Copyright 2025 ThalesGroup).
+// THIS FILE HAS BEEN MODIFIED from the original (Apache-2.0 section 4(b)). Changes, 2026-09-21:
+//  - the Rust-kata prompt text, the "Ferris" chat function and the hard-coded LFM2.5 model were removed; the model
+//    source and load parameters are arguments;
+//  - loads by URL (`loadModelFromUrl`, still `useCache: true`) instead of `loadModelFromHF`, because the HF lookup needs
+//    the network on every call and this app must start offline from its cache;
+//  - the load block that was copy-pasted twice for the retry is one function; the retry clears ONLY this model's cached
+//    files (the original cleared every cached model) and is a separate, explicit call (`clearCacheAndRetry`) so a phone
+//    never silently re-downloads hundreds of megabytes after an out-of-memory failure;
+//  - the module-level singleton, the sticky rejected `loadPromise` and the polled `downloadProgress` variable are gone:
+//    the caller passes an instance factory and receives progress through a callback;
+//  - the WebGPU probe is stricter than `wllama.isSupportWebGPU()` (which only checks that `navigator.gpu` exists): it
+//    requests an adapter and refuses software adapters (SwiftShader / fallback), and a failed GPU load falls back to CPU.
+import type { LoadModelParams, Wllama } from '@wllama/wllama';
 
 export interface DownloadProgress {
-  phase: 'idle' | 'downloading' | 'loading' | 'ready' | 'error'
-  loaded: number
-  total: number
-  pct: number
+  phase: 'idle' | 'downloading' | 'loading' | 'ready' | 'error';
+  loaded: number;
+  total: number;
+  pct: number;
 }
 
-let downloadProgress: DownloadProgress = { phase: 'idle', loaded: 0, total: 0, pct: 0 }
-
-export function isModelReady() {
-  return wllama?.isModelLoaded() ?? false
+export interface ModelSourceUrls {
+  url: string;
+  mmprojUrl?: string;
 }
 
-export function getDownloadProgress(): DownloadProgress {
-  return downloadProgress
+export interface GpuProbe {
+  /** `navigator.gpu` exists (this is all `wllama.isSupportWebGPU()` checks). */
+  apiPresent: boolean;
+  /** An adapter was returned by `requestAdapter()`. */
+  adapterPresent: boolean;
+  /** The adapter is a software rasteriser (SwiftShader, llvmpipe, "fallback adapter"), useless for inference. */
+  software: boolean;
+  /** True only for a real hardware adapter: the only case where offloading layers is worth trying. */
+  usable: boolean;
+  vendor?: string;
+  architecture?: string;
+  description?: string;
+  note?: string;
 }
 
-export function getModelInfo() {
+type AdapterLike = {
+  info?: { vendor?: string; architecture?: string; device?: string; description?: string; isFallbackAdapter?: boolean };
+  isFallbackAdapter?: boolean;
+};
+
+let gpuProbePromise: Promise<GpuProbe> | null = null;
+
+/** Probe WebGPU once per page. Never throws. */
+export function probeWebGPU(): Promise<GpuProbe> {
+  gpuProbePromise ??= (async (): Promise<GpuProbe> => {
+    const gpu = (navigator as { gpu?: { requestAdapter(): Promise<AdapterLike | null> } }).gpu;
+    if (!gpu) {
+      return { apiPresent: false, adapterPresent: false, software: false, usable: false, note: 'This browser has no WebGPU.' };
+    }
+    try {
+      const adapter = await gpu.requestAdapter();
+      if (!adapter) {
+        return { apiPresent: true, adapterPresent: false, software: false, usable: false, note: 'WebGPU is present but no graphics adapter was offered.' };
+      }
+      const info = adapter.info ?? {};
+      const text = `${info.vendor ?? ''} ${info.architecture ?? ''} ${info.device ?? ''} ${info.description ?? ''}`.toLowerCase();
+      const software =
+        adapter.isFallbackAdapter === true ||
+        info.isFallbackAdapter === true ||
+        /swiftshader|llvmpipe|software|basic render/.test(text);
+      return {
+        apiPresent: true,
+        adapterPresent: true,
+        software,
+        usable: !software,
+        vendor: info.vendor || undefined,
+        architecture: info.architecture || undefined,
+        description: info.description || undefined,
+        note: software ? 'The only adapter is a software renderer, so the processor is used instead.' : undefined,
+      };
+    } catch (e) {
+      return { apiPresent: true, adapterPresent: false, software: false, usable: false, note: `WebGPU probe failed: ${String((e as Error)?.message ?? e)}` };
+    }
+  })();
+  return gpuProbePromise;
+}
+
+/**
+ * Thread-count heuristic, unchanged from the original: one thread without cross-origin isolation (no
+ * SharedArrayBuffer), otherwise half the logical cores clamped to 2..8. Half, because `hardwareConcurrency` counts
+ * SMT siblings: a machine reporting 8 usually has 4 physical cores, and 4 threads is what runs fastest there.
+ */
+export function getThreadCount() {
+  if (!crossOriginIsolated) return 1
+  return Math.max(2, Math.min(8, Math.floor((navigator.hardwareConcurrency || 4) / 2)))
+}
+
+export function getModelInfo(wllama: Wllama | null, gpuLayers: number) {
   return {
-    threads: actualThreads,
-    multithread: multithreadAvailable,
+    threads: wllama?.isModelLoaded() ? wllama.getNumThreads() : getThreadCount(),
+    multithread: wllama?.isModelLoaded() ? wllama.isMultithread() : false,
     webgpu: wllama?.isSupportWebGPU() ?? false,
+    gpuLayers,
     crossOriginIsolated: typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated,
   }
 }
 
-export function preloadModel() {
-  ensureModelLoaded()
+export interface LoadRequest {
+  /** Makes a fresh Wllama. A Wllama that failed a load cannot be reused ("Module is already initialized"). */
+  createInstance: () => Wllama;
+  source: ModelSourceUrls;
+  /** n_ctx, n_batch, n_threads (omit or <1 for the heuristic), and the GPU wish. */
+  params: Pick<LoadModelParams, 'n_ctx' | 'n_batch'> & { n_threads?: number; useGpu: boolean };
+  onProgress?: (p: DownloadProgress) => void;
+  signal?: AbortSignal;
 }
 
-export async function generateLocalFerrisReply(userMessage: string, context: FerrisContext, onToken?: (token: string) => void, skipContext?: boolean) {
-  await ensureModelLoaded()
-  if (!wllama) throw new Error('Local Ferris engine is unavailable.')
-
-  const history = skipContext ? [] : buildRecentHistory(context.history ?? [])
-  const prompt = skipContext ? userMessage : buildPrompt(userMessage, context)
-
-  let reply = ''
-  await wllama.createChatCompletion({
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...history,
-      { role: 'user', content: prompt },
-    ],
-    stream: true,
-    max_tokens: 10000,
-    temperature: 0,
-    top_p: 0.9,
-    top_k: 40,
-    onData: (chunk) => {
-      const token = chunk.choices[0]?.delta.content ?? ''
-      reply += token
-      onToken?.(token)
-    },
-  })
-
-  return reply.trim() || 'I could not produce a useful answer. Try rephrasing your question.'
+export interface LoadResult {
+  wllama: Wllama;
+  gpuLayers: number;
+  /** Set when a GPU load was tried first and failed; the model then loaded on the processor. */
+  gpuFallbackReason?: string;
 }
 
-function ensureModelLoaded() {
-  if (!wllama) {
-    wllama = new Wllama(
-      { default: wasmUrl },
+async function loadOnce(req: LoadRequest, gpuLayers: number): Promise<Wllama> {
+  const wllama = req.createInstance();
+  const threads = req.params.n_threads && req.params.n_threads > 0 ? req.params.n_threads : getThreadCount();
+  req.onProgress?.({ phase: 'downloading', loaded: 0, total: 0, pct: 0 });
+  try {
+    await wllama.loadModelFromUrl(
+      req.source.mmprojUrl ? { url: req.source.url, mmprojUrl: req.source.mmprojUrl } : req.source.url,
       {
-        allowOffline: true,
-        logger: LoggerWithoutDebug,
-        parallelDownloads: 3,
+        n_ctx: req.params.n_ctx,
+        n_batch: req.params.n_batch,
+        n_threads: threads,
+        n_gpu_layers: gpuLayers,
+        useCache: true,
+        signal: req.signal,
+        progressCallback: (opts) => {
+          const done = opts.total > 0 && opts.loaded >= opts.total;
+          req.onProgress?.({
+            phase: done ? 'loading' : 'downloading',
+            loaded: opts.loaded,
+            total: opts.total,
+            pct: Math.round((opts.loaded / (opts.total || 1)) * 100),
+          });
+        },
       },
-    )
+    );
+  } catch (err) {
+    // free the worker and its heap before anyone retries
+    try { await wllama.exit(); } catch { /* ignore */ }
+    throw err;
   }
+  return wllama;
+}
 
-  if (wllama.isModelLoaded()) return Promise.resolve()
-
-  downloadProgress = { phase: 'downloading', loaded: 0, total: 0, pct: 0 }
-
-  async function doLoad() {
-    try {
-      await wllama!.loadModelFromHF(
-        { repo: MODEL.repo, file: MODEL.file },
-        {
-          n_ctx: 4096,
-          n_threads: getThreadCount(),
-          n_gpu_layers: wllama!.isSupportWebGPU() ? 99999 : 0,
-          useCache: true,
-          progressCallback: (opts) => {
-            downloadProgress = {
-              phase: 'downloading',
-              loaded: opts.loaded,
-              total: opts.total,
-              pct: Math.round((opts.loaded / (opts.total || 1)) * 100),
-            }
-          },
-        },
-      )
-    } catch (err) {
-      // If first attempt fails, clear cache and retry once
-      console.warn('[ferris] first load attempt failed, retrying with fresh cache', err)
+/**
+ * Load from the cache, downloading first when needed. When the GPU was wished for and the probe says it is usable, all
+ * layers are offloaded (99); if that load fails the model is loaded again on the processor instead of failing.
+ */
+export async function loadModel(req: LoadRequest): Promise<LoadResult> {
+  const gpu = req.params.useGpu ? await probeWebGPU() : null;
+  const gpuLayers = gpu?.usable ? 99 : 0;
+  try {
+    const wllama = await loadOnce(req, gpuLayers);
+    req.onProgress?.({ phase: 'ready', loaded: 1, total: 1, pct: 100 });
+    return { wllama, gpuLayers };
+  } catch (err) {
+    if (gpuLayers > 0 && !req.signal?.aborted) {
+      console.warn('[engine] GPU load failed, loading on the processor instead', err);
       try {
-        await wllama!.cacheManager.clear()
-      } catch { /* ignore */ }
-      downloadProgress = { phase: 'downloading', loaded: 0, total: 0, pct: 0 }
-      await wllama!.loadModelFromHF(
-        { repo: MODEL.repo, file: MODEL.file },
-        {
-          n_ctx: 4096,
-          n_threads: getThreadCount(),
-          n_gpu_layers: wllama!.isSupportWebGPU() ? 99999 : 0,
-          useCache: true,
-          progressCallback: (opts) => {
-            downloadProgress = {
-              phase: 'downloading',
-              loaded: opts.loaded,
-              total: opts.total,
-              pct: Math.round((opts.loaded / (opts.total || 1)) * 100),
-            }
-          },
-        },
-      )
+        const wllama = await loadOnce(req, 0);
+        req.onProgress?.({ phase: 'ready', loaded: 1, total: 1, pct: 100 });
+        return { wllama, gpuLayers: 0, gpuFallbackReason: String((err as Error)?.message ?? err) };
+      } catch (err2) {
+        req.onProgress?.({ phase: 'error', loaded: 0, total: 0, pct: 0 });
+        throw err2;
+      }
     }
+    req.onProgress?.({ phase: 'error', loaded: 0, total: 0, pct: 0 });
+    throw err;
   }
+}
 
-  loadPromise ??= doLoad().then(() => {
-    if (wllama) {
-      multithreadAvailable = wllama.isMultithread()
-      actualThreads = wllama.getNumThreads()
-      downloadProgress = { phase: 'ready', loaded: 1, total: 1, pct: 100 }
-      console.log(`[ferris] model loaded — ${actualThreads} threads, multithread=${multithreadAvailable}, webgpu=${wllama?.isSupportWebGPU() ?? false}`)
+/**
+ * The original's recovery path: if the first attempt failed, clear the cache and try once more with a fresh download.
+ * A corrupt cached file otherwise blocks the chat until the user clears site data.
+ */
+export async function clearCacheAndRetry(req: LoadRequest): Promise<LoadResult> {
+  const probe = req.createInstance();
+  try {
+    const cached = await probe.modelManager.getModels({ includeInvalid: true });
+    for (const m of cached) {
+      if (m.url === req.source.url) await m.remove();
     }
-  }).catch((err) => {
-    downloadProgress = { phase: 'error', loaded: 0, total: 0, pct: 0 }
-    throw err
-  })
-
-  return loadPromise
-}
-
-function buildPrompt(userMessage: string, context: FerrisContext) {
-  return `Kata context:
-
-Title: ${context.kataTitle}
-Concept: ${context.kataConcept ?? 'not specified'}
-Difficulty: ${context.kataDifficulty ?? 'not specified'}
-
-Current code:
-\`\`\`rust
-${context.code}
-\`\`\`
-
-Test results:
-${formatTests(context.tests ?? [])}
-
-Execution output:
-${formatOutput(context.output ?? [])}
-
-Learner's question:
-${userMessage}`
-}
-
-function buildRecentHistory(history: ChatMessage[]) {
-  return history
-    .filter((message) => message.role === 'user' || message.role === 'ferris' || message.role === 'review' || message.role === 'hint')
-    .slice(-6)
-    .map((message) => ({
-      role: message.role === 'user' ? 'user' as const : 'assistant' as const,
-      content: message.text,
-    }))
-}
-
-function formatTests(tests: Array<{ name: string; pass: boolean }>) {
-  if (tests.length === 0) return 'Tests have not been run yet.'
-  return tests.map((test) => `${test.pass ? 'PASS' : 'FAIL'} ${test.name}`).join('\n')
-}
-
-function formatOutput(output: Array<{ text: string }>) {
-  if (output.length === 0) return 'No output available.'
-  return output.map((line) => line.text).join('\n')
-}
-
-function getThreadCount() {
-  if (!crossOriginIsolated) return 1
-  return Math.max(2, Math.min(8, Math.floor((navigator.hardwareConcurrency || 4) / 2)))
+  } catch { /* ignore */ }
+  try { await probe.exit(); } catch { /* ignore */ }
+  return loadModel(req);
 }

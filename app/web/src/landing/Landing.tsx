@@ -5,7 +5,7 @@ import { BENCH_HREF, BizLoop, Footer, Measured, OnYourPhone, Strengths } from '.
 import { ThemeToggle } from './ThemeToggle';
 import { useRequestMeter } from './useRequestMeter';
 
-const INITIAL: DemoReport = { modelLabel: null, pendingHost: null, noteChars: SAMPLE_NOTE.length, stampedAt: null, liveRun: null };
+const INITIAL: DemoReport = { modelLabel: null, pendingHost: null, modelFromCache: null, noteChars: SAMPLE_NOTE.length, stampedAt: null, liveRun: null };
 
 export function Landing() {
   const meter = useRequestMeter();
@@ -57,6 +57,7 @@ export function Landing() {
                 state={{
                   modelLabel: report.modelLabel,
                   pendingHost: report.pendingHost,
+                  modelFromCache: report.modelFromCache,
                   noteChars: report.noteChars,
                   stampedAt: report.stampedAt,
                 }}
