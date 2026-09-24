@@ -1,6 +1,8 @@
 # Second Look · TypeSafe — the in-browser decision page
 
-Published as a claude.ai artifact: https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh (private until shared from its Share menu).
+Live on GitHub Pages: **https://edupazogle.github.io/slm-lab/** (repo https://github.com/edupazogle/slm-lab, deployed by
+`.github/workflows/pages.yml`; `build.sh` fetches the models at build time, `build_pages.py` wraps the artifact-format page).
+Also published as a claude.ai artifact (private): https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh.
 Written 2026-09-24 for the newsletter's "Second Look: TypeSafe" item.
 
 What it is: typed decisions with a probability (TypeSafe Jev's idea) run on two small open models inside the browser,
@@ -30,9 +32,9 @@ weights ship as base64 `.txt` chunks under the 16 MB text limit (57 MB in total,
 decodes them, checking the decoded byte count. The runtime fetches its `.wasm` through a wrapped `fetch` that returns the bytes
 the page already downloaded (one download, cached in IndexedDB).
 
-Not verified on the live host by the author: the Chrome available to the session was signed into another claude.ai
-organisation. Verified end to end in headless Chromium behind an emulated CSP (download, all widgets, offline mode with 0
-requests, .docx upload). If the live page fails at "Starting the models", the host's CSP is refusing WebAssembly.
+Verified live on GitHub Pages 2026-09-24 in headless Chromium: download + start 6.5 s, all widgets, offline mode with 0
+requests, .docx upload. The claude.ai artifact copy was verified only behind an emulated CSP (Chrome was signed into another
+organisation); if it fails at "Starting the models", that host is refusing WebAssembly.
 
 Licences: xtremedistil-l6-h256-zeroshot-v1.1-all-33 MIT (Moritz Laurer); all-MiniLM-L6-v2 Apache-2.0 (sentence-transformers,
 ONNX by Xenova); ONNX Runtime Web MIT; mammoth.js BSD-2-Clause (loaded from cdnjs); UI patterns after LocalMode (MIT).
