@@ -1265,8 +1265,10 @@
 
 <!-- served beside the page (build.sh), so a reload works offline; the CDN copy of the same version is the fallback -->
 <script src="vendor/ort.wasm.min.js"></script>
-<script>window.ort || document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js"><\/script>');</script>
-<script src="vendor/mammoth.browser.min.js" defer onerror="var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.12.3/mammoth.browser.min.js';document.head.appendChild(s)"></script>
+<!-- crossorigin: a page served with COEP require-corp only runs a cross-origin script fetched without CORS if the CDN sends CORP;
+     with CORS the CDNs' Access-Control-Allow-Origin: * is enough -->
+<script>window.ort || document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js" crossorigin><\/script>');</script>
+<script src="vendor/mammoth.browser.min.js" defer onerror="var s=document.createElement('script');s.crossOrigin='anonymous';s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.12.3/mammoth.browser.min.js';document.head.appendChild(s)"></script>
 <script>
 (() => {
 'use strict';
@@ -1413,7 +1415,7 @@ function record(model, encs, L, msTok, msRun, output) {
   return call;
 }
 const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-const pct = (a, q) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
+const pct = (a, q) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.max(0, Math.ceil(q * s.length) - 1)]; };   // nearest rank: floor(q·n) gave the maximum for n ≤ 20
 const fmtK = (n) => n >= 10000 ? (n / 1000).toFixed(1) + 'k' : n.toLocaleString('en-GB');
 const fmtS = (ms) => ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(2) + ' s';
 function usageSince(seq0) {
@@ -1652,6 +1654,7 @@ async function loadAll() {
   if (state.loading || state.ready) return;
   if (typeof ort === 'undefined') { toast('The runtime script did not load. Check the connection and reload the page.'); return; }
   state.loading = true; $('#dlBtn').disabled = true;
+  state.got = 0;   // a retry after a failed download counts from zero again (it read 174 % and "102.5 MB / 58.9 MB")
   try {
     const vkey = 'vocab:' + VOCAB[1], vcached = await idbGet(vkey);   // the tokenizer's vocabulary: kept with the models, so an offline start needs no request
     let vocabBytes;
@@ -1892,12 +1895,14 @@ async function runWidget(w) {
   const text = $('#in-' + w.id).value.trim(); if (!text) return;
   const t0 = performance.now(), seq0 = meter.seq;
   let r;
-  await measured(w.id, async () => {
-    if (w.type === 'choice') r = { ranked: await route(text) };
-    else if (w.type === 'yesno') r = { p: await pYes(text, w.hyp) };
-    else if (w.type === 'custom') { const st = $('#st-' + w.id).value.trim(); if (!st) return; r = { p: await pYes(text, st), statement: st }; }
-    else r = await urgency(text);
-  });
+  try {
+    await measured(w.id, async () => {
+      if (w.type === 'choice') r = { ranked: await route(text) };
+      else if (w.type === 'yesno') r = { p: await pYes(text, w.hyp) };
+      else if (w.type === 'custom') { const st = $('#st-' + w.id).value.trim(); if (!st) return; r = { p: await pYes(text, st), statement: st }; }
+      else r = await urgency(text);
+    });
+  } catch (e) { toast('The decision stopped: ' + (state.ready ? e.message : 'the models were turned off')); return; }   // e.g. the models turned off mid-run
   if (!r) return;
   r.ms = Math.round(performance.now() - t0); r.usage = usageSince(seq0);
   lastResult[w.id] = r; renderResult(w); countRun();
@@ -1914,7 +1919,11 @@ async function runBatch(w) {
   btn.disabled = true; btn.textContent = 'Running…';
   const rows = [];
   for (const e of w.examples) {
-    const t0 = performance.now(), seq0 = meter.seq, r = await measured(w.id + ' · batch', () => decideText(w, e[1], e[2])); r.ms = Math.round(performance.now() - t0); r.tokens = usageSince(seq0).tokens_in; rows.push([e[0], e[1], r]); countRun();
+    const t0 = performance.now(), seq0 = meter.seq;
+    let r;
+    try { r = await measured(w.id + ' · batch', () => decideText(w, e[1], e[2])); }
+    catch (err) { btn.disabled = !state.ready; btn.textContent = `Run all ${w.examples.length}`; toast('The run stopped: ' + (state.ready ? err.message : 'the models were turned off')); return; }
+    r.ms = Math.round(performance.now() - t0); r.tokens = usageSince(seq0).tokens_in; rows.push([e[0], e[1], r]); countRun();
     box.innerHTML = `<table class="btable"><thead><tr><th>Example</th><th>Message</th><th>${w.type === 'choice' ? 'Team' : w.type === 'score' ? 'Urgency' : 'Answer'}</th><th style="text-align:right">p</th><th style="text-align:right">tokens</th><th style="text-align:right">ms</th></tr></thead><tbody>${rows.map((x) => `<tr><td><b style="color:var(--fg)">${esc(x[0])}</b></td><td class="msg" title="${esc(x[1])}">${esc(x[1])}</td><td>${esc(x[2].label)}</td><td class="p"><span class="pb"><i style="width:${(100 * x[2].p).toFixed(0)}%"></i></span>${x[2].p.toFixed(2)}</td><td class="p">${x[2].tokens}</td><td class="p">${x[2].ms}</td></tr>`).join('')}</tbody></table>`;
   }
   btn.disabled = false; btn.textContent = 'Run again';
@@ -2006,8 +2015,11 @@ function auc(scores, y) {
 }
 function renderTest() {
   const T = TESTS[test.which], live = test.live[test.which];
-  $('#testTabs').innerHTML = Object.entries(TESTS).map(([k, v]) => `<button type="button" data-k="${k}" aria-pressed="${k === test.which}">${esc(v.label)}</button>`).join('');
-  $('#testTabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { test.which = b.dataset.k; $('#testT').value = TESTS[b.dataset.k].t; renderTest(); }));
+  if (!$('#testTabs').children.length) {   // built once: rebuilding them on every render took the keyboard focus away from the pressed button
+    $('#testTabs').innerHTML = Object.entries(TESTS).map(([k, v]) => `<button type="button" data-k="${k}">${esc(v.label)}</button>`).join('');
+    $('#testTabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { test.which = b.dataset.k; $('#testT').value = TESTS[b.dataset.k].t; renderTest(); }));
+  }
+  $('#testTabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === test.which)));
   const t = parseFloat($('#testT').value); $('#testTOut').textContent = t.toFixed(2);
   const src = live ? 'measured on this device just now' : 'recorded 24 Sep 2026 with the same models; run it to measure on this device';
   let stats, outcome = '', note = '';
@@ -2067,17 +2079,22 @@ async function runTest() {
   if (!state.ready) return;
   $('#testRun').disabled = true; $('#testRun').textContent = 'Running…';
   const t0 = performance.now(), seq0 = meter.seq;
-  await measured('test', async () => {
-    for (const k of ['legal', 'vuln']) {
-      const p = []; for (const c of CASES) p.push(await pYes(c[0], HYP[k]));
-      const y = CASES.map((c) => c[TESTS[k].col]);
-      const mean = (f) => { const a = p.filter((_, i) => f(y[i])); return a.reduce((s, x) => s + x, 0) / a.length; };
-      test.live[k] = { p, auc: auc(p, y), pos: mean((v) => v), neg: mean((v) => !v) };
-    }
-    const rows = [];
-    for (const c of CASES) { if (!c[1]) continue; const r = await route(c[0]); rows.push({ p: r[0].p, ok: r[0].label === c[1] }); }
-    test.live.route = { rows, acc: rows.filter((r) => r.ok).length / rows.length };
-  });
+  try {
+    await measured('test', async () => {
+      for (const k of ['legal', 'vuln']) {
+        const p = []; for (const c of CASES) p.push(await pYes(c[0], HYP[k]));
+        const y = CASES.map((c) => c[TESTS[k].col]);
+        const mean = (f) => { const a = p.filter((_, i) => f(y[i])); return a.reduce((s, x) => s + x, 0) / a.length; };
+        test.live[k] = { p, auc: auc(p, y), pos: mean((v) => v), neg: mean((v) => !v) };
+      }
+      const rows = [];
+      for (const c of CASES) { if (!c[1]) continue; const r = await route(c[0]); rows.push({ p: r[0].p, ok: r[0].label === c[1] }); }
+      test.live.route = { rows, acc: rows.filter((r) => r.ok).length / rows.length };
+    });
+  } catch (e) {   // e.g. the models turned off mid-run: the button said "Running…" for good
+    $('#testRun').disabled = !state.ready; $('#testRun').textContent = 'Run the test on this device';
+    toast('The test stopped: ' + (state.ready ? e.message : 'the models were turned off')); return;
+  }
   const u = usageSince(seq0);
   $('#testRun').textContent = `Ran 89 decisions in ${((performance.now() - t0) / 1000).toFixed(1)} s · ${fmtK(u.tokens_in)} tokens · median ${u.ms_median} ms each`;
   countRun(); renderTest(); renderCaseTable();
@@ -2135,7 +2152,7 @@ function findPatterns(text) {
 // (?<![\p{L}\p{N}_]) rather than \b: JS \b is ASCII-only, so a name starting with an accented capital ("Édith") was never a candidate. Up to 6 words.
 const CAP = /(?<![\p{L}\p{N}_])([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?(?:\s+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc)\s+)?[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?){0,5})/gu;
 function nameCandidates(text) {
-  const out = []; CAP.lastIndex = 0; let m;
+  const out = []; CAP.lastIndex = 0; let m, sa = 0, seen = 0, se = -1;   // the sentence around the candidate: [sa, se]
   while ((m = CAP.exec(text))) {
     let words = m[1].split(/\s+/), start = m.index;
     while (words.length && NOT_NAME.has(words[0].toLowerCase().replace(/[’']s$/, ''))) { start += text.slice(start).indexOf(words[0]) + words[0].length; start += text.slice(start).search(/\S/); words.shift(); }
@@ -2155,14 +2172,16 @@ function nameCandidates(text) {
     if (!why && /(?<![\p{L}\p{N}_])(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da)\s*$/iu.test(before)) continue;   // a place: "skiing in Innsbruck" (not \b: "à" needs a Unicode boundary)
     const sentStart = /(?:^|[.!?\n]\s*)$/.test(before);
     if (!why && sentStart && words.length === 1) continue;       // one capitalised word opening a sentence
-    out.push({ type: 'PERSON', start, end: start + cand.length, text: cand, why, sentence: sentenceAround(text, start) });
+    // the candidates come in text order, so one pass finds every sentence: four lastIndexOf() and a search() per name scanned to
+    // either end of a text that lacks '!' or '?' (most do), and a 4.9 MB letter took 256 s (1 MB: 13 s) with the tab frozen
+    for (; seen < start; seen++) if ('.\n!?'.includes(text[seen])) sa = seen + 1;
+    if (se < start) { const k = text.slice(start).search(/[.!?\n]/); se = k < 0 ? text.length : start + k; }
+    out.push({ type: 'PERSON', start, end: start + cand.length, text: cand, why, sentence: sentenceAround(text, sa, se) });
   }
   return out;
 }
-function sentenceAround(text, i) {
-  const a = Math.max(text.lastIndexOf('.', i - 1), text.lastIndexOf('\n', i - 1), text.lastIndexOf('!', i - 1), text.lastIndexOf('?', i - 1)) + 1;
-  let b = text.slice(i).search(/[.!?\n]/); b = b < 0 ? text.length : i + b + 1;
-  return text.slice(a, b).trim().slice(0, 400);
+function sentenceAround(text, a, e) {   // a: just after the last [.\n!?] before the name; e: the first one from it (or the end)
+  return text.slice(a, e + 1).trim().slice(0, 400);
 }
 async function detect(text, { amounts = false, useModel = true } = {}) {
   let ents = findPatterns(text).filter((e) => amounts || e.type !== 'AMOUNT');
@@ -2188,11 +2207,12 @@ function placeholders(ents) {
     if (!map.has(key)) { count[e.type] = (count[e.type] || 0) + 1; map.set(key, `[${e.type}_${count[e.type]}]`); }
     e.ph = map.get(key);
   }
-  // a surname alone reuses the full name's placeholder, but never through a particle: "Le" is not "Albesjan Le Mao"
-  for (const e of ents) if (e.type === 'PERSON' && !e.text.includes(' ')) {
-    const full = ents.find((f) => f.type === 'PERSON' && f.text.includes(' ') && f.text.split(/\s+/).filter((w) => !PARTICLES.has(w.toLowerCase())).includes(e.text));
-    if (full) e.ph = full.ph;
-  }
+  // a surname alone reuses the full name's placeholder, but never through a particle: "Le" is not "Albesjan Le Mao".
+  // Each word of a full name points at the first full name holding it (a find() over every item per name was quadratic: a
+  // 20,000-row customer .csv took 11 s here, the tab frozen). Same result.
+  const full = new Map();
+  for (const f of ents) if (f.type === 'PERSON' && f.text.includes(' ')) for (const w of f.text.split(/\s+/)) if (!PARTICLES.has(w.toLowerCase()) && !full.has(w)) full.set(w, f.ph);
+  for (const e of ents) if (e.type === 'PERSON' && !e.text.includes(' ') && full.has(e.text)) e.ph = full.get(e.text);
   return ents;
 }
 function renderMarked(text, ents, mode) {
@@ -2308,23 +2328,37 @@ async function pptxText(buf) {
   return out.join('\n\n');
 }
 async function readFile(file) {
+  let text;
   if (/\.docx$/i.test(file.name)) {
     const buf = await file.arrayBuffer();
-    let text;
     if (typeof mammoth !== 'undefined') {
       try { const r = await Promise.race([mammoth.extractRawText({ arrayBuffer: buf }), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 4000))]); text = r.value; } catch (e) { text = null; }
     }
     if (text == null) text = await docxText(buf);
-    return text.replace(/\n{3,}/g, '\n\n').trim();
+    text = text.replace(/\n{3,}/g, '\n\n');
   }
-  if (/\.xlsx$/i.test(file.name)) return (await xlsxText(await file.arrayBuffer())).trim();
-  if (/\.pptx$/i.test(file.name)) return (await pptxText(await file.arrayBuffer())).trim();
-  if (/\.(?:docm|doc|xls|ppt|pdf)$/i.test(file.name)) throw new Error('this format is not read here: save it as .docx, .xlsx or .txt');
-  if (file.size > 5e6) throw new Error('over 5 MB of text');
-  return (await file.text()).trim();
+  else if (/\.xlsx$/i.test(file.name)) text = await xlsxText(await file.arrayBuffer());
+  else if (/\.pptx$/i.test(file.name)) text = await pptxText(await file.arrayBuffer());
+  else if (/\.(?:docm|doc|xls|ppt|pdf)$/i.test(file.name)) throw new Error('this format is not read here: save it as .docx, .xlsx or .txt');
+  else {
+    if (file.size > 5e6) throw new Error('over 5 MB of text');
+    const b = new Uint8Array(await file.arrayBuffer());   // Excel's "Unicode text" and Notepad's "Unicode" are UTF-16 with a BOM: read as UTF-8, no rule matched
+    text = new TextDecoder(b[0] === 0xFF && b[1] === 0xFE ? 'utf-16le' : b[0] === 0xFE && b[1] === 0xFF ? 'utf-16be' : 'utf-8').decode(b);
+    // a dropped file skips the chooser's filter: a photo or a zip read as text filled the box with garbage
+    if (/\u0000/.test(text.slice(0, 8192))) throw new Error('this is not a text file: save it as .docx, .xlsx or .txt');
+  }
+  text = text.trim();
+  // an empty file left the previous document's result on screen (and in "Save .docx") as if it were this one's
+  if (!text) throw new Error('no text in it');
+  if (text.length > 5e6) throw new Error('over 5 MB of text');   // the same limit as a text file, for the text inside an Office file
+  return text;
 }
 function wireDrop(zone, input, onFiles) {
-  input.addEventListener('change', () => onFiles([...input.files]));
+  // the value is cleared once read, so choosing the same file again (after editing it) fires "change" again
+  input.addEventListener('change', () => { const files = [...input.files]; input.value = ''; onFiles(files); });
+  // the file input is hidden, and a <label> takes no keyboard focus: without this the chooser could not be opened from the keyboard
+  zone.tabIndex = 0; zone.setAttribute('role', 'button');
+  zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
   zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('over'));
   zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); onFiles([...e.dataTransfer.files]); });
@@ -2367,7 +2401,7 @@ function zipStore(files) {
 }
 function sampleDocx() { return docxFromText(SAMPLE_LETTER); }
 function docxFromText(text) {
-  const xmlEsc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const xmlEsc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');   // ">" too: "]]>" in text is not well-formed XML
   const body = text.split('\n').map((l) => `<w:p><w:r><w:t xml:space="preserve">${xmlEsc(l)}</w:t></w:r></w:p>`).join('');
   return zipStore([
     ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
