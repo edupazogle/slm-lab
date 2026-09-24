@@ -1,0 +1,1306 @@
+<title>Second Look · TypeSafe</title>
+<meta name="description" content="Decisions with a probability, running in your browser: what TypeSafe launched, tried with open models that work offline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #ffffff; --bg-subtle: #fafafa; --card: #ffffff; --fg: #0a0a0a; --fg-soft: #262626; --muted-fg: #737373;
+    --muted: #f5f5f5; --border: #e5e5e5; --border-strong: #d4d4d4; --primary: #171717; --primary-fg: #fafafa;
+    --green: #15803d; --green-bg: #f0fdf4; --green-bd: #bbf7d0; --red: #b91c1c; --red-bg: #fef2f2; --red-bd: #fecaca;
+    --blue: #1d4ed8; --blue-bg: #eff6ff; --blue-bd: #bfdbfe; --amber: #a16207; --amber-bg: #fefce8; --amber-bd: #fde68a;
+    --mark: #fef08a; --mark-fg: #0a0a0a; --bar: #171717; --ring: rgba(23, 23, 23, .18); --radius: 10px;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0a0a0a; --bg-subtle: #0f0f0f; --card: #141414; --fg: #fafafa; --fg-soft: #e5e5e5; --muted-fg: #a3a3a3;
+      --muted: #1c1c1c; --border: #262626; --border-strong: #3a3a3a; --primary: #fafafa; --primary-fg: #0a0a0a;
+      --green: #4ade80; --green-bg: #052e16; --green-bd: #14532d; --red: #f87171; --red-bg: #2a0b0b; --red-bd: #7f1d1d;
+      --blue: #93c5fd; --blue-bg: #0b1a3a; --blue-bd: #1e3a8a; --amber: #fcd34d; --amber-bg: #2a1d05; --amber-bd: #78350f;
+      --mark: #713f12; --mark-fg: #fef9c3; --bar: #fafafa; --ring: rgba(250, 250, 250, .2);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0a0a0a; --bg-subtle: #0f0f0f; --card: #141414; --fg: #fafafa; --fg-soft: #e5e5e5; --muted-fg: #a3a3a3;
+    --muted: #1c1c1c; --border: #262626; --border-strong: #3a3a3a; --primary: #fafafa; --primary-fg: #0a0a0a;
+    --green: #4ade80; --green-bg: #052e16; --green-bd: #14532d; --red: #f87171; --red-bg: #2a0b0b; --red-bd: #7f1d1d;
+    --blue: #93c5fd; --blue-bg: #0b1a3a; --blue-bd: #1e3a8a; --amber: #fcd34d; --amber-bg: #2a1d05; --amber-bd: #78350f;
+    --mark: #713f12; --mark-fg: #fef9c3; --bar: #fafafa; --ring: rgba(250, 250, 250, .2);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-strong); }
+  a:hover { text-decoration-color: currentColor; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 6px; }
+  code, .mono { font-family: var(--mono); font-size: .86em; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+
+  /* top bar */
+  .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .top .wrap { display: flex; align-items: center; gap: 20px; height: 56px; }
+  .brand { font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+  .brand span { color: var(--muted-fg); font-weight: 500; }
+  .nav { display: flex; gap: 18px; font-size: 14px; color: var(--muted-fg); overflow-x: auto; scrollbar-width: none; }
+  .nav a { text-decoration: none; white-space: nowrap; }
+  .nav a:hover { color: var(--fg); }
+  .status { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
+    font-size: 12.5px; font-weight: 500; white-space: nowrap; background: var(--card); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-fg); flex-shrink: 0; }
+  .pill.on .dot { background: var(--green); }
+  .pill.off { border-color: var(--amber-bd); background: var(--amber-bg); color: var(--amber); }
+  .pill.off .dot { background: var(--amber); }
+  .pill.ok { border-color: var(--green-bd); background: var(--green-bg); color: var(--green); }
+  .pill.ok .dot { background: var(--green); }
+  .pill.run { border-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue); }
+  .pill.run .dot { background: var(--blue); }
+  .pill.bad { border-color: var(--red-bd); background: var(--red-bg); color: var(--red); }
+  .pill.bad .dot { background: var(--red); }
+  @media (max-width: 760px) { .nav { display: none; } .req-pill { display: none; } }
+
+  /* hero */
+  .hero { text-align: center; padding-block: 56px 28px; }
+  .chip { display: inline-block; border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; font-size: 12.5px; color: var(--muted-fg);
+    font-weight: 500; background: var(--card); }
+  h1 { font-size: clamp(32px, 5.2vw, 54px); line-height: 1.06; letter-spacing: -.035em; margin: 18px auto 16px; max-width: 860px; text-wrap: balance; }
+  .lede { color: var(--muted-fg); font-size: clamp(16px, 1.9vw, 18.5px); max-width: 720px; margin: 0 auto; text-wrap: pretty; }
+  .ctas { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 14.5px;
+    border: 1px solid var(--border); background: var(--card); cursor: pointer; text-decoration: none; line-height: 1.3; }
+  .btn:hover { background: var(--muted); }
+  .btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+  .btn.primary:hover { opacity: .9; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.sm { padding: 5px 11px; font-size: 13px; font-weight: 500; border-radius: 7px; }
+  .cmd { display: inline-flex; gap: 10px; align-items: center; margin-top: 18px; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 14px; background: var(--card); font-family: var(--mono); font-size: 13px; max-width: 100%; text-align: left; }
+  .hint { font-size: 13px; color: var(--muted-fg); margin-top: 8px; }
+
+  /* component frames, after LocalMode's gallery */
+  .frame { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-subtle); display: flex; flex-direction: column; min-width: 0; }
+  .frame > .label { font-family: var(--mono); font-size: 12px; color: var(--muted-fg); padding: 7px 12px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+  .frame > .label b { font-weight: 500; color: var(--fg-soft); }
+  .frame > .body { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); padding: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 980px) { .grid3 { grid-template-columns: 1fr; } }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 11px; font-size: 13.5px; background: var(--card); }
+  .kv span:first-child { font-weight: 500; }
+  .kv span:last-child { color: var(--muted-fg); text-align: right; }
+  .kv.yes span:last-child { color: var(--green); }
+  .kv.no span:last-child { color: var(--red); }
+  .title-sm { font-weight: 600; font-size: 15px; line-height: 1.3; }
+  .sub { font-size: 13px; color: var(--muted-fg); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 12px; border-radius: 999px; background: var(--muted); padding: 2px 9px; color: var(--fg-soft); white-space: nowrap; }
+  .progress { height: 7px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+  .progress > i { display: block; height: 100%; width: 0%; background: var(--bar); border-radius: 999px; transition: width .2s ease; }
+  .model { display: flex; flex-direction: column; gap: 10px; }
+  .model .head { display: flex; gap: 12px; align-items: flex-start; }
+  .ico { width: 34px; height: 34px; border-radius: 8px; background: var(--muted); display: grid; place-items: center; flex-shrink: 0; }
+  .ico svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .pct { font-size: 12.5px; color: var(--muted-fg); text-align: right; font-variant-numeric: tabular-nums; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+  .check .box { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); flex-shrink: 0; display: grid; place-items: center; margin-top: 1px; }
+  .check.done .box { border-color: var(--green); background: var(--green); }
+  .check.done .box::after { content: ""; width: 8px; height: 4px; border: 2px solid var(--card); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+  .banner { border-radius: var(--radius); padding: 12px 14px; font-size: 14px; border: 1px solid var(--border); background: var(--card); }
+  .banner.wow { border-color: var(--green-bd); background: var(--green-bg); color: var(--green); font-weight: 600; }
+
+  /* sections */
+  section { padding-block: 48px 8px; scroll-margin-top: 64px; }
+  .sec-head { max-width: 760px; margin-bottom: 22px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--muted-fg); letter-spacing: .04em; text-transform: uppercase; }
+  h2 { font-size: clamp(24px, 3.2vw, 32px); letter-spacing: -.025em; line-height: 1.15; margin: 6px 0 10px; text-wrap: balance; }
+  .sec-head p { color: var(--muted-fg); margin: 0; max-width: 68ch; }
+  h3 { font-size: 17px; letter-spacing: -.01em; margin: 0; }
+
+  /* widgets */
+  .widget textarea, .tool textarea { width: 100%; min-height: 92px; resize: vertical; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    background: var(--card); font-size: 14px; line-height: 1.5; }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; }
+  .statement { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: var(--card); font-size: 14px; }
+  .examples button { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer; color: var(--fg-soft); }
+  .examples button:hover { background: var(--muted); }
+  .examples button[aria-pressed="true"] { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+  .result { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .answer { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .answer .big { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+  .answer .p { font-family: var(--mono); font-size: 13px; color: var(--muted-fg); }
+  .pbar { position: relative; height: 10px; border-radius: 999px; background: var(--muted); }
+  .pbar > i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--bar); }
+  .pbar > b { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--red); border-radius: 2px; }
+  .dist { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; font-size: 13px; }
+  .dist .track { height: 6px; background: var(--muted); border-radius: 999px; overflow: hidden; }
+  .dist .track i { display: block; height: 100%; background: var(--bar); border-radius: 999px; }
+  .dist .v { font-family: var(--mono); font-size: 12px; color: var(--muted-fg); text-align: right; font-variant-numeric: tabular-nums; }
+  .thresh { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted-fg); flex-wrap: wrap; }
+  .thresh input[type=range] { flex: 1; min-width: 140px; accent-color: var(--fg); }
+  .thresh output { font-family: var(--mono); color: var(--fg); min-width: 34px; }
+  .route { font-weight: 600; }
+  .json { font-family: var(--mono); font-size: 12px; line-height: 1.55; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--fg-soft); }
+  .measured { font-size: 12.5px; color: var(--muted-fg); border-top: 1px dashed var(--border); padding-top: 10px; }
+  .locked { font-size: 13px; color: var(--muted-fg); }
+
+  /* test */
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .stat { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 10px 12px; }
+  .stat .n { font-size: 22px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 12.5px; color: var(--muted-fg); }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-weight: 500; color: var(--muted-fg); background: var(--bg-subtle); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .warn { color: var(--amber); }
+  svg.chart text { fill: var(--muted-fg); font: 11px var(--sans); }
+
+  /* anonymiser + synthetic */
+  .tool .drop { border: 1.5px dashed var(--border-strong); border-radius: 8px; padding: 14px; text-align: center; font-size: 13.5px; color: var(--muted-fg); background: var(--card); }
+  .tool .drop.over { border-color: var(--fg); color: var(--fg); }
+  .doc { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 12px 14px; font-size: 14px; line-height: 1.65; white-space: pre-wrap;
+    max-height: 340px; overflow: auto; word-break: break-word; }
+  mark { background: var(--mark); color: var(--mark-fg); border-radius: 3px; padding: 0 2px; }
+  mark small { font: 500 10px var(--mono); opacity: .7; margin-left: 3px; }
+  .ph { font-family: var(--mono); font-size: 12.5px; background: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 820px) { .two { grid-template-columns: 1fr; } }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13.5px; align-items: center; }
+  .opts label { display: inline-flex; gap: 6px; align-items: center; }
+  .opts input[type=number] { width: 64px; border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; background: var(--card); }
+  .files { display: flex; flex-direction: column; gap: 6px; }
+  .file { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: var(--card); }
+
+  /* news */
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 820px) { .facts { grid-template-columns: 1fr; } }
+  .fact h3 { margin-bottom: 6px; }
+  .fact p, .fact li { font-size: 14.5px; color: var(--fg-soft); }
+  .fact ul { margin: 6px 0 0; padding-left: 18px; }
+  .fact .src { font-size: 12.5px; color: var(--muted-fg); margin-top: 8px; }
+  .quote { border-left: 3px solid var(--fg); padding: 2px 0 2px 16px; font-size: 16px; max-width: 72ch; }
+  footer { border-top: 1px solid var(--border); margin-top: 56px; padding-block: 28px 48px; font-size: 13px; color: var(--muted-fg); }
+  footer .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  @media (max-width: 820px) { footer .cols { grid-template-columns: 1fr; } }
+  footer h4 { margin: 0 0 6px; font-size: 13px; color: var(--fg); }
+  footer ul { margin: 0; padding-left: 16px; }
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--primary); color: var(--primary-fg);
+    padding: 9px 14px; border-radius: 8px; font-size: 13.5px; z-index: 50; box-shadow: 0 6px 24px rgba(0,0,0,.18); max-width: calc(100% - 32px); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">Second Look <span>/ TypeSafe</span></div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#try">Try it</a><a href="#decisions">Decisions</a><a href="#test">The test</a><a href="#private">Private data</a><a href="#news">The news</a><a href="#models">Models</a>
+    </nav>
+    <div class="status">
+      <span class="pill req-pill" id="reqPill" title="Network requests this page made since the models became ready"><span class="dot"></span><span id="reqText">No models yet</span></span>
+      <span class="pill on" id="netPill"><span class="dot"></span><span id="netText">Online</span></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <span class="chip">Second Look · TypeSafe raised $40m to sell AI that decides</span>
+    <h1>A yes, a score or a choice, with a probability. Running in your browser.</h1>
+    <p class="lede">TypeSafe's Jev answers questions with typed decisions and a probability, through a paid API. The same kind of decision runs here on two small open models that download into this tab. Download them, switch off your Wi-Fi, and keep using the page.</p>
+    <div class="ctas">
+      <button class="btn primary" id="dlBtn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span id="dlText">Download the models · 57 MB</span>
+      </button>
+      <a class="btn" href="#news">What TypeSafe launched</a>
+    </div>
+    <div class="cmd" aria-label="What happens"><span>▸</span><span>Everything runs in this tab. What you type or upload is never sent anywhere.</span></div>
+    <div class="hint">Works best in a recent Chrome, Edge or Firefox on a laptop. First download takes 10–60 s; later visits load from this browser.</div>
+  </div>
+
+  <section id="try" style="padding-top: 16px;">
+    <div class="grid3">
+      <div class="frame">
+        <div class="label"><b>local-first/device-check</b><span>this tab</span></div>
+        <div class="body">
+          <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="row"><div><div class="title-sm" id="capTitle">Checking this device…</div><div class="sub" id="capSub">Detected in this tab. Nothing is sent anywhere.</div></div></div>
+            <div id="capRows" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="label"><b>local-first/model-downloader</b><span id="dlTotal">0 / 57 MB</span></div>
+        <div class="body" id="modelCards"></div>
+      </div>
+      <div class="frame">
+        <div class="label"><b>local-first/offline-check</b><span>try this</span></div>
+        <div class="body">
+          <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="title-sm">Take the internet away</div>
+            <div class="check" id="ck1"><span class="box"></span><span>Download the models into this tab.</span></div>
+            <div class="check" id="ck2"><span class="box"></span><span>Switch off Wi-Fi or unplug the cable. The pill at the top turns amber.</span></div>
+            <div class="check" id="ck3"><span class="box"></span><span>Run any decision below, or anonymise a document.</span></div>
+            <div class="banner" id="offBanner">Nothing to show yet. The page is waiting for the models.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="decisions">
+    <div class="sec-head">
+      <div class="eyebrow">Decisions, not text</div>
+      <h2>Decisions an insurer makes all day</h2>
+      <p>Jev's three answer types are a choice, a score and a yes or no, each with a probability. These widgets use the same three types. Pick an example or type your own message, run it, then move the threshold: above it the decision goes straight through, below it a person looks.</p>
+    </div>
+    <div class="grid2" id="widgets"></div>
+  </section>
+
+  <section id="test">
+    <div class="sec-head">
+      <div class="eyebrow">The telling test</div>
+      <h2>Is the probability worth acting on?</h2>
+      <p>For an insurer the probability matters more than the speed: it sets the straight-through threshold. A model can rank messages well and still give probabilities you cannot use as they are. This test runs three of the decisions over 30 labelled messages and shows both.</p>
+    </div>
+    <div class="frame">
+      <div class="label"><b>eval/threshold-check</b><span>30 synthetic messages · written for this page · not AXA data</span></div>
+      <div class="body">
+        <div class="row" style="flex-wrap:wrap;">
+          <div class="examples" id="testTabs" role="group" aria-label="Decision to test"></div>
+          <button class="btn sm" id="testRun" type="button" disabled>Run the test on this device</button>
+        </div>
+        <div class="stats" id="testStats"></div>
+        <div class="grid2" style="align-items:start;">
+          <div class="card">
+            <div class="title-sm" id="chartTitle">Stated probability against how often it was right</div>
+            <div class="sub" id="chartSub"></div>
+            <div id="chart"></div>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="title-sm">Set the threshold</div>
+            <div class="thresh"><span>Act at p ≥</span><input type="range" id="testT" min="0.05" max="0.95" step="0.05" value="0.3"><output id="testTOut">0.30</output></div>
+            <div id="testOutcome" style="font-size:14px;"></div>
+            <div class="sub" id="testNote"></div>
+          </div>
+        </div>
+        <details>
+          <summary class="sub" style="cursor:pointer;">See the 30 messages and their labels</summary>
+          <div class="tablewrap" style="margin-top:10px;"><table id="caseTable"></table></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="private">
+    <div class="sec-head">
+      <div class="eyebrow">Data you would not paste into a chatbot</div>
+      <h2>Work on private documents without sending them anywhere</h2>
+      <p>Because the model runs on this device, it can work on text you are not allowed to send to an AI service. Upload a Word document or paste text. Nothing is uploaded: the file is read by this tab.</p>
+    </div>
+    <div class="grid2" style="align-items:start;">
+      <div class="frame tool">
+        <div class="label"><b>privacy/redactor</b><span>rules + xtremedistil</span></div>
+        <div class="body">
+          <label class="drop" id="anonDrop" for="anonFile">Drop a .docx or .txt file here, or <u>choose a file</u>
+            <input type="file" id="anonFile" accept=".docx,.txt,.md,text/plain" hidden></label>
+          <textarea id="anonIn" aria-label="Text to anonymise"></textarea>
+          <div class="opts">
+            <label><input type="checkbox" id="anonAmounts"> Also hide amounts</label>
+            <label><input type="checkbox" id="anonModel" checked> Let the model check unsure names</label>
+            <button class="btn sm primary" id="anonRun" type="button">Anonymise</button>
+          </div>
+          <div class="sub" id="anonMeta">Runs with the rules alone until the models are downloaded; the model then checks names the rules are unsure about.</div>
+          <div class="two">
+            <div><div class="sub" style="margin-bottom:4px;">What was found</div><div class="doc" id="anonMarked"></div></div>
+            <div><div class="row" style="margin-bottom:4px;"><span class="sub">Safe to share</span><button class="btn sm" id="anonCopy" type="button">Copy</button></div><div class="doc" id="anonOut"></div></div>
+          </div>
+          <details><summary class="sub" style="cursor:pointer;">Placeholder map (kept in this tab's memory only)</summary><div class="tablewrap" style="margin-top:8px;"><table id="anonMap"></table></div></details>
+          <div class="measured">This is pseudonymisation: detection is incomplete, so read the result before you share it. The rules cover emails, phone numbers, IBANs, card numbers, French social security numbers, dates, addresses, postcodes, number plates, policy and claim numbers, and names.</div>
+        </div>
+      </div>
+      <div class="frame tool">
+        <div class="label"><b>data/synthetic-variants</b><span>seeded · repeatable</span></div>
+        <div class="body">
+          <label class="drop" id="synDrop" for="synFile">Drop 3–4 .docx or .txt claim documents here, or <u>choose files</u>
+            <input type="file" id="synFile" accept=".docx,.txt,.md,text/plain" multiple hidden></label>
+          <div class="files" id="synFiles"></div>
+          <div class="opts">
+            <label>Variants per document <input type="number" id="synN" min="1" max="20" value="3"></label>
+            <label>Seed <input type="number" id="synSeed" min="1" max="99999" value="2026"></label>
+            <button class="btn sm primary" id="synRun" type="button">Generate</button>
+            <button class="btn sm" id="synCopy" type="button">Copy as JSON lines</button>
+          </div>
+          <div class="sub" id="synMeta"></div>
+          <div class="tablewrap"><table id="synTable"></table></div>
+          <div class="measured">Each variant keeps the document's wording and replaces every name, date, amount, number and address with a fake of the same format, consistent within the variant. Useful for test data and demos. Rewriting the story itself needs a larger model than this page carries.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="news">
+    <div class="sec-head">
+      <div class="eyebrow">What TypeSafe launched</div>
+      <h2>Jev, a model that answers software with decisions</h2>
+      <p>TypeSafe came out of stealth on 15 September 2026 with Jev, its first "System One" model. It skips text generation: you send a state and typed questions, it returns typed answers with probabilities your code can branch on.</p>
+    </div>
+    <div class="facts">
+      <div class="card fact">
+        <h3>The company</h3>
+        <p>Founded by Diogo Almeida, a former OpenAI researcher who worked on the methods behind ChatGPT, with Erik Gafni and Sasha Sheng. A $40m seed led by DCVC, at a reported $200m valuation.</p>
+        <div class="src">Sources: <a href="https://www.dcvc.com/news-insights/typesafe-emerges-from-stealth-with-a-new-way-of-doing-ai/" target="_blank" rel="noopener">DCVC</a> · <a href="https://www.forbes.com/sites/the-prompt/2026/09/15/this-200-million-startup-wants-to-fix-ais-overconfidence-problem/" target="_blank" rel="noopener">Forbes</a> · <a href="https://dealroom.co/news/151032-typesafe-exits-stealth-with-40m-seed-to-build-ai-for-software-not-people/" target="_blank" rel="noopener">Dealroom</a></div>
+      </div>
+      <div class="card fact">
+        <h3>What Jev returns</h3>
+        <ul>
+          <li><b>Choice:</b> one of up to 255 labelled options, with a probability for each.</li>
+          <li><b>Score:</b> a place on an ordered scale of 2–10 levels, with the distribution.</li>
+          <li><b>Yes or no</b> (Jev calls it "noul"): a probability from 0 to 1.</li>
+        </ul>
+        <p>Training for calibration is the pitch: answers given 90 % should be right about 90 % of the time. The docs publish no calibration measurement.</p>
+        <div class="src">Sources: <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener">launch post</a> · <a href="https://docs.typesafe.ai/" target="_blank" rel="noopener">docs</a></div>
+      </div>
+      <div class="card fact">
+        <h3>The claims, and whose tests they are</h3>
+        <ul>
+          <li>70–500 ms end to end; 40–200× faster than frontier LLMs on "System One" tasks.</li>
+          <li>One workflow: 193.6× faster and 444.6× cheaper than a GPT-class model. TypeSafe's own team wrote the workflows and says the gains sit at the high end.</li>
+          <li>$0.042 per million input tokens; output is free.</li>
+          <li>Writing on LinkedIn, Alexandre Dos Santos notes that fine-tuned classifiers already in production run 5–10× faster than Jev, at almost no cost, on in-house servers.</li>
+        </ul>
+        <div class="src">Sources: <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener">launch post</a> · <a href="https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/" target="_blank" rel="noopener">MarkTechPost</a></div>
+      </div>
+      <div class="card fact">
+        <h3>How you would use it, and where the data goes</h3>
+        <ul>
+          <li>A hosted API (<code>POST api.typesafe.ai/v1/systemone</code>) with Python and JavaScript SDKs. No weights, no self-hosting, no browser version.</li>
+          <li>The <a href="https://console.typesafe.ai/playground" target="_blank" rel="noopener">playground</a> needs a sign-in (Google or an emailed code).</li>
+          <li>The docs name no EU region. TypeSafe says it does not train on customer data, offers a data processing agreement, and offers zero data retention to enterprise customers.</li>
+        </ul>
+        <div class="src">Sources: <a href="https://docs.typesafe.ai/introduction/quickstart.md" target="_blank" rel="noopener">quickstart</a> · <a href="https://docs.typesafe.ai/legal.md" target="_blank" rel="noopener">legal</a></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
+      <div class="eyebrow">Our read</div>
+      <p class="quote">The real edge is that Jev needs no task-specific training, so a new decision could go live without labelled data. For insurers the calibrated probability matters more than the speed: it sets the straight-through threshold. Act above it, refer to a person below it.</p>
+      <p style="margin:0;max-width:72ch;">This page shows the other half: typed decisions with a probability are no longer rare. Two free models of 13 MB and 23 MB do a useful part of it on a laptop, offline. What is still scarce is a probability you can act on without labels. The telling test is one claims-routing decision, scored against the classifier already in place, with the data processed in the EU.</p>
+    </div>
+  </section>
+
+  <section id="models">
+    <div class="sec-head">
+      <div class="eyebrow">A commodity</div>
+      <h2>The open models behind this page, and others like them</h2>
+      <p>Both models on this page are free, open and small enough to download in seconds. They ran unchanged from their public releases; only the page around them was written for this issue.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Model</th><th>What it does here</th><th>Licence</th><th>Size (int8)</th><th>On this page</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://huggingface.co/MoritzLaurer/xtremedistil-l6-h256-zeroshot-v1.1-all-33" target="_blank" rel="noopener">MoritzLaurer/xtremedistil-l6-h256-zeroshot-v1.1-all-33</a></td><td>Yes / no and score: reads the message and a statement, returns the probability that the statement is true</td><td>MIT</td><td class="num">13.1 MB</td><td class="ok">Runs here</td></tr>
+          <tr><td><a href="https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2" target="_blank" rel="noopener">sentence-transformers/all-MiniLM-L6-v2</a> (ONNX by <a href="https://huggingface.co/Xenova/all-MiniLM-L6-v2" target="_blank" rel="noopener">Xenova</a>)</td><td>Choice: compares the message with short descriptions of each team</td><td>Apache-2.0</td><td class="num">23.0 MB</td><td class="ok">Runs here</td></tr>
+          <tr><td><a href="https://huggingface.co/MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33" target="_blank" rel="noopener">MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33</a></td><td>The same zero-shot decisions, larger and more accurate</td><td>MIT</td><td class="num">87.2 MB</td><td class="sub">Too large for this page</td></tr>
+          <tr><td><a href="https://huggingface.co/cross-encoder/nli-deberta-v3-xsmall" target="_blank" rel="noopener">cross-encoder/nli-deberta-v3-xsmall</a></td><td>Yes / no by natural-language inference</td><td>Apache-2.0</td><td class="num">87.4 MB</td><td class="sub">Too large for this page</td></tr>
+          <tr><td><a href="https://huggingface.co/cross-encoder/nli-MiniLM2-L6-H768" target="_blank" rel="noopener">cross-encoder/nli-MiniLM2-L6-H768</a></td><td>Yes / no by natural-language inference</td><td>Apache-2.0</td><td class="num">82.8 MB</td><td class="sub">Too large for this page</td></tr>
+          <tr><td><a href="https://huggingface.co/knowledgator/gliclass-edge-v3.0" target="_blank" rel="noopener">knowledgator/gliclass-edge-v3.0</a></td><td>Zero-shot classification over many labels at once</td><td>Apache-2.0</td><td class="num">no ONNX export</td><td class="sub">Server or Python</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:10px;">Sizes and licences read from each model's Hugging Face page on 24 September 2026. The runtime is <a href="https://github.com/microsoft/onnxruntime" target="_blank" rel="noopener">ONNX Runtime Web</a> 1.17.3 (MIT), compiled to WebAssembly. Word files are read by <a href="https://github.com/mwilliamson/mammoth.js" target="_blank" rel="noopener">mammoth.js</a> (BSD-2-Clause). The interface follows the patterns of <a href="https://localmode.ai/" target="_blank" rel="noopener">LocalMode</a> (MIT).</p>
+  </section>
+
+  <footer>
+    <div class="cols">
+      <div><h4>What runs where</h4>The page, the runtime and both models are served with the page and cached in this browser. Decisions, anonymisation and variants are computed in this tab, on this device's processor.</div>
+      <div><h4>What the counter can see</h4>The request counter at the top reads this page's own performance timeline. The models run in the page itself, so their work is inside its view. Your browser's DevTools → Network shows the same.</div>
+      <div><h4>Limits</h4><ul><li>English-language models; French and German text works less well.</li><li>Small models make mistakes: every result shows its probability.</li><li>Numbers under each widget were measured on 30 synthetic messages written for this page.</li></ul></div>
+    </div>
+  </footer>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.12.3/mammoth.browser.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const MB = (b) => (b / 1e6).toFixed(1) + ' MB';
+const BASE = new URL('./', location.href).href;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, 3200); }
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); toast('Copied'); }
+  catch (e) { toast('Your browser refused the clipboard: select the text and copy it instead.'); }
+}
+
+/* ---------------- the tokenizer both models share (BERT uncased WordPiece, 30,522 tokens) ---------------- */
+function makeTokenizer(vocabText) {
+  const vocab = new Map();
+  vocabText.split('\n').forEach((w, i) => { if (w.length) vocab.set(w, i); });
+  const UNK = vocab.get('[UNK]'), CLS = vocab.get('[CLS]'), SEP = vocab.get('[SEP]');
+  const isCJK = (c) => (c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) || (c >= 0x20000 && c <= 0x2A6DF) ||
+    (c >= 0x2A700 && c <= 0x2B73F) || (c >= 0x2B740 && c <= 0x2B81F) || (c >= 0x2B820 && c <= 0x2CEAF) ||
+    (c >= 0xF900 && c <= 0xFAFF) || (c >= 0x2F800 && c <= 0x2FA1F);
+  const isPunct = (ch) => { const c = ch.codePointAt(0);
+    if ((c >= 33 && c <= 47) || (c >= 58 && c <= 64) || (c >= 91 && c <= 96) || (c >= 123 && c <= 126)) return true;
+    return /\p{P}/u.test(ch); };
+  function basic(text) {
+    let out = '';
+    for (const ch of text) {
+      const c = ch.codePointAt(0);
+      if (c === 0 || c === 0xFFFD) continue;
+      if (ch === '\t' || ch === '\n' || ch === '\r' || /\s/u.test(ch)) { out += ' '; continue; }
+      if (/[\p{Cc}\p{Cf}]/u.test(ch)) continue;
+      out += isCJK(c) ? ` ${ch} ` : ch;
+    }
+    out = out.toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, '');
+    const words = [];
+    for (const w of out.split(' ')) {
+      if (!w) continue;
+      let cur = '';
+      for (const ch of w) { if (isPunct(ch)) { if (cur) words.push(cur); words.push(ch); cur = ''; } else cur += ch; }
+      if (cur) words.push(cur);
+    }
+    return words;
+  }
+  function wordpiece(word) {
+    if ([...word].length > 100) return [UNK];
+    const ids = []; let start = 0;
+    while (start < word.length) {
+      let end = word.length, found = -1;
+      while (start < end) {
+        const piece = (start > 0 ? '##' : '') + word.slice(start, end);
+        if (vocab.has(piece)) { found = vocab.get(piece); break; }
+        end--;
+      }
+      if (found < 0) return [UNK];
+      ids.push(found); start = end;
+    }
+    return ids;
+  }
+  const encodeText = (t) => basic(t).flatMap(wordpiece);
+  function encode(a, b = null, maxLen = 256) {
+    let A = encodeText(a), B = b == null ? null : encodeText(b);
+    const room = maxLen - (B ? 3 : 2);
+    if (B) { while (A.length + B.length > room) { if (A.length >= B.length) A.pop(); else B.pop(); } }
+    else if (A.length > room) A = A.slice(0, room);
+    const ids = [CLS, ...A, SEP], types = ids.map(() => 0);
+    if (B) { ids.push(...B, SEP); types.push(...B.map(() => 1), 1); }
+    return { ids, types };
+  }
+  return { encode };
+}
+
+/* ---------------- device check ---------------- */
+function simdOk() {
+  try { return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11])); }
+  catch (e) { return false; }
+}
+async function deviceCheck() {
+  const rows = [];
+  const ua = navigator.userAgentData?.brands?.filter((b) => !/Not.?A.?Brand/i.test(b.brand)).map((b) => b.brand).pop()
+    || (/Firefox\//.test(navigator.userAgent) ? 'Firefox' : /Edg\//.test(navigator.userAgent) ? 'Edge' : /Chrome\//.test(navigator.userAgent) ? 'Chrome' : /Safari\//.test(navigator.userAgent) ? 'Safari' : 'Browser');
+  rows.push(['Browser', ua, true]);
+  const wasm = typeof WebAssembly === 'object', simd = wasm && simdOk();
+  rows.push(['WebAssembly SIMD', simd ? 'Available' : 'Missing', simd]);
+  rows.push(['Processor threads', String(navigator.hardwareConcurrency || '?'), true]);
+  if (navigator.deviceMemory) rows.push(['Memory', `${navigator.deviceMemory} GB or more`, navigator.deviceMemory >= 2]);
+  try { const e = await navigator.storage.estimate(); rows.push(['Storage free', MB(Math.max(0, e.quota - e.usage)).replace('.0 MB', ' MB'), e.quota - e.usage > 60e6]); }
+  catch (e) { rows.push(['Storage', 'Not reported', true]); }
+  rows.push(['WebGPU', navigator.gpu ? 'Present (not needed here)' : 'Absent (not needed here)', true]);
+  $('#capRows').innerHTML = rows.map(([k, v, ok]) => `<div class="kv ${ok ? 'yes' : 'no'}"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+  $('#capTitle').innerHTML = simd ? '<span class="ok">✓</span> Can run on this device' : '<span class="bad">✕</span> This browser lacks WebAssembly SIMD';
+  $('#capSub').textContent = simd ? `Both models fit: ${MB(TOTAL)} to download, about 150 MB of memory while running. Detected in this tab; nothing is sent anywhere.`
+    : 'Try a recent Chrome, Edge, Firefox or Safari.';
+  return simd;
+}
+
+/* ---------------- network: online state and the request counter ---------------- */
+const net = { readyAt: null, since: 0, offlineRuns: 0 };
+function renderNet() {
+  const on = navigator.onLine;
+  const p = $('#netPill');
+  p.className = 'pill ' + (on ? 'on' : 'off');
+  $('#netText').textContent = on ? 'Online' : (state.ready ? 'Offline · still working' : 'Offline');
+  const rp = $('#reqPill');
+  if (net.readyAt == null) { rp.className = 'pill req-pill'; $('#reqText').textContent = 'No models yet'; }
+  else { rp.className = 'pill req-pill ' + (net.since === 0 ? 'ok' : 'run'); $('#reqText').textContent = `${net.since} request${net.since === 1 ? '' : 's'} since ready`; }
+  renderChecks();
+}
+addEventListener('online', renderNet); addEventListener('offline', renderNet);
+try {
+  new PerformanceObserver((list) => {
+    if (net.readyAt == null) return;
+    for (const e of list.getEntries()) if (e.startTime >= net.readyAt) net.since++;
+    renderNet();
+  }).observe({ type: 'resource', buffered: false });
+} catch (e) { /* older browsers: the counter stays at its last value */ }
+function renderChecks() {
+  const c1 = state.ready, c2 = !navigator.onLine, c3 = net.offlineRuns > 0;
+  $('#ck1').classList.toggle('done', c1); $('#ck2').classList.toggle('done', c2); $('#ck3').classList.toggle('done', c3);
+  const b = $('#offBanner');
+  if (c3) { b.className = 'banner wow'; b.textContent = `You just ran AI with no internet connection: ${net.offlineRuns} result${net.offlineRuns === 1 ? '' : 's'} computed offline, and ${net.since} network request${net.since === 1 ? '' : 's'} since the models loaded.`; }
+  else if (c1 && c2) { b.className = 'banner'; b.textContent = 'You are offline. Run a decision below: it will still answer.'; }
+  else if (c1) { b.className = 'banner'; b.textContent = 'The models are in this tab. Now switch off your Wi-Fi.'; }
+  else { b.className = 'banner'; b.textContent = 'Nothing to show yet. The page is waiting for the models.'; }
+}
+function countRun() { if (!navigator.onLine) { net.offlineRuns++; renderChecks(); } }
+
+/* ---------------- models: download with progress, cache in this browser, start the runtime ---------------- */
+const FILES = [
+  // the runtime is served as .wasm; the model weights as base64 text (the only other way this host serves bytes)
+  { key: 'runtime', name: 'ONNX Runtime Web 1.17.3', sub: 'The engine: runs both models in WebAssembly', chips: ['10.6 MB', 'MIT', 'WASM · SIMD'],
+    raw: 10551547, parts: [['ort/ort-wasm-simd.wasm', 10551547]] },
+  { key: 'nli', name: 'xtremedistil-l6-h256 zero-shot', sub: 'Yes / no and scores · Moritz Laurer', chips: ['13.1 MB', 'MIT', '13M params'],
+    raw: 13114198, b64: true, parts: [['models/xtremedistil-zeroshot-int8.b64.part0.txt', 15333336], ['models/xtremedistil-zeroshot-int8.b64.part1.txt', 2152264]] },
+  { key: 'emb', name: 'all-MiniLM-L6-v2', sub: 'Choices by similarity · sentence-transformers', chips: ['23.0 MB', 'Apache-2.0', '22M params'],
+    raw: 22972370, b64: true, parts: [['models/minilm-l6-int8.b64.part0.txt', 15333336], ['models/minilm-l6-int8.b64.part1.txt', 15296496]] },
+];
+const VOCAB = ['models/vocab.txt', 231508];
+const TOTAL = FILES.reduce((s, f) => s + f.parts.reduce((a, p) => a + p[1], 0), 0) + VOCAB[1];
+const state = { ready: false, loading: false, got: 0, tok: null, nli: null, emb: null, bytes: {} };
+
+const ICONS = {
+  runtime: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>',
+  nli: '<svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>',
+  emb: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h6"/><circle cx="18" cy="16" r="3"/></svg>',
+};
+function renderModelCards() {
+  $('#modelCards').innerHTML = FILES.map((f) => `
+    <div class="card model" id="m-${f.key}">
+      <div class="head"><div class="ico">${ICONS[f.key]}</div>
+        <div style="min-width:0;"><div class="title-sm">${esc(f.name)}</div><div class="sub" data-status>Not downloaded · ${esc(f.sub)}</div></div></div>
+      <div class="chips">${f.chips.map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
+      <div class="progress"><i data-bar></i></div><div class="pct" data-pct>0 %</div>
+    </div>`).join('');
+}
+function setCard(key, pct, status) {
+  const c = $('#m-' + key); if (!c) return;
+  c.querySelector('[data-bar]').style.width = pct + '%';
+  c.querySelector('[data-pct]').textContent = Math.round(pct) + ' %';
+  if (status) c.querySelector('[data-status]').textContent = status;
+}
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('second-look-typesafe', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('files');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(key) {
+  try { const db = await openDB(); return await new Promise((res) => { const q = db.transaction('files').objectStore('files').get(key); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }
+  catch (e) { return null; }
+}
+async function idbPut(key, val) {
+  try { const db = await openDB(); await new Promise((res) => { const t = db.transaction('files', 'readwrite'); t.objectStore('files').put(val, key); t.oncomplete = res; t.onerror = res; }); }
+  catch (e) { /* private window or blocked storage: the model stays in memory for this visit */ }
+}
+async function fetchPart(path, size, onBytes) {
+  const r = await fetch(BASE + path);
+  if (!r.ok) throw new Error(`${path} answered ${r.status}`);
+  if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onBytes(b.length); return b; }
+  const reader = r.body.getReader(), chunks = []; let n = 0;
+  for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); n += value.length; onBytes(value.length); }
+  const out = new Uint8Array(n); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; }
+  if (size && n !== size) throw new Error(`${path}: expected ${size} bytes, got ${n}`);
+  return out;
+}
+function bump(n) {
+  state.got += n;
+  $('#dlTotal').textContent = `${MB(state.got)} / ${MB(TOTAL)}`;
+  $('#dlText').textContent = `Downloading · ${Math.round(100 * state.got / TOTAL)} %`;
+}
+function fromBase64(bytes) {
+  const bin = atob(new TextDecoder().decode(bytes).trim()), out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function loadFile(f) {
+  const size = f.parts.reduce((a, p) => a + p[1], 0), key = f.key + ':' + f.raw;
+  const cached = await idbGet(key);
+  if (cached && cached.byteLength === f.raw) { bump(size); setCard(f.key, 100, 'Ready · loaded from this browser, nothing downloaded'); return new Uint8Array(cached); }
+  let got = 0;
+  const bufs = [];
+  for (const [path, s] of f.parts) {
+    const part = await fetchPart(path, s, (n) => { got += n; bump(n); setCard(f.key, 100 * got / size, `Downloading · ${MB(got)} of ${MB(size)}`); });
+    bufs.push(f.b64 ? fromBase64(part) : part);
+  }
+  const total = bufs.reduce((a, b) => a + b.length, 0);
+  if (total !== f.raw) throw new Error(`${f.name}: expected ${f.raw} bytes after decoding, got ${total}`);
+  const out = new Uint8Array(total); let o = 0; for (const b of bufs) { out.set(b, o); o += b.length; }
+  setCard(f.key, 100, 'Ready · downloaded and kept in this browser');
+  idbPut(key, out.buffer);
+  return out;
+}
+async function loadAll() {
+  if (state.loading || state.ready) return;
+  if (typeof ort === 'undefined') { toast('The runtime script did not load. Check the connection and reload the page.'); return; }
+  state.loading = true; $('#dlBtn').disabled = true;
+  try {
+    const vocabBytes = await fetchPart(VOCAB[0], VOCAB[1], bump);
+    state.tok = makeTokenizer(new TextDecoder().decode(vocabBytes));
+    for (const f of FILES) state.bytes[f.key] = await loadFile(f);
+    // the runtime asks for its .wasm by URL: hand it the bytes this page already holds (no second download)
+    const wasmBytes = state.bytes.runtime, realFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input && input.url;
+      if (url && /ort-wasm[^/]*\.wasm$/.test(url)) return Promise.resolve(new Response(wasmBytes, { headers: { 'Content-Type': 'application/wasm' } }));
+      return realFetch(input, init);
+    };
+    ort.env.wasm.numThreads = 1; ort.env.wasm.simd = true; ort.env.wasm.proxy = false;
+    ort.env.wasm.wasmPaths = BASE + 'ort/';
+    $('#dlText').textContent = 'Starting the models…';
+    const opts = { executionProviders: ['wasm'], graphOptimizationLevel: 'all' };
+    state.nli = await ort.InferenceSession.create(state.bytes.nli, opts);
+    state.emb = await ort.InferenceSession.create(state.bytes.emb, opts);
+    await prepareRouting();
+    state.ready = true; net.readyAt = performance.now(); net.since = 0;
+    $('#dlText').textContent = 'Models ready · running on this device';
+    document.querySelectorAll('[data-needs-model]').forEach((b) => { b.disabled = false; });
+    document.querySelectorAll('[data-locked]').forEach((el) => { el.hidden = true; });
+    $('#testRun').disabled = false;
+    renderNet();
+    toast('Models ready. Try switching off your Wi-Fi.');
+    runAllWidgets();
+  } catch (e) {
+    state.loading = false; $('#dlBtn').disabled = false; $('#dlText').textContent = 'Try the download again';
+    toast('Download stopped: ' + e.message);
+  }
+}
+$('#dlBtn').addEventListener('click', loadAll);
+
+/* ---------------- inference ---------------- */
+function feeds(encs, withTypes = true) {
+  const L = Math.max(...encs.map((e) => e.ids.length)), n = encs.length;
+  const ids = new BigInt64Array(n * L), mask = new BigInt64Array(n * L), types = new BigInt64Array(n * L);
+  encs.forEach((e, r) => e.ids.forEach((id, i) => { ids[r * L + i] = BigInt(id); mask[r * L + i] = 1n; types[r * L + i] = BigInt(e.types[i]); }));
+  const f = { input_ids: new ort.Tensor('int64', ids, [n, L]), attention_mask: new ort.Tensor('int64', mask, [n, L]) };
+  if (withTypes) f.token_type_ids = new ort.Tensor('int64', types, [n, L]);
+  return { f, L, n, mask };
+}
+async function nliEntail(premise, hyps) {
+  const { f } = feeds(hyps.map((h) => state.tok.encode(premise, h)));
+  const out = await state.nli.run(f);
+  const l = out.logits.data, rows = [];
+  for (let i = 0; i < hyps.length; i++) rows.push([l[2 * i], l[2 * i + 1]]);   // [entailment, not_entailment]
+  return rows;
+}
+const sigmoid2 = ([e, n]) => 1 / (1 + Math.exp(n - e));
+async function pYes(premise, hyp) { return sigmoid2((await nliEntail(premise, [hyp]))[0]); }
+async function embed(texts) {
+  const encs = texts.map((t) => state.tok.encode(t));
+  const { f, L, n, mask } = feeds(encs, true);
+  const out = await state.emb.run(f);
+  const h = out.last_hidden_state.data, D = 384, vecs = [];
+  for (let r = 0; r < n; r++) {
+    const v = new Float32Array(D); let cnt = 0;
+    for (let i = 0; i < L; i++) if (mask[r * L + i]) { cnt++; for (let d = 0; d < D; d++) v[d] += h[(r * L + i) * D + d]; }
+    let norm = 0; for (let d = 0; d < D; d++) { v[d] /= cnt; norm += v[d] * v[d]; }
+    norm = Math.sqrt(norm); for (let d = 0; d < D; d++) v[d] /= norm;
+    vecs.push(v);
+  }
+  return vecs;
+}
+const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+function softmax(xs) { const m = Math.max(...xs); const e = xs.map((x) => Math.exp(x - m)); const s = e.reduce((a, b) => a + b, 0); return e.map((x) => x / s); }
+
+/* ---------------- the decisions ---------------- */
+const TEAMS = {
+  Motor: ['car accident', 'my car was damaged', 'a collision on the road', 'windscreen or vehicle repair'],
+  Home: ['damage to my house', 'water leak, storm or fire at home', 'burglary at home', 'broken household items'],
+  Travel: ['cancelled flight or holiday', 'lost luggage abroad', 'medical emergency on a trip abroad', 'stolen passport while travelling'],
+  Health: ['hospital treatment costs', 'reimbursement of medical care', 'prescription and doctor bills', 'health insurance cover'],
+  Liability: ['someone was injured on my premises', "I damaged someone else's property", 'a third party claims compensation from me', 'my dog or my employee caused harm to someone'],
+};
+let CENTROIDS = null;
+async function prepareRouting() {
+  CENTROIDS = {};
+  for (const [team, ps] of Object.entries(TEAMS)) {
+    const vs = await embed(ps); const c = new Float32Array(384);
+    vs.forEach((v) => v.forEach((x, i) => { c[i] += x; }));
+    let n = 0; c.forEach((x) => { n += x * x; }); n = Math.sqrt(n); c.forEach((x, i) => { c[i] = x / n; });
+    CENTROIDS[team] = c;
+  }
+}
+async function route(text) {
+  const [v] = await embed([text]);
+  const teams = Object.keys(CENTROIDS), sims = teams.map((t) => dot(v, CENTROIDS[t]));
+  const p = softmax(sims.map((s) => s / 0.04));
+  return teams.map((t, i) => ({ label: t, p: p[i] })).sort((a, b) => b.p - a.p);
+}
+const HYP = {
+  legal: 'The writer mentions a lawyer, a solicitor or a court.',
+  vuln: 'The writer mentions a death, a serious illness, a disability, old age or money problems.',
+  guard: 'The reply promises that the claim will be paid.',
+};
+const URGENCY = ['not urgent at all', 'slightly urgent', 'somewhat urgent', 'very urgent', 'an emergency'];
+async function urgency(text) {
+  const rows = await nliEntail(text, URGENCY.map((x) => `This situation is ${x}.`));
+  const p = softmax(rows.map((r) => r[0]));
+  return { p, score: p.reduce((s, x, i) => s + x * (i + 1), 0) };
+}
+
+const WIDGETS = [
+  { id: 'route', type: 'choice', model: 'all-MiniLM-L6-v2 · 23 MB', title: 'Route a new claim',
+    use: 'First notice of loss: send the claim to the right team before anyone reads it.',
+    q: 'Which team should handle this claim?', t: 0.6,
+    measured: 'Measured in this page on the 29 test messages that name a line of business: 79 % right. At p ≥ 0.60, 76 % go straight through and 86 % of those are right.',
+    examples: [
+      ['Rear-end collision', 'My car was hit from behind at a red light this morning. The rear bumper is crushed and the other driver admitted it was his fault.'],
+      ['Leak through the ceiling', 'Water has been leaking from the upstairs bathroom through the kitchen ceiling since last night. The plaster is falling down.'],
+      ['Skiing accident abroad', 'My daughter broke her leg skiing in Austria and needs to be flown home. The hospital asks who will pay.'],
+      ['Dog bite', 'My dog bit the postman on the hand. He needed stitches and says he will claim against me.'],
+    ] },
+  { id: 'legal', type: 'yesno', model: 'xtremedistil zero-shot · 13 MB', title: 'Legal-threat flag',
+    use: 'Escalate to a senior handler before the deadline in the letter passes.',
+    q: 'Does the customer threaten legal action?', hyp: HYP.legal, t: 0.3, yes: 'Escalate to a senior handler', no: 'Normal queue',
+    measured: 'Measured on 30 test messages: ranks almost perfectly (AUC 0.98), but true cases average only p 0.63 and the rest 0.01. So the threshold sits at 0.30, not 0.50.',
+    examples: [
+      ['Deadline and solicitor', 'This is the third time I have written. If the claim is not settled by Friday my solicitor will take this to court.'],
+      ['Polite status question', 'Could you tell me where my claim stands? No rush, I am just curious about the next step.'],
+      ['Ombudsman threat', 'You refused my claim for the MRI scan. This is the third refusal and I will report you to the ombudsman and my solicitor.'],
+    ] },
+  { id: 'vuln', type: 'yesno', model: 'xtremedistil zero-shot · 13 MB', title: 'Vulnerable-customer flag',
+    use: 'A named handler, more time, and no automated refusal for a customer in a vulnerable situation.',
+    q: 'Is this customer in a vulnerable situation?', hyp: HYP.vuln, t: 0.2, yes: 'Assign a named handler', no: 'Standard handling',
+    measured: 'Measured on 30 test messages: AUC 0.98. True cases average p 0.38 and the rest 0.06: useful ranking, probabilities far too low to read as they are.',
+    examples: [
+      ['Bereavement', 'Since my husband died I cannot keep up with the payments and I do not understand the letters about his health cover.'],
+      ['Elderly, no heating', 'My mother is 89 and lives alone. Her boiler broke yesterday and she has no heating or hot water.'],
+      ['Windscreen chip', 'My windscreen was chipped by a stone on the ring road. Can I get it repaired under my policy?'],
+    ] },
+  { id: 'urgency', type: 'score', model: 'xtremedistil zero-shot · 13 MB', title: 'Urgency score',
+    use: 'Order the queue: water still coming in comes before a question about the excess.',
+    q: 'How urgent is this, from 1 to 5?', t: 3.0,
+    measured: 'The weakest of the five: its scores agree only loosely with our labels (rank correlation 0.44 on 30 messages). A score is harder than a yes or no for a model this small.',
+    examples: [
+      ['Roof open to the rain', 'A storm blew several tiles off our roof and rain is now coming into the loft.'],
+      ['Stolen passport abroad', 'My wallet and passport were stolen in Rome. I need an emergency document to travel home.'],
+      ['Sofa stain', 'I spilled red wine on the new sofa. Is accidental damage covered?'],
+    ] },
+  { id: 'guard', type: 'yesno', model: 'xtremedistil zero-shot · 13 MB', title: 'Check an AI-drafted reply',
+    use: 'Stop a drafted reply that promises payment before a handler has decided.',
+    q: 'Does this reply promise that the claim will be paid?', hyp: HYP.guard, t: 0.25, yes: 'Hold for a handler', no: 'Can be sent',
+    measured: 'Measured on 8 drafted replies: every promising reply scored above every neutral one, with probabilities between 0.03 and 0.79.',
+    examples: [
+      ['Promises payment', 'Good news: your claim is approved and we will pay the full amount by Friday.'],
+      ['Asks for photos', 'Could you send us photos of the damage and the police report number?'],
+      ['Promises an amount', 'Rest assured you will receive 5,000 euros as compensation.'],
+    ] },
+  { id: 'custom', type: 'custom', model: 'xtremedistil zero-shot · 13 MB', title: 'Ask your own yes / no question',
+    use: 'A new decision, live the moment you write it: no training, no labelled examples.',
+    q: 'Is your statement true of this message?', t: 0.5, yes: 'True', no: 'Not true',
+    measured: 'Nobody labelled anything for this one, which is the real edge TypeSafe claims for Jev. How far to trust the probability is what you would then measure on your own cases, as in the test below.',
+    examples: [
+      ['Rental car', 'The rental car I hired in Faro was scratched in the hotel car park while we were at the beach.', 'The claim involves a rental car.'],
+      ['Work laptop', 'I work from home and my laptop was ruined when the ceiling leaked onto my desk.', 'The damaged item is used for work.'],
+      ['Two passengers', 'My husband and I were both in the car when the lorry hit us on the ring road.', 'More than one person was in the vehicle.'],
+    ] },
+];
+
+function widgetHTML(w) {
+  return `<div class="frame widget" id="w-${w.id}">
+    <div class="label"><b>decision/${w.type === 'yesno' ? 'yes-no' : w.type === 'custom' ? 'your-question' : w.type}</b><span>${esc(w.model)}</span></div>
+    <div class="body">
+      <div><h3>${esc(w.title)}</h3><div class="sub">${esc(w.use)}</div></div>
+      <div class="examples" role="group" aria-label="Examples">${w.examples.map((e, i) => `<button type="button" data-ex="${i}" aria-pressed="${i === 0}">${esc(e[0])}</button>`).join('')}</div>
+      <textarea id="in-${w.id}" aria-label="Message">${esc(w.examples[0][1])}</textarea>
+      ${w.type === 'custom' ? `<input id="st-${w.id}" class="statement" aria-label="Your statement" value="${esc(w.examples[0][2])}">` : ''}
+      <div class="row"><span class="sub"><b style="color:var(--fg)">${w.type === 'custom' ? 'Your statement:' : 'Question:'}</b> ${w.type === 'custom' ? 'is it true of this message?' : esc(w.q)}</span>
+        <button class="btn sm primary" type="button" data-run data-needs-model disabled>Decide</button></div>
+      <div class="result" id="out-${w.id}"><div class="locked" data-locked>Download the models above to run this decision on your device.</div></div>
+      <div class="thresh"><span>${w.type === 'score' ? 'Fast-track at score ≥' : 'Act at p ≥'}</span>
+        <input type="range" id="t-${w.id}" min="${w.type === 'score' ? 1 : 0.05}" max="${w.type === 'score' ? 5 : 0.95}" step="${w.type === 'score' ? 0.1 : 0.05}" value="${w.t}">
+        <output id="to-${w.id}">${w.type === 'score' ? w.t.toFixed(1) : w.t.toFixed(2)}</output></div>
+      <div class="measured">${esc(w.measured)}</div>
+    </div></div>`;
+}
+const lastResult = {};
+function renderResult(w) {
+  const r = lastResult[w.id], box = $('#out-' + w.id);
+  if (!r) return;
+  const t = parseFloat($('#t-' + w.id).value);
+  let html = '', json;
+  if (w.type === 'choice') {
+    const top = r.ranked[0], go = top.p >= t;
+    html = `<div class="answer"><span class="big">${esc(top.label)}</span><span class="p">p = ${top.p.toFixed(2)}</span>
+        <span class="pill ${go ? 'ok' : 'run'}"><span class="dot"></span>${go ? 'Straight through to ' + esc(top.label) : 'Refer to a person'}</span></div>
+      <div class="dist">${r.ranked.map((x) => `<span>${esc(x.label)}</span><span class="track"><i style="width:${(100 * x.p).toFixed(1)}%"></i></span><span class="v">${x.p.toFixed(2)}</span>`).join('')}</div>`;
+    json = { question: 'route_claim', type: 'choice', answer: top.label, p: +top.p.toFixed(3), threshold: t, action: go ? 'straight_through' : 'refer', ms: r.ms, bytes_sent: 0 };
+  } else if (w.type === 'yesno' || w.type === 'custom') {
+    const yes = r.p >= t;
+    html = `<div class="answer"><span class="big">${yes ? 'Yes' : 'No'}</span><span class="p">p(yes) = ${r.p.toFixed(2)}</span>
+        <span class="pill ${w.type === 'custom' ? (yes ? 'run' : '') : (yes ? 'bad' : 'ok')}"><span class="dot"></span>${esc(yes ? w.yes : w.no)}</span></div>
+      <div class="pbar" aria-label="Probability ${r.p.toFixed(2)} against threshold ${t}"><i style="width:${(100 * r.p).toFixed(1)}%"></i><b style="left:calc(${(100 * t).toFixed(1)}% - 1px)"></b></div>`;
+    json = { question: w.type === 'custom' ? r.statement : w.id, type: 'yes_no', answer: yes, p: +r.p.toFixed(3), threshold: t, ms: r.ms, bytes_sent: 0 };
+  } else {
+    const fast = r.score >= t;
+    html = `<div class="answer"><span class="big">${r.score.toFixed(1)} / 5</span><span class="p">expected level</span>
+        <span class="pill ${fast ? 'bad' : 'ok'}"><span class="dot"></span>${fast ? 'Fast-track' : 'Normal queue'}</span></div>
+      <div class="dist">${URGENCY.map((x, i) => `<span>${i + 1} · ${esc(x)}</span><span class="track"><i style="width:${(100 * r.p[i]).toFixed(1)}%"></i></span><span class="v">${r.p[i].toFixed(2)}</span>`).join('')}</div>`;
+    json = { question: 'urgency', type: 'score', score: +r.score.toFixed(2), levels: 5, threshold: t, ms: r.ms, bytes_sent: 0 };
+  }
+  box.innerHTML = html + `<pre class="json">${esc(JSON.stringify(json, null, 1))}</pre>`;
+}
+async function runWidget(w) {
+  if (!state.ready) return;
+  const text = $('#in-' + w.id).value.trim(); if (!text) return;
+  const t0 = performance.now();
+  let r;
+  if (w.type === 'choice') r = { ranked: await route(text) };
+  else if (w.type === 'yesno') r = { p: await pYes(text, w.hyp) };
+  else if (w.type === 'custom') { const st = $('#st-' + w.id).value.trim(); if (!st) return; r = { p: await pYes(text, st), statement: st }; }
+  else r = await urgency(text);
+  r.ms = Math.round(performance.now() - t0);
+  lastResult[w.id] = r; renderResult(w); countRun();
+}
+async function runAllWidgets() { for (const w of WIDGETS) await runWidget(w); }
+function mountWidgets() {
+  $('#widgets').innerHTML = WIDGETS.map(widgetHTML).join('');
+  for (const w of WIDGETS) {
+    const root = $('#w-' + w.id);
+    root.querySelectorAll('[data-ex]').forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-ex]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      $('#in-' + w.id).value = w.examples[+b.dataset.ex][1];
+      if (w.type === 'custom') $('#st-' + w.id).value = w.examples[+b.dataset.ex][2];
+      runWidget(w);
+    }));
+    root.querySelector('[data-run]').addEventListener('click', () => runWidget(w));
+    $('#t-' + w.id).addEventListener('input', (e) => { $('#to-' + w.id).textContent = w.type === 'score' ? (+e.target.value).toFixed(1) : (+e.target.value).toFixed(2); renderResult(w); });
+  }
+}
+
+/* ---------------- the telling test ---------------- */
+const CASES = [
+ ["My car was hit from behind at a red light this morning. The rear bumper is crushed and the other driver admitted it was his fault.","Motor",0,0],
+ ["I reversed into a bollard in the supermarket car park and cracked my rear light. Nobody else was involved.","Motor",0,0],
+ ["A lorry drove into the side of my van on the motorway. I am not hurt but the van cannot be driven and I need it for work tomorrow.","Motor",0,0],
+ ["My windscreen was chipped by a stone on the ring road. Can I get it repaired under my policy?","Motor",0,0],
+ ["Someone keyed my car overnight while it was parked outside my flat. There are deep scratches on both doors.","Motor",0,0],
+ ["Since my accident the garage has had my car for six weeks. If you do not pay for the repair this week my lawyer will take you to court.","Motor",1,0],
+ ["Water has been leaking from the upstairs bathroom through the kitchen ceiling since last night. The plaster is falling down.","Home",0,0],
+ ["A storm blew several tiles off our roof and rain is now coming into the loft.","Home",0,0],
+ ["Our house was burgled while we were on holiday. They took a laptop, jewellery and a bicycle.","Home",0,0],
+ ["The neighbours' tree fell onto our garden wall and knocked it down.","Home",0,0],
+ ["I spilled red wine on the new sofa. Is accidental damage covered?","Home",0,0],
+ ["My mother is 89 and lives alone. Her boiler broke yesterday and she has no heating or hot water.","Home",0,1],
+ ["Our flight to Lisbon was cancelled and the airline lost my suitcase. I had to buy clothes and pay for an extra hotel night.","Travel",0,0],
+ ["My daughter broke her leg skiing in Austria and needs to be flown home. The hospital asks who will pay.","Travel",0,0],
+ ["I had to cancel our holiday because I was diagnosed with cancer last week. Can I get the deposit back?","Travel",0,1],
+ ["My wallet and passport were stolen in Rome. I need an emergency document to travel home.","Travel",0,0],
+ ["The hotel in Crete was nothing like the brochure. I want a refund for the whole stay.","Travel",0,0],
+ ["I was admitted to hospital for an appendix operation and I need to claim the costs of the surgery and two nights in the ward.","Health",0,0],
+ ["Can you tell me whether my physiotherapy sessions after the knee operation are reimbursed?","Health",0,0],
+ ["Since my husband died I cannot keep up with the payments and I do not understand the letters about his health cover.","Health",0,1],
+ ["You refused my claim for the MRI scan. This is the third refusal and I will report you to the ombudsman and my solicitor.","Health",1,0],
+ ["I need my prescription for insulin covered. I lost my job and cannot afford to pay for it myself.","Health",0,1],
+ ["A customer slipped on a wet floor in my bakery and broke her wrist. Her lawyer has sent a letter asking for compensation.","Liability",1,0],
+ ["While painting a client's flat, one of my workers knocked over a lamp and broke it. The client wants it replaced.","Liability",0,0],
+ ["My dog bit the postman on the hand. He needed stitches and says he will claim against me.","Liability",0,0],
+ ["We received a court summons: a former tenant says our faulty stairs caused his fall.","Liability",1,0],
+ ["Could you tell me where my claim stands? No rush, I am just curious about the next step.",null,0,0],
+ ["This is the third time I have written. If the claim is not settled by Friday my solicitor will take this to court.","Home",1,0],
+ ["I am disabled and use a wheelchair. The ramp to my front door was damaged in the flood and I cannot leave the house.","Home",0,1],
+ ["A delivery driver crashed into our parked car and drove off, but a neighbour filmed his number plate.","Motor",0,0],
+];
+const TESTS = {
+  legal: { label: 'Legal-threat flag', kind: 'flag', col: 2, t: 0.3,
+    recorded: { auc: 0.984, pos: 0.629, neg: 0.013, npos: 5, n: 30 } },
+  vuln: { label: 'Vulnerable customer', kind: 'flag', col: 3, t: 0.2,
+    recorded: { auc: 0.984, pos: 0.38, neg: 0.06, npos: 5, n: 30 } },
+  route: { label: 'Claim routing', kind: 'route', col: 1, t: 0.6,
+    recorded: { acc: 0.793, n: 29, auto: 0.759, autoAcc: 0.864 } },
+};
+const test = { which: 'legal', live: {} };
+function auc(scores, y) {
+  let s = 0, n = 0;
+  scores.forEach((a, i) => { if (!y[i]) return; scores.forEach((b, j) => { if (y[j]) return; n++; s += a > b ? 1 : a === b ? .5 : 0; }); });
+  return n ? s / n : NaN;
+}
+function renderTest() {
+  const T = TESTS[test.which], live = test.live[test.which];
+  $('#testTabs').innerHTML = Object.entries(TESTS).map(([k, v]) => `<button type="button" data-k="${k}" aria-pressed="${k === test.which}">${esc(v.label)}</button>`).join('');
+  $('#testTabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { test.which = b.dataset.k; $('#testT').value = TESTS[b.dataset.k].t; renderTest(); }));
+  const t = parseFloat($('#testT').value); $('#testTOut').textContent = t.toFixed(2);
+  const src = live ? 'measured on this device just now' : 'recorded 24 Sep 2026 with the same models; run it to measure on this device';
+  let stats, outcome = '', note = '';
+  if (T.kind === 'flag') {
+    const r = live ? { auc: live.auc, pos: live.pos, neg: live.neg } : T.recorded;
+    stats = [[r.auc.toFixed(2), 'AUC: how well it ranks (1.00 is perfect)'], [r.pos.toFixed(2), 'average p on true cases'], [r.neg.toFixed(2), 'average p on the others'], ['5 of 30', 'messages labelled yes']];
+    if (live) {
+      const y = CASES.map((c) => c[T.col]), flagged = live.p.map((p) => p >= t);
+      const tp = flagged.filter((f, i) => f && y[i]).length, fp = flagged.filter((f, i) => f && !y[i]).length, fn = y.filter((v, i) => v && !flagged[i]).length;
+      outcome = `<b>${tp} of ${tp + fn}</b> true cases flagged, <b class="${fp ? 'bad' : 'ok'}">${fp}</b> false alarm${fp === 1 ? '' : 's'}, <b class="${fn ? 'bad' : 'ok'}">${fn}</b> missed.`;
+    } else outcome = 'Run the test to see what this threshold catches and misses.';
+    note = 'If the probabilities were calibrated, the dots would sit on the diagonal: cases given p 0.6 would be right 6 times in 10. Here the true cases sit far below it. The ranking is usable, but only labelled examples tell you where to put the threshold. A model calibrated out of the box, as Jev claims to be, would let you set it without them.';
+  } else {
+    const r = live ? { acc: live.acc } : T.recorded;
+    stats = [[(100 * r.acc).toFixed(0) + ' %', 'right overall'], ['29', 'messages that name a line']];
+    if (live) {
+      const auto = live.rows.filter((x) => x.p >= t), right = auto.filter((x) => x.ok).length;
+      stats.push([(100 * auto.length / live.rows.length).toFixed(0) + ' %', `straight through at p ≥ ${t.toFixed(2)}`], [auto.length ? (100 * right / auto.length).toFixed(0) + ' %' : '–', 'of those routed right']);
+      outcome = `<b>${auto.length}</b> of ${live.rows.length} claims go straight through, <b>${right}</b> of them to the right team. <b>${live.rows.length - auto.length}</b> go to a person.`;
+    } else {
+      stats.push([(100 * T.recorded.auto).toFixed(0) + ' %', 'straight through at p ≥ 0.60'], [(100 * T.recorded.autoAcc).toFixed(0) + ' %', 'of those routed right']);
+      outcome = 'Run the test to move the threshold and watch the trade-off.';
+    }
+    note = 'This is the insurer\'s trade: raise the threshold and fewer claims go straight through, but more of those are right. The claim to test is whether a calibrated model lets you set it without first labelling your own claims.';
+  }
+  $('#testStats').innerHTML = stats.map(([n, l]) => `<div class="stat"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('');
+  $('#testOutcome').innerHTML = outcome; $('#testNote').textContent = note;
+  $('#chartSub').textContent = src[0].toUpperCase() + src.slice(1) + '.';
+  drawChart(T, live);
+}
+function drawChart(T, live) {
+  const W = 360, H = 250, P = { l: 36, r: 12, t: 12, b: 34 }, iw = W - P.l - P.r, ih = H - P.t - P.b;
+  const X = (v) => P.l + v * iw, Y = (v) => P.t + (1 - v) * ih;
+  let dots = '', legend = '';
+  if (live) {
+    const pts = T.kind === 'flag' ? live.p.map((p, i) => ({ p, y: CASES[i][T.col] })) : live.rows.map((r) => ({ p: r.p, y: r.ok ? 1 : 0 }));
+    const jit = (i) => ((i * 37) % 11 - 5) / 400;
+    dots = pts.map((d, i) => `<circle cx="${X(d.p).toFixed(1)}" cy="${Y(d.y ? 0.97 - (i % 4) * 0.025 : 0.03 + (i % 4) * 0.025 + jit(i)).toFixed(1)}" r="4" fill="${d.y ? 'var(--green)' : 'var(--red)'}" fill-opacity=".75"/>`).join('');
+    const bins = [0, .2, .4, .6, .8, 1.0001];
+    for (let b = 0; b < 5; b++) {
+      const inb = pts.filter((d) => d.p >= bins[b] && d.p < bins[b + 1]); if (!inb.length) continue;
+      const mp = inb.reduce((s, d) => s + d.p, 0) / inb.length, obs = inb.reduce((s, d) => s + d.y, 0) / inb.length;
+      const right = mp < 0.85;
+      dots += `<rect x="${(X(mp) - 5).toFixed(1)}" y="${(Y(obs) - 5).toFixed(1)}" width="10" height="10" fill="var(--fg)"/><text x="${(X(mp) + (right ? 8 : -8)).toFixed(1)}" y="${(Y(obs) + (right ? 4 : 18)).toFixed(1)}" text-anchor="${right ? 'start' : 'end'}">${inb.length}</text>`;
+    }
+    legend = T.kind === 'flag' ? 'Dots: messages (green = labelled yes). Squares: share labelled yes per probability band, with its count.' : 'Dots: claims (green = routed right). Squares: share routed right per probability band, with its count.';
+  } else legend = 'Run the test to plot each message.';
+  const ticks = [0, .2, .4, .6, .8, 1].map((v) => `<line x1="${X(v)}" y1="${Y(0)}" x2="${X(v)}" y2="${Y(0) + 4}" stroke="var(--border-strong)"/><text x="${X(v)}" y="${Y(0) + 16}" text-anchor="middle">${v.toFixed(1)}</text>
+    <line x1="${X(0) - 4}" y1="${Y(v)}" x2="${X(1)}" y2="${Y(v)}" stroke="var(--border)" stroke-dasharray="${v === 0 ? '' : '2 3'}"/><text x="${X(0) - 7}" y="${Y(v) + 4}" text-anchor="end">${v.toFixed(1)}</text>`).join('');
+  const t = parseFloat($('#testT').value);
+  $('#chart').innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Stated probability against observed frequency">
+    ${ticks}<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="var(--muted-fg)" stroke-dasharray="4 4"/>
+    <line x1="${X(t)}" y1="${Y(0)}" x2="${X(t)}" y2="${Y(1)}" stroke="var(--red)" stroke-width="1.5"/>
+    ${dots}<text x="${X(.5)}" y="${H - 4}" text-anchor="middle">probability the model gave</text></svg><div class="sub">${esc(legend)} The red line is the threshold.</div>`;
+}
+async function runTest() {
+  if (!state.ready) return;
+  $('#testRun').disabled = true; $('#testRun').textContent = 'Running…';
+  const t0 = performance.now();
+  for (const k of ['legal', 'vuln']) {
+    const p = []; for (const c of CASES) p.push(await pYes(c[0], HYP[k]));
+    const y = CASES.map((c) => c[TESTS[k].col]);
+    const mean = (f) => { const a = p.filter((_, i) => f(y[i])); return a.reduce((s, x) => s + x, 0) / a.length; };
+    test.live[k] = { p, auc: auc(p, y), pos: mean((v) => v), neg: mean((v) => !v) };
+  }
+  const rows = [];
+  for (const c of CASES) { if (!c[1]) continue; const r = await route(c[0]); rows.push({ p: r[0].p, ok: r[0].label === c[1] }); }
+  test.live.route = { rows, acc: rows.filter((r) => r.ok).length / rows.length };
+  $('#testRun').textContent = `Ran 89 decisions in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+  countRun(); renderTest(); renderCaseTable();
+}
+function renderCaseTable() {
+  const L = test.live;
+  $('#caseTable').innerHTML = '<thead><tr><th>#</th><th>Message</th><th>Line</th><th>Legal</th><th>Vulnerable</th>' + (L.legal ? '<th>p legal</th><th>p vulnerable</th>' : '') + '</tr></thead><tbody>' +
+    CASES.map((c, i) => `<tr><td class="num">${i + 1}</td><td>${esc(c[0])}</td><td>${esc(c[1] || '–')}</td><td>${c[2] ? 'yes' : ''}</td><td>${c[3] ? 'yes' : ''}</td>` +
+      (L.legal ? `<td class="num">${L.legal.p[i].toFixed(2)}</td><td class="num">${L.vuln.p[i].toFixed(2)}</td>` : '') + '</tr>').join('') + '</tbody>';
+}
+$('#testRun').addEventListener('click', runTest);
+$('#testT').addEventListener('input', renderTest);
+
+/* ---------------- personal data: detectors ---------------- */
+const TITLES = 'Mr|Mrs|Ms|Miss|Dr|Prof|Mister|Madam|M\\.|Mme|Mlle|Monsieur|Madame|Herr|Frau|Sr\\.?|Sra\\.?|Señor|Señora|Sig\\.?|Sig\\.ra|Signor|Signora';
+const FIRST = new Set(('adam agnes alain alexandre alice amelie ana andrea andreas angela anna anne antoine antonio arnaud astrid aurelie ben benjamin bernard bruno camille carla carlos caroline catherine cecile charles charlotte chloe christian christine claire claude clara daniel david dominique elena elisa elise ella emma emilie eric erik eva fabien felix fernando florian francesca francois frank gabriel georg george giulia giuseppe guillaume hans helene henri hugo isabel isabelle jacques jakob james jan javier jean jeanne jens jessica joao johan johannes john jonas jorge jose juan jules julia julie julien karl katharina klaus laura lea leo lena louis louise luca lucas lucia lucie luis luisa lukas marc marco margaux maria marie marina mario marion martin mateo mathieu matteo max maxime michael michel miguel nadia nathalie nicolas nina noah noemie olivier oscar pablo paolo pascal patrick paul paula pedro peter philippe pierre raphael rebecca robert romain rosa sara sarah sebastien simon sofia sophie stefan stephanie sylvie theo thomas tim tobias ulrike valentina valerie victor vincent william xavier yann yves zoe').split(' '));
+const NOT_NAME = new Set(('the a an i we you he she they my our your his her their this that these those dear hello hi regards best kind thanks thank sincerely yours please monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december lundi mardi mercredi jeudi vendredi samedi dimanche janvier fevrier mars avril mai juin juillet aout septembre octobre novembre decembre rue avenue boulevard street road lane place square hotel hospital clinic garage bank insurance insurer policy claim claims office department team service services company group ltd limited sa sas gmbh ag inc llc plc axa allianz generali zurich europe france germany spain italy portugal belgium netherlands switzerland austria ireland england scotland wales uk paris lyon marseille lille nice toulouse bordeaux nantes strasbourg london manchester berlin munich hamburg madrid barcelona rome milan naples lisbon porto brussels amsterdam geneva vienna dublin crete austria emergency department police court tribunal ombudsman subject re ref note total amount date phone email tel mobile address euro euros eur sir madam madame monsieur messieurs mesdames whom concern all customer client colleagues colleague team mr mrs ms miss dr prof mister mme mlle herr frau señor señora signor signora sr sra sig').split(' '));
+function luhn(d) { let s = 0, alt = false; for (let i = d.length - 1; i >= 0; i--) { let n = +d[i]; if (alt) { n *= 2; if (n > 9) n -= 9; } s += n; alt = !alt; } return s % 10 === 0; }
+function ibanOk(raw) {
+  const s = raw.replace(/\s+/g, '').toUpperCase(); if (s.length < 15 || s.length > 34) return false;
+  const r = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
+  let m = 0; for (const ch of r) m = (m * 10 + +ch) % 97; return m === 1;
+}
+const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec|janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre|Januar|Februar|März|Juni|Juli|Oktober|Dezember|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre';
+const PATTERNS = [
+  ['EMAIL', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi],
+  ['IBAN', /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,4})?\b/g, (m) => ibanOk(m)],
+  ['CARD', /\b(?:\d[ -]?){13,19}\b/g, (m) => luhn(m.replace(/\D/g, '')) && m.replace(/\D/g, '').length >= 13],
+  ['NIR', /\b[12][ ]?\d{2}[ ]?(?:0[1-9]|1[0-2])[ ]?(?:\d{2}|2A|2B)[ ]?\d{3}[ ]?\d{3}(?:[ ]?\d{2})?\b/g],
+  ['PHONE', /(?:(?:\+|00)\d{1,3}[ .-]?(?:\(0\)[ .-]?)?\d{1,4}(?:[ .-]?\d{2,4}){2,4})|\b0[1-9](?:[ .-]?\d{2}){4}\b|\b07\d{3}[ ]?\d{6}\b/g],
+  ['DATE', new RegExp(`\\b(?:\\d{1,2}[/.-]\\d{1,2}[/.-](?:19|20)\\d{2}|(?:19|20)\\d{2}-\\d{2}-\\d{2}|\\d{1,2}(?:st|nd|rd|th|er)?\\s+(?:${MONTHS})\\.?\\s+(?:19|20)\\d{2}|(?:${MONTHS})\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+(?:19|20)\\d{2})\\b`, 'gi')],
+  ['PLATE', /\b(?:[A-Z]{2}-\d{3}-[A-Z]{2}|[A-Z]{2}\d{2}\s?[A-Z]{3}|\d{4}\s?[BCDFGHJKLMNPRSTVWXYZ]{3}|[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\s?\d{1,4}[EH]?)\b/g],
+  ['ADDRESS', /\b\d{1,4}(?:\s?(?:bis|ter))?,?\s+(?:rue|avenue|av\.|boulevard|bd\.?|chemin|allée|allee|place|impasse|quai|route|street|st\.|road|rd\.|lane|drive|close|way|straße|strasse|str\.|weg|calle|avenida|via|viale|piazza)\b[^\n,.;]{2,40}/gi],
+  ['POSTCODE', /\b(?:\d{5}|[A-Z]{1,2}\d[A-Z\d]?\s\d[A-Z]{2})\s+[A-ZÉÈÀ][\p{L}'-]+(?:[ -][A-ZÉÈÀ][\p{L}'-]+)?/gu],
+  ['ID', /\b(?:policy|police|contract|contrat|claim|sinistre|dossier|reference|référence|ref\.?|case|file|n°|no\.)(?:\s+(?:number|numéro|no\.?|n°|#|is|reference|ref\.?))*\s*[:#]?\s*((?=[A-Z0-9/-]*\d)[A-Z0-9][A-Z0-9/-]{3,}[A-Z0-9])/gi, null, 1],
+  ['ID', /\b(?=[A-Z-]*\d)[A-Z]{2,5}(?:-[A-Z0-9]{1,8}){1,4}\b/g],
+  ['AMOUNT', /(?:€|EUR|£|\$)\s?\d{1,3}(?:[ ,. ]\d{3})*(?:[.,]\d{1,2})?|\b\d{1,3}(?:[ ,. ]\d{3})*(?:[.,]\d{1,2})?\s?(?:€|euros?|EUR|£|pounds|\$)/gi],
+];
+function findPatterns(text) {
+  const out = [];
+  for (const [type, re, check, group] of PATTERNS) {
+    re.lastIndex = 0; let m;
+    while ((m = re.exec(text))) {
+      let s = m.index, v = m[0];
+      if (group) { v = m[group]; s = m.index + m[0].lastIndexOf(v); }
+      if (!v || (check && !check(v))) continue;
+      out.push({ type, start: s, end: s + v.length, text: v, why: 'pattern' });
+    }
+  }
+  return out;
+}
+const CAP = /\b([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?(?:\s+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc)\s+)?[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?){0,3})/g;
+function nameCandidates(text) {
+  const out = []; CAP.lastIndex = 0; let m;
+  while ((m = CAP.exec(text))) {
+    let words = m[1].split(/\s+/), start = m.index;
+    while (words.length && NOT_NAME.has(words[0].toLowerCase().replace(/[’']s$/, ''))) { start += text.slice(start).indexOf(words[0]) + words[0].length; start += text.slice(start).search(/\S/); words.shift(); }
+    while (words.length && NOT_NAME.has(words[words.length - 1].toLowerCase())) words.pop();
+    if (!words.length) continue;
+    const cand = words.join(' ').replace(/[’']s$/, '');
+    if (words.some((w) => NOT_NAME.has(w.toLowerCase()))) continue;
+    const before = text.slice(Math.max(0, start - 40), start);
+    const after = text.slice(start + cand.length, start + cand.length + 3);
+    let why = null;
+    if (new RegExp(`(?:\\b(?:${TITLES}))\\.?\\s*$`).test(before)) why = 'title';
+    else if (/(?:\bDear|\bHello|\bHi|\bBonjour|\bCher|\bChère|\bHallo|\bLiebe[r]?|\bHola)\s*$/i.test(before)) why = 'greeting';
+    else if (/(?:regards|sincerely|faithfully|cordialement|salutations|grüßen|saludos|signed|signé)[,.]?\s*$/i.test(before)) why = 'sign-off';
+    else if (/\b(?:my|our|her|his|their)\s+(?:son|daughter|husband|wife|partner|mother|father|brother|sister|neighbour|neighbor|friend|colleague|tenant|landlord|child)\s*,?\s*$/i.test(before)) why = 'relation';
+    else if (/\b(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?)\s*$/i.test(before)) why = 'context';
+    else if (FIRST.has(words[0].toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, ''))) why = 'first name';
+    if (!why && /\b(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da)\s*$/i.test(before)) continue;   // a place: "skiing in Innsbruck"
+    const sentStart = /(?:^|[.!?\n]\s*)$/.test(before);
+    if (!why && sentStart && words.length === 1) continue;       // one capitalised word opening a sentence
+    out.push({ type: 'PERSON', start, end: start + cand.length, text: cand, why, sentence: sentenceAround(text, start) });
+  }
+  return out;
+}
+function sentenceAround(text, i) {
+  const a = Math.max(text.lastIndexOf('.', i - 1), text.lastIndexOf('\n', i - 1), text.lastIndexOf('!', i - 1), text.lastIndexOf('?', i - 1)) + 1;
+  let b = text.slice(i).search(/[.!?\n]/); b = b < 0 ? text.length : i + b + 1;
+  return text.slice(a, b).trim().slice(0, 400);
+}
+async function detect(text, { amounts = false, useModel = true } = {}) {
+  let ents = findPatterns(text).filter((e) => amounts || e.type !== 'AMOUNT');
+  let modelChecks = 0;
+  for (const c of nameCandidates(text)) {
+    if (c.why) { ents.push(c); continue; }
+    if (useModel && state.ready) {
+      const p = await pYes(c.sentence, `${c.text} is a person.`); modelChecks++;
+      if (p >= 0.8) ents.push({ ...c, why: `model p ${p.toFixed(2)}` });
+    }
+  }
+  ents.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const kept = []; let last = -1;
+  for (const e of ents) { if (e.start >= last) { kept.push(e); last = e.end; } }
+  return { ents: kept, modelChecks };
+}
+const norm = (s) => s.toLowerCase().replace(/[\s.\-/]+/g, '');
+function placeholders(ents) {
+  const map = new Map(), count = {};
+  for (const e of ents) {
+    const key = e.type + ':' + norm(e.text);
+    if (!map.has(key)) { count[e.type] = (count[e.type] || 0) + 1; map.set(key, `[${e.type}_${count[e.type]}]`); }
+    e.ph = map.get(key);
+  }
+  // a surname alone reuses the full name's placeholder
+  for (const e of ents) if (e.type === 'PERSON' && !e.text.includes(' ')) {
+    const full = ents.find((f) => f.type === 'PERSON' && f.text.includes(' ') && f.text.split(/\s+/).includes(e.text));
+    if (full) e.ph = full.ph;
+  }
+  return ents;
+}
+function renderMarked(text, ents, mode) {
+  let html = '', i = 0;
+  for (const e of ents) {
+    html += esc(text.slice(i, e.start));
+    html += mode === 'mark' ? `<mark title="${esc(e.type + ' · ' + e.why)}">${esc(text.slice(e.start, e.end))}<small>${esc(e.type)}</small></mark>` : `<span class="ph">${esc(e.ph)}</span>`;
+    i = e.end;
+  }
+  return html + esc(text.slice(i));
+}
+function applyPlaceholders(text, ents) { let out = '', i = 0; for (const e of ents) { out += text.slice(i, e.start) + e.ph; i = e.end; } return out + text.slice(i); }
+
+const SAMPLE_DOCS = [
+  { name: 'motor-claim-letter.txt', text: `Dear Sir or Madam,
+
+I am writing about claim number CLM-2026-48213 under policy AX-FR-7741902. On 14 September 2026 my car, registration FG-482-KL, was hit from behind by a van on the A6 near 69007 Lyon. The other driver, Thomas Becker, admitted fault and gave me his details.
+
+The garage quoted €2,480.50 for the repair. Please pay the amount to my account FR76 3000 6000 0112 3456 7890 189. You can reach me on +33 6 12 34 56 78 or at marie.lefebvre@example.com. I live at 12 rue des Lilas, 69007 Lyon.
+
+Kind regards,
+Marie Lefebvre` },
+  { name: 'home-leak-email.txt', text: `Hello,
+
+Since last night water has been coming through the kitchen ceiling from the flat above, which belongs to my neighbour Sophie Wagner. I called her on 06 44 21 90 13 but she is away until 30/09/2026.
+
+My policy reference is HOME-554-2109-B. The plumber, Carlos Mendes, says the damage will cost about 1 850 euros. My daughter Chloe has asthma and we need the damp dried quickly.
+
+Best regards,
+Jean-Pierre Martin
+8 avenue Jean Jaurès, 75019 Paris` },
+  { name: 'travel-medical-claim.txt', text: `To whom it may concern,
+
+My son Lucas Garcia, born 03/07/2011, broke his arm on 2 August 2026 while we were skiing in Innsbruck. He was treated at the local hospital and the bill came to €3,120.00. Our travel policy is TRV-99-310577.
+
+I paid with my card 4539 1488 0343 6467. Please reimburse the costs to IBAN DE89 3704 0044 0532 0130 00. My phone number is +49 151 2345 6789.
+
+Sincerely,
+Ana Garcia Lopez` },
+];
+
+let anonLast = null;
+async function runAnon() {
+  const text = $('#anonIn').value; if (!text.trim()) return;
+  const t0 = performance.now();
+  const { ents, modelChecks } = await detect(text, { amounts: $('#anonAmounts').checked, useModel: $('#anonModel').checked });
+  placeholders(ents);
+  anonLast = { text, ents, out: applyPlaceholders(text, ents) };
+  $('#anonMarked').innerHTML = renderMarked(text, ents, 'mark');
+  $('#anonOut').innerHTML = renderMarked(text, ents, 'ph');
+  const byType = {}; ents.forEach((e) => { byType[e.type] = (byType[e.type] || 0) + 1; });
+  $('#anonMeta').textContent = `${ents.length} items replaced (${Object.entries(byType).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(', ') || 'none'}) in ${Math.round(performance.now() - t0)} ms. ` +
+    (state.ready ? (modelChecks ? `The model checked ${modelChecks} unsure name${modelChecks === 1 ? '' : 's'}.` : 'No unsure names for the model to check.') : 'Rules only: download the models to let the model check unsure names.');
+  const seen = new Set();
+  $('#anonMap').innerHTML = '<thead><tr><th>Placeholder</th><th>Original</th><th>Found by</th></tr></thead><tbody>' +
+    ents.filter((e) => { const k = e.ph + e.text; if (seen.has(k)) return false; seen.add(k); return true; })
+      .map((e) => `<tr><td class="num">${esc(e.ph)}</td><td>${esc(e.text)}</td><td class="sub">${esc(e.why)}</td></tr>`).join('') + '</tbody>';
+  countRun();
+}
+$('#anonRun').addEventListener('click', runAnon);
+$('#anonCopy').addEventListener('click', () => { if (anonLast) copyText(anonLast.out); });
+
+async function readFile(file) {
+  if (/\.docx$/i.test(file.name)) {
+    if (typeof mammoth === 'undefined') throw new Error('the Word reader did not load; paste the text instead');
+    const r = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    return r.value.replace(/\n{3,}/g, '\n\n').trim();
+  }
+  return (await file.text()).trim();
+}
+function wireDrop(zone, input, onFiles) {
+  input.addEventListener('change', () => onFiles([...input.files]));
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('over'); onFiles([...e.dataTransfer.files]); });
+}
+wireDrop($('#anonDrop'), $('#anonFile'), async (files) => {
+  if (!files[0]) return;
+  try { $('#anonIn').value = await readFile(files[0]); toast(`Read ${files[0].name} in this tab`); runAnon(); }
+  catch (e) { toast('Could not read that file: ' + e.message); }
+});
+
+/* ---------------- synthetic variants ---------------- */
+function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+const pick = (r, a) => a[Math.floor(r() * a.length)];
+const FAKE_M = ['Lucas', 'Hugo', 'Noah', 'Jonas', 'Mateo', 'Luca', 'Felix', 'Marco', 'Paul', 'Tomás', 'Oskar', 'Diego', 'Rafael', 'Victor', 'Samuel'];
+const FAKE_F = ['Camille', 'Emma', 'Léa', 'Chloé', 'Elena', 'Sofia', 'Hannah', 'Inès', 'Nina', 'Clara', 'Julia', 'Alice', 'Lena', 'Marta', 'Eva'];
+const FAKE_FIRST = [...FAKE_M, ...FAKE_F];
+function genderOf(text, e) {
+  const before = text.slice(Math.max(0, e.start - 40), e.start), after = text.slice(e.end, e.end + 90);
+  if (/\b(?:son|husband|father|brother|boyfriend|Mr|Herr|Monsieur|M\.|Sr\.?|Señor|Signor)\s*,?\s*$/i.test(before)) return 'm';
+  if (/\b(?:daughter|wife|mother|sister|girlfriend|Mrs|Ms|Miss|Mme|Mlle|Madame|Frau|Sra\.?|Señora|Signora)\s*,?\s*$/i.test(before)) return 'f';
+  const he = (after.match(/\b(?:he|his|him)\b/gi) || []).length, she = (after.match(/\b(?:she|her|hers)\b/gi) || []).length;
+  return he > she ? 'm' : she > he ? 'f' : null;
+}
+const FAKE_LAST = ['Moreau', 'Schneider', 'Rossi', 'Fernández', 'Dubois', 'Weber', 'Bianchi', 'García', 'Laurent', 'Fischer', 'Romano', 'Martínez', 'Lemaire', 'Hoffmann', 'Ricci', 'Santos', 'Girard', 'Keller', 'Conti', 'Navarro', 'Fontaine', 'Braun', 'Greco', 'Ortega', 'Chevalier', 'Wagner', 'Marino', 'Silva', 'Roux', 'Vogel'];
+const FAKE_STREET = ['rue de la République', 'avenue Victor Hugo', 'rue du Moulin', 'boulevard Voltaire', 'chemin des Vignes', 'rue Pasteur', 'place de la Gare', 'allée des Tilleuls'];
+const FAKE_CITY = ['69003 Lyon', '13006 Marseille', '31000 Toulouse', '33000 Bordeaux', '44000 Nantes', '67000 Strasbourg', '59000 Lille', '75011 Paris'];
+function shapeLike(r, s) { return s.replace(/[A-Z]/g, () => String.fromCharCode(65 + Math.floor(r() * 26))).replace(/[a-z]/g, () => String.fromCharCode(97 + Math.floor(r() * 26))).replace(/\d/g, () => String(Math.floor(r() * 10))); }
+function fakeIban(r, like) {
+  const cc = like.replace(/\s/g, '').slice(0, 2).toUpperCase(), len = like.replace(/\s/g, '').length - 4;
+  const bban = Array.from({ length: len }, () => Math.floor(r() * 10)).join('');
+  const num = (bban + cc + '00').replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
+  let m = 0; for (const ch of num) m = (m * 10 + +ch) % 97;
+  const s = cc + String(98 - m).padStart(2, '0') + bban; return s.replace(/(.{4})/g, '$1 ').trim();
+}
+function fakeCard(r) { const d = [4, 0, 0, 0, 0, 0, ...Array.from({ length: 9 }, () => Math.floor(r() * 10))]; for (let c = 0; c < 10; c++) { if (luhn(d.join('') + c)) { d.push(c); break; } } return d.join('').replace(/(.{4})/g, '$1 ').trim(); }
+function shiftDate(r, s) {
+  const days = Math.floor(r() * 120) - 60;
+  let m;
+  if ((m = s.match(/^(\d{1,2})([/.-])(\d{1,2})\2(\d{4})$/))) { const d = new Date(Date.UTC(+m[4], +m[3] - 1, +m[1] + days)); return `${String(d.getUTCDate()).padStart(m[1].length, '0')}${m[2]}${String(d.getUTCMonth() + 1).padStart(m[3].length, '0')}${m[2]}${d.getUTCFullYear()}`; }
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/))) { const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days)); return d.toISOString().slice(0, 10); }
+  const d = new Date(s.replace(/(\d)(st|nd|rd|th|er)\b/, '$1')); if (isNaN(d)) return s;
+  d.setUTCDate(d.getUTCDate() + days + 1);
+  return /^\d/.test(s) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+}
+function fakeAmount(r, s) {
+  const digits = s.replace(/[^\d.,]/g, ''), dec = /[.,]\d{1,2}$/.test(digits) ? digits.slice(-3).replace(/^[.,]/, '') : null;
+  const whole = parseFloat(digits.replace(/[.,]\d{1,2}$/, '').replace(/[^\d]/g, '')) || 100;
+  const v = Math.max(10, Math.round(whole * (0.55 + r() * 1.1)));
+  const sep = /\d[  ]\d{3}/.test(s) ? ' ' : /\d,\d{3}/.test(s) ? ',' : /\d\.\d{3}/.test(s) ? '.' : '';
+  const body = sep ? String(v).replace(/\B(?=(\d{3})+(?!\d))/g, sep) : String(v);
+  const decPart = dec != null ? (/,\d{1,2}$/.test(digits) ? ',' : '.') + String(Math.floor(r() * 100)).padStart(dec.length, '0') : '';
+  return s.replace(/\d[\d ., ]*\d|\d/, body + decPart);
+}
+function fakeFor(r, e, person) {
+  switch (e.type) {
+    case 'PERSON': return person(e.text, e.gender);
+    case 'EMAIL': return (person('x').toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, '').replace(/[^a-z]+/g, '.') + '@example.com').replace(/^\.|\.(?=@)/g, '');
+    case 'IBAN': return fakeIban(r, e.text);
+    case 'CARD': return fakeCard(r);
+    case 'DATE': return shiftDate(r, e.text);
+    case 'AMOUNT': return fakeAmount(r, e.text);
+    case 'ADDRESS': return `${1 + Math.floor(r() * 98)} ${pick(r, FAKE_STREET)}`;
+    case 'POSTCODE': return pick(r, FAKE_CITY);
+    case 'PHONE': { const m = e.text.match(/^(\+\d{2,3}|00\d{2,3}|0\d)(.*)$/s); return m ? m[1] + shapeLike(r, m[2]) : shapeLike(r, e.text); }
+    default: return shapeLike(r, e.text);        // plate, policy and claim numbers, NIR: same shape, new characters
+  }
+}
+function variantOf(text, ents, r) {
+  const people = new Map(), values = new Map();
+  ents.forEach((e) => { if (e.type === 'PERSON') e.gender = genderOf(text, e); });
+  const person = (orig, g) => {
+    const parts = orig.split(/\s+/), last = parts[parts.length - 1];
+    for (const [k, v] of people) if (k.split(/\s+/).includes(last) || k.split(/\s+/).includes(orig)) { const vp = v.split(' '); return parts.length === 1 ? (k.split(/\s+/).indexOf(orig) === 0 ? vp[0] : vp[vp.length - 1]) : v; }
+    const firsts = (g === 'm' ? FAKE_M : g === 'f' ? FAKE_F : FAKE_FIRST).filter((x) => !parts.includes(x));
+    const lasts = FAKE_LAST.filter((x) => !parts.includes(x));           // a fake never reuses an original name
+    const v = parts.length === 1 ? pick(r, firsts) : [pick(r, firsts), ...parts.slice(1, -1).map(() => pick(r, lasts)), pick(r, lasts)].join(' ');
+    people.set(orig, v); return v;
+  };
+  let out = '', i = 0;
+  for (const e of ents) {
+    const key = e.type + ':' + norm(e.text);
+    if (!values.has(key)) values.set(key, fakeFor(r, e, person));
+    out += text.slice(i, e.start) + values.get(key); i = e.end;
+  }
+  return out + text.slice(i);
+}
+const syn = { docs: SAMPLE_DOCS.map((d) => ({ ...d })), rows: [] };
+function renderSynFiles() {
+  $('#synFiles').innerHTML = syn.docs.map((d, i) => `<div class="file"><span>${esc(d.name)}</span><span class="sub">${d.text.length.toLocaleString('en-GB')} characters${d.sample ? '' : ''}</span></div>`).join('');
+}
+async function runSyn() {
+  const n = Math.max(1, Math.min(20, parseInt($('#synN').value, 10) || 3)), seed = parseInt($('#synSeed').value, 10) || 2026;
+  const r = rng(seed); syn.rows = [];
+  const t0 = performance.now();
+  for (const d of syn.docs) {
+    const { ents } = await detect(d.text, { amounts: true, useModel: $('#anonModel').checked });
+    for (let k = 1; k <= n; k++) syn.rows.push({ source: d.name, variant: k, text: variantOf(d.text, ents, r), replaced: ents.length });
+  }
+  $('#synMeta').textContent = `${syn.rows.length} documents generated from ${syn.docs.length} in ${Math.round(performance.now() - t0)} ms, seed ${seed}. The same seed gives the same set.`;
+  $('#synTable').innerHTML = '<thead><tr><th>Source</th><th>#</th><th>Variant</th></tr></thead><tbody>' +
+    syn.rows.map((x) => `<tr><td class="sub" style="white-space:nowrap;">${esc(x.source)}</td><td class="num">${x.variant}</td><td><div style="white-space:pre-wrap;max-height:180px;overflow:auto;font-size:13px;">${esc(x.text)}</div></td></tr>`).join('') + '</tbody>';
+  countRun();
+}
+$('#synRun').addEventListener('click', runSyn);
+$('#synCopy').addEventListener('click', () => { if (syn.rows.length) copyText(syn.rows.map((x) => JSON.stringify({ source: x.source, variant: x.variant, text: x.text })).join('\n')); });
+wireDrop($('#synDrop'), $('#synFile'), async (files) => {
+  const docs = [];
+  for (const f of files.slice(0, 8)) { try { docs.push({ name: f.name, text: await readFile(f) }); } catch (e) { toast(`Skipped ${f.name}: ${e.message}`); } }
+  if (docs.length) { syn.docs = docs; renderSynFiles(); toast(`Read ${docs.length} file${docs.length === 1 ? '' : 's'} in this tab`); runSyn(); }
+});
+
+/* ---------------- start ---------------- */
+renderModelCards(); deviceCheck(); mountWidgets(); renderTest(); renderCaseTable(); renderNet();
+$('#anonIn').value = SAMPLE_DOCS[0].text; runAnon();
+renderSynFiles(); runSyn();
+$('#dlTotal').textContent = `0 / ${MB(TOTAL)}`; $('#dlText').textContent = `Download the models · ${Math.round(TOTAL / 1e6)} MB`;
+})();
+</script>

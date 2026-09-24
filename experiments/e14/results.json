@@ -1,0 +1,20 @@
+{
+  "resolved_binding": {
+    "binding": "llamacpp-local",
+    "lane": "lab",
+    "provider": "llamacpp",
+    "model": "smollm2-360m-instruct-q8_0",
+    "residency": "unknown",
+    "residency_note": "local llama.cpp server on this machine",
+    "lanes": [
+      "lab"
+    ]
+  },
+  "base_url": "http://127.0.0.1:8190/v1",
+  "latency_ms": 98.97994995117188,
+  "prompt_tokens": 36,
+  "completion_tokens": 9,
+  "total_tokens": 45,
+  "cost_line": "not measured (model not in pricing.json)",
+  "note": "Model smollm2-360m-instruct-q8_0 not found in cockpit/pricing.json"
+}

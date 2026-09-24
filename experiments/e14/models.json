@@ -1,0 +1,52 @@
+{
+  "_comment": "Model bindings and role assignments for the two lanes (01-TARGET-ARCHITECTURE-v2 §7.6, D16). A binding's residency is recorded as an actual region only when a published source for that value is cited on the binding itself (residency_source); otherwise it is \"unknown\" (residency_note says why). Review R42: an earlier version of this file asserted the four Lab bindings' residencies (DeepSeek \"cn\", NIM \"us\", Moonshot \"cn\", HF router \"us\") from the task's own instructions, with no cited vendor-published source — exactly the unguessed claim this _comment now promises not to repeat, so they are \"unknown\" until one is cited. azure-openai-eu is \"eu\" by definition (it names an EU data-zone deployment), model ids [VERIFY] until the W5 bake-off (03-EVIDENCE-v2 §8, E-L1) picks one. gateway/lanes.py is what enforces this file; see its module docstring for the guard (ruling R35b: environment, not data class); tests/test_gw_lanes.py's TestResidencyIsSourced pins that no Lab binding asserts a residency without a residency_source.",
+  "bindings": {
+    "deepseek-direct": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "residency": "unknown",
+      "residency_note": "[VERIFY] vendor-published region not recorded in this repo",
+      "lanes": ["lab"]
+    },
+    "nvidia-nim": {
+      "provider": "nvidia-nim",
+      "model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "residency": "unknown",
+      "residency_note": "[VERIFY] vendor-published region not recorded in this repo",
+      "lanes": ["lab"]
+    },
+    "moonshot-kimi": {
+      "provider": "moonshot",
+      "model": "kimi-k3",
+      "residency": "unknown",
+      "residency_note": "[VERIFY] vendor-published region not recorded in this repo",
+      "lanes": ["lab"]
+    },
+    "hf-router": {
+      "provider": "huggingface",
+      "model": "hf-large",
+      "residency": "unknown",
+      "residency_note": "[VERIFY] vendor-published region not recorded in this repo",
+      "lanes": ["lab"]
+    },
+    "azure-openai-eu": {
+      "provider": "azure-openai",
+      "model": "[VERIFY]",
+      "residency": "eu",
+      "lanes": ["axa"]
+    },
+    "llamacpp-local": {
+      "provider": "llamacpp",
+      "model": "smollm2-360m-instruct-q8_0",
+      "residency": "unknown",
+      "residency_note": "local llama.cpp server on this machine",
+      "lanes": ["lab"]
+    }
+  },
+  "roles": {
+    "skills_runner": {"lab": "deepseek-direct", "axa": "azure-openai-eu"},
+    "judge_review": {"lab": "deepseek-direct", "axa": "azure-openai-eu"},
+    "voice": {"lab": "deepseek-direct", "axa": "azure-openai-eu"},
+    "local_test": {"lab": "llamacpp-local", "axa": "llamacpp-local"}
+  }
+}

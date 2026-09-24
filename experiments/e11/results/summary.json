@@ -1,0 +1,8 @@
+{
+  "garble_recall_overall": 0.916030534351145,
+  "garble_recall_latin_slice": 0.9090909090909091,
+  "false_alarms_per_8_agent_hours": 3.644646924829157,
+  "pane_state_accuracy": 0.9703872437357631,
+  "waiting_permission_recall": 0.0,
+  "cpu_ms_per_classification": 0.5
+}

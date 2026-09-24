@@ -1,0 +1,9 @@
+.venv/
+models/
+*.gguf
+*.pkl
+__pycache__/
+server.log
+serve.pid
+e11/data/*.jsonl
+e11/results/*.jsonl

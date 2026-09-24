@@ -1,0 +1,28 @@
+{
+  "test_set": {
+    "per_class_metrics": {
+      "non-garble": {
+        "precision": 0.9652996845425867,
+        "recall": 0.9935064935064936,
+        "f1": 0.9792
+      },
+      "garble": {
+        "precision": 0.9836065573770492,
+        "recall": 0.916030534351145,
+        "f1": 0.9486166007905138
+      }
+    },
+    "pane_state_accuracy": 0.9703872437357631,
+    "waiting_permission_recall": 0.0,
+    "garble_recall_overall": 0.916030534351145,
+    "garble_recall_by_generator": {
+      "truncated_json": 0.916030534351145
+    },
+    "garble_recall_latin_slice": 0.9090909090909091,
+    "garble_recall_held_out_generator": 0.916030534351145,
+    "false_alarms_per_8_agent_hours": 3.644646924829157,
+    "cpu_ms_per_classification": 0.5,
+    "shuffled_prediction_recall": 0.3282442748091603,
+    "recall_drop_from_shuffling": 0.5877862595419847
+  }
+}
