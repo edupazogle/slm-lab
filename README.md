@@ -43,3 +43,12 @@ Experiments: `experiments/v2/` (needle3 fine-tune with a 4-bit untuned control: 
   nothing from repos without a licence or under AGPL.
 - Servers bind 127.0.0.1; nothing unauthenticated on the LAN.
 - Model weights, build output, QA screenshots and run logs are git-ignored (see the repo's `.gitignore`).
+
+## Live
+
+- **This lab on GitHub:** https://github.com/edupazogle/slm-lab (public; split from the BizLoop repo's `slm/` with its history,
+  re-exported with `git subtree split --prefix=slm`).
+- **The Second Look decision page:** https://edupazogle.github.io/slm-lab/ — built and deployed by `.github/workflows/pages.yml`
+  on every push that touches `app/second-look/`; the runtime and the two models are fetched at build time, never committed.
+  Verified live 2026-09-24: models ready in 6.5 s, every decision widget answers, redactor and variants run offline (0 requests).
+- The same page as a claude.ai artifact (private): https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh
