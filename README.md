@@ -56,8 +56,8 @@ Experiments: `experiments/v2/` (needle3 fine-tune with a 4-bit untuned control: 
   results in [`app/second-look/QA.md`](app/second-look/QA.md). The page carries a usage meter: tokens, ms and tok/s under
   every decision, per-model counters, and a usage log.
 - The same page as a claude.ai artifact (private): https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh
-- **The whole lab, hosted:** https://web-production-b7b86.up.railway.app/ — the web app (landing with the live demo,
-  `chat.html`, `bench.html`, `needle.html`) at the root and Second Look at `/second-look/`, on Railway (project `slm-lab`,
-  service `web`), built from the repo's `Dockerfile` on every push to the connected branch. Served by `app/serve.py
+- **The whole lab, hosted:** https://slm-lab-production.up.railway.app/ — the web app (landing with the live demo,
+  `chat.html`, `bench.html`, `needle.html`) at the root and Second Look at `/second-look/`, on Railway (project
+  `zesty-passion`, service `slm-lab`), built from the repo's `Dockerfile` on every push to the connected branch. Served by `app/serve.py
   --public`, so every response carries COOP/COEP (GitHub Pages cannot, which is why the chat app is not there); the
   server is static only: `POST /api/bench` is off and folders are never listed.
