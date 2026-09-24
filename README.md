@@ -41,7 +41,8 @@ Experiments: `experiments/v2/` (needle3 fine-tune with a 4-bit untuned control: 
 - Every number shown is measured and its instrument checked first; `null` means "not measured yet".
 - Code taken from other repos is copied with a provenance header and listed in `app/THIRD_PARTY/NOTICES.md`;
   nothing from repos without a licence or under AGPL.
-- Servers bind 127.0.0.1; nothing unauthenticated on the LAN.
+- Servers bind 127.0.0.1; nothing unauthenticated on the LAN. The one exception is the hosted copy (`serve.py --public`,
+  below), which serves static files only.
 - Model weights, build output, QA screenshots and run logs are git-ignored (see the repo's `.gitignore`).
 
 ## Live
@@ -55,3 +56,8 @@ Experiments: `experiments/v2/` (needle3 fine-tune with a 4-bit untuned control: 
   results in [`app/second-look/QA.md`](app/second-look/QA.md). The page carries a usage meter: tokens, ms and tok/s under
   every decision, per-model counters, and a usage log.
 - The same page as a claude.ai artifact (private): https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh
+- **The whole lab, hosted:** https://web-production-b7b86.up.railway.app/ — the web app (landing with the live demo,
+  `chat.html`, `bench.html`, `needle.html`) at the root and Second Look at `/second-look/`, on Railway (project `slm-lab`,
+  service `web`), built from the repo's `Dockerfile` on every push to the connected branch. Served by `app/serve.py
+  --public`, so every response carries COOP/COEP (GitHub Pages cannot, which is why the chat app is not there); the
+  server is static only: `POST /api/bench` is off and folders are never listed.
