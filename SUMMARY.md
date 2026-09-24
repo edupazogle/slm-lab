@@ -184,4 +184,7 @@ the 900 documents (`experiments/e1/results_v2.json`: FR leak rate 0.87 → 0.76,
 0.92 on the synthetic claims; parity still 0/900), and the artifact republished. Then a usage meter (tokens, ms and tok/s under
 every decision, per-model counters, a usage log of every model call, as a LiteLLM-style gateway would keep) and a 39-check QA
 round in headless Chromium (`app/second-look/test/qa_browser.js`, results in `app/second-look/QA.md`), which the Pages workflow
-now runs before each deploy.
+now runs before each deploy. Then the Claude Design "v7" layout (BrowserLLM, AXA blue, a black model bar) rebuilt on that
+logic, with an offline shell (service worker, self-hosted scripts and fonts, cached vocabulary: a reload with no connection
+starts the models), a usage-meter section, .xlsx/.pptx reading, .docx and .zip export, and a PLATE / POSTCODE fix found on a
+spreadsheet (page and port, parity 0/900, `experiments/e1/results_v3.json`); QA now 55 checks, all passing on the Pages build.

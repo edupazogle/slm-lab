@@ -195,3 +195,16 @@ inputs are `preds/js_v2_*.jsonl` and `preds/regex_v2_*.jsonl`). Scored again wit
 The pass bar is still missed in both languages and the kill rule is still not triggered: the regex half remains a lower
 bound of the page, because name candidates without a cue still go to the model, which this scoring does not run. The 8
 gold NIRs of 14 characters stay uncovered until the synthetic claims are regenerated with the fixed generator.
+
+## Addendum 2026-09-24 (2): PLATE and POSTCODE no longer cross a tab or a line break
+
+Found by the page's QA round on a spreadsheet: cells are joined by tabs and rows by line breaks, and the PLATE and POSTCODE
+patterns used `\s` between their parts, so "1250⏎CLM" (an amount, then the next row's claim id) became a Spanish plate and
+"55013⇥Mr Oliver" a postcode that swallowed the name after it. The separator is now a space, a no-break space or a narrow
+no-break space (U+202F, which French typesetting puts between a postcode and its city), in the page and in
+`regex_baseline.py` alike. Parity re-run on the 900 documents: 0 differ (`preds/parity_v3_page.json`: 2,383 entities, 3,199
+candidates; `preds/parity_v3_extended.json`: 2,403 / 3,203; inputs `preds/js_v3_*.jsonl`, `preds/regex_v3_*.jsonl`).
+Scored again (`results_v3.json`): only POSTCODE moves, 35 → 32 predictions and 30 → 29 gold postcodes covered. The three
+dropped predictions ran into the next line's field label ("53883⏎Adresse", "20581⏎Numéro", "95440⏎Ville"); the last one had
+counted as covering its gold postcode only because more than half its characters did. Leak rates, PERSON and every direct
+identifier are unchanged (POSTCODE is not a direct identifier).
