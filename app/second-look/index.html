@@ -1031,8 +1031,8 @@ const MONTHS = 'January|February|March|April|May|June|July|August|September|Octo
 const PATTERNS = [
   ['EMAIL', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi],
   ['IBAN', /\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,4})?\b/g, (m) => ibanOk(m)],
-  ['CARD', /\b(?:\d[ -]?){13,19}\b/g, (m) => luhn(m.replace(/\D/g, '')) && m.replace(/\D/g, '').length >= 13],
   ['NIR', /\b[12][ ]?\d{2}[ ]?(?:0[1-9]|1[0-2])[ ]?(?:\d{2}|2A|2B)[ ]?\d{3}[ ]?\d{3}(?:[ ]?\d{2})?\b/g],
+  ['CARD', /\b(?:\d[ -]?){13,19}\b/g, (m) => luhn(m.replace(/\D/g, '')) && m.replace(/\D/g, '').length >= 13],
   ['PHONE', /(?:(?:\+|00)\d{1,3}[ .-]?(?:\(0\)[ .-]?)?\d{1,4}(?:[ .-]?\d{2,4}){2,4})|\b0[1-9](?:[ .-]?\d{2}){4}\b|\b07\d{3}[ ]?\d{6}\b/g],
   ['DATE', new RegExp(`\\b(?:\\d{1,2}[/.-]\\d{1,2}[/.-](?:19|20)\\d{2}|(?:19|20)\\d{2}-\\d{2}-\\d{2}|\\d{1,2}(?:st|nd|rd|th|er)?\\s+(?:${MONTHS})\\.?\\s+(?:19|20)\\d{2}|(?:${MONTHS})\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+(?:19|20)\\d{2})\\b`, 'gi')],
   ['PLATE', /\b(?:[A-Z]{2}-\d{3}-[A-Z]{2}|[A-Z]{2}\d{2}\s?[A-Z]{3}|\d{4}\s?[BCDFGHJKLMNPRSTVWXYZ]{3}|[A-ZÄÖÜ]{1,3}-[A-Z]{1,2}\s?\d{1,4}[EH]?)\b/g],
@@ -1055,7 +1055,7 @@ function findPatterns(text) {
   }
   return out;
 }
-const CAP = /\b([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?(?:\s+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc)\s+)?[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?){0,3})/g;
+const CAP = /(?<![\p{L}\p{N}_])([A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?(?:\s+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc)\s+)?[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+(?:-[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'’]+)?){0,5})/gu;
 function nameCandidates(text) {
   const out = []; CAP.lastIndex = 0; let m;
   while ((m = CAP.exec(text))) {
@@ -1068,12 +1068,14 @@ function nameCandidates(text) {
     const before = text.slice(Math.max(0, start - 40), start);
     const after = text.slice(start + cand.length, start + cand.length + 3);
     let why = null;
-    if (new RegExp(`(?:\\b(?:${TITLES}))\\.?\\s*$`).test(before)) why = 'title';
-    else if (/(?:\bDear|\bHello|\bHi|\bBonjour|\bCher|\bChère|\bHallo|\bLiebe[r]?|\bHola)\s*$/i.test(before)) why = 'greeting';
+    if (new RegExp(`(?:(?<![\\p{L}\\p{N}_])(?:${TITLES}))\\.?\\s*$`, 'u').test(before)) why = 'title';
+    else if (/(?<![\p{L}\p{N}_])(?:Dear|Hello|Hi|Bonjour|Cher|Chère|Hallo|Liebe[r]?|Hola)\s*$/iu.test(before)) why = 'greeting';
     else if (/(?:regards|sincerely|faithfully|cordialement|salutations|grüßen|saludos|signed|signé)[,.]?\s*$/i.test(before)) why = 'sign-off';
     else if (/\b(?:my|our|her|his|their)\s+(?:son|daughter|husband|wife|partner|mother|father|brother|sister|neighbour|neighbor|friend|colleague|tenant|landlord|child)\s*,?\s*$/i.test(before)) why = 'relation';
     else if (/\b(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?)\s*$/i.test(before)) why = 'context';
-    else if (FIRST.has(words[0].toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, ''))) why = 'first name';
+    else if (/\b(?:Nom|Name|Nombre)\s*:\s*$/.test(before)) why = 'label';
+    else if (FIRST.has(words[0].toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, '')) ||
+             FIRST.has(words[0].split('-')[0].toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, ''))) why = 'first name';
     if (!why && /\b(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da)\s*$/i.test(before)) continue;   // a place: "skiing in Innsbruck"
     const sentStart = /(?:^|[.!?\n]\s*)$/.test(before);
     if (!why && sentStart && words.length === 1) continue;       // one capitalised word opening a sentence
@@ -1102,6 +1104,7 @@ async function detect(text, { amounts = false, useModel = true } = {}) {
   return { ents: kept, modelChecks };
 }
 const norm = (s) => s.toLowerCase().replace(/[\s.\-/]+/g, '');
+const PARTICLE = new Set(['le', 'la', 'de', 'du', 'van', 'von', 'der', 'di', 'del', 'dos']);
 function placeholders(ents) {
   const map = new Map(), count = {};
   for (const e of ents) {
@@ -1109,8 +1112,8 @@ function placeholders(ents) {
     if (!map.has(key)) { count[e.type] = (count[e.type] || 0) + 1; map.set(key, `[${e.type}_${count[e.type]}]`); }
     e.ph = map.get(key);
   }
-  // a surname alone reuses the full name's placeholder
-  for (const e of ents) if (e.type === 'PERSON' && !e.text.includes(' ')) {
+  // a surname alone reuses the full name's placeholder, unless it is really a particle (Le, La, De, ...)
+  for (const e of ents) if (e.type === 'PERSON' && !e.text.includes(' ') && !PARTICLE.has(e.text.toLowerCase())) {
     const full = ents.find((f) => f.type === 'PERSON' && f.text.includes(' ') && f.text.split(/\s+/).includes(e.text));
     if (full) e.ph = full.ph;
   }
