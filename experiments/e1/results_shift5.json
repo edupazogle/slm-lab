@@ -1,33 +1,33 @@
 {
-  "command": "python eval.py --data data/combined_dataset.jsonl --preds preds/regex_extended.jsonl --ablation preds/regex_page.jsonl --out results.json",
+  "command": "python eval.py --preds preds/regex_extended.jsonl --shift 5 --out results_shift5.json",
   "data": "data/combined_dataset.jsonl",
   "preds": "preds/regex_extended.jsonl",
-  "shift": 0,
-  "load_at_eval (uptime)": "16:02:42 up 11:58,  1 user,  load average: 1.12, 1.21, 1.00",
+  "shift": 5,
+  "load_at_eval (uptime)": "16:01:02 up 11:57,  1 user,  load average: 1.50, 1.25, 0.98",
   "slices": {
     "fr_openpii": {
       "documents": 400,
       "documents_with_direct_identifier": 387,
-      "leak_documents": 364,
-      "leak_rate": 0.9406,
-      "leak_rate_any_type": 0.9354,
-      "precision_direct": 0.8498,
+      "leak_documents": 373,
+      "leak_rate": 0.9638,
+      "leak_rate_any_type": 0.9612,
+      "precision_direct": 0.8182,
       "direct_predictions": 506,
       "per_gold_type": {
         "PERSON": {
           "gold": 662,
-          "covered": 101,
-          "recall": 0.1526
+          "covered": 71,
+          "recall": 0.1073
         },
         "EMAIL": {
           "gold": 210,
-          "covered": 208,
-          "recall": 0.9905
+          "covered": 200,
+          "recall": 0.9524
         },
         "PHONE": {
           "gold": 156,
-          "covered": 105,
-          "recall": 0.6731
+          "covered": 104,
+          "recall": 0.6667
         },
         "NATIONAL_ID": {
           "gold": 91,
@@ -56,13 +56,13 @@
         },
         "ID_DOC": {
           "gold": 234,
-          "covered": 9,
-          "recall": 0.0385
+          "covered": 7,
+          "recall": 0.0299
         },
         "ADDRESS": {
           "gold": 269,
-          "covered": 52,
-          "recall": 0.1933
+          "covered": 28,
+          "recall": 0.1041
         },
         "DATE": {
           "gold": 368,
@@ -71,8 +71,8 @@
         },
         "POSTCODE": {
           "gold": 140,
-          "covered": 30,
-          "recall": 0.2143
+          "covered": 0,
+          "recall": 0.0
         },
         "NATIONAL_ID/NIR": {
           "gold": 91,
@@ -83,8 +83,8 @@
       "per_pred_type": {
         "ADDRESS": {
           "pred": 26,
-          "correct": 22,
-          "precision": 0.8462
+          "correct": 21,
+          "precision": 0.8077
         },
         "CARD": {
           "pred": 18,
@@ -98,13 +98,13 @@
         },
         "EMAIL": {
           "pred": 208,
-          "correct": 208,
-          "precision": 1.0
+          "correct": 204,
+          "precision": 0.9808
         },
         "ID": {
           "pred": 32,
-          "correct": 13,
-          "precision": 0.4062
+          "correct": 11,
+          "precision": 0.3438
         },
         "NIR": {
           "pred": 17,
@@ -113,13 +113,13 @@
         },
         "PERSON": {
           "pred": 77,
-          "correct": 53,
-          "precision": 0.6883
+          "correct": 45,
+          "precision": 0.5844
         },
         "PHONE": {
           "pred": 128,
-          "correct": 105,
-          "precision": 0.8203
+          "correct": 104,
+          "precision": 0.8125
         },
         "POSTCODE": {
           "pred": 35,
@@ -134,23 +134,25 @@
         "pred": 195
       },
       "false_positives_by_where_they_land": {
-        "POSTCODE on POSTCODE": 30,
+        "POSTCODE on CITY": 30,
         "ID on TAX_ID": 18,
-        "PERSON on no gold span": 14,
+        "PERSON on no gold span": 16,
+        "PERSON on PERSON": 11,
         "PHONE on CARD": 7,
         "PHONE on ID_DOC": 7,
         "PHONE on NATIONAL_ID": 6,
-        "PERSON on PERSON": 5,
+        "ADDRESS on ADDRESS": 5,
+        "EMAIL on EMAIL": 4,
         "CARD on NATIONAL_ID": 4,
-        "ADDRESS on ADDRESS": 4,
-        "PERSON on CITY": 3,
+        "PERSON on ADDRESS": 3,
         "POSTCODE on ADDRESS": 3,
         "PHONE on TAX_ID": 2,
-        "PERSON on ADDRESS": 2,
-        "POSTCODE on TAX_ID": 2,
+        "PERSON on CITY": 2,
+        "ID on ID_DOC": 2,
+        "PHONE on PHONE": 2,
+        "POSTCODE on no gold span": 2,
         "CARD on TAX_ID": 1,
-        "ID on ADDRESS": 1,
-        "PHONE on no gold span": 1,
+        "ID on CITY": 1,
         "DATE on no gold span": 1,
         "CARD on PHONE": 1
       },
@@ -167,16 +169,16 @@
     "fr_synthetic": {
       "documents": 100,
       "documents_with_direct_identifier": 100,
-      "leak_documents": 62,
-      "leak_rate": 0.62,
-      "leak_rate_any_type": 0.56,
-      "precision_direct": 0.9649,
+      "leak_documents": 100,
+      "leak_rate": 1.0,
+      "leak_rate_any_type": 1.0,
+      "precision_direct": 0.8046,
       "direct_predictions": 655,
       "per_gold_type": {
         "PERSON": {
           "gold": 200,
-          "covered": 140,
-          "recall": 0.7
+          "covered": 133,
+          "recall": 0.665
         },
         "EMAIL": {
           "gold": 100,
@@ -210,8 +212,8 @@
         },
         "PLATE": {
           "gold": 100,
-          "covered": 100,
-          "recall": 1.0
+          "covered": 0,
+          "recall": 0.0
         },
         "ID_DOC": {
           "gold": 0,
@@ -267,8 +269,8 @@
         },
         "PERSON": {
           "pred": 159,
-          "correct": 150,
-          "precision": 0.9434
+          "correct": 145,
+          "precision": 0.9119
         },
         "PHONE": {
           "pred": 103,
@@ -277,8 +279,8 @@
         },
         "PLATE": {
           "pred": 100,
-          "correct": 100,
-          "precision": 1.0
+          "correct": 0,
+          "precision": 0.0
         }
       },
       "date": {
@@ -288,36 +290,49 @@
         "pred": 100
       },
       "false_positives_by_where_they_land": {
+        "PLATE on PLATE": 100,
         "CARD on NIR": 11,
         "PERSON on ORG": 9,
+        "PERSON on PERSON": 5,
         "PHONE on SIREN": 3
       },
       "round_trip": {
         "documents": 100,
-        "exact": 100,
-        "rate": 1.0,
+        "exact": 52,
+        "rate": 0.52,
         "texts_already_containing_a_placeholder": 0,
-        "failed_ids": []
+        "failed_ids": [
+          "synthetic_077",
+          "synthetic_046",
+          "synthetic_011",
+          "synthetic_066",
+          "synthetic_047",
+          "synthetic_062",
+          "synthetic_040",
+          "synthetic_076",
+          "synthetic_002",
+          "synthetic_018"
+        ]
       }
     },
     "en_openpii": {
       "documents": 400,
       "documents_with_direct_identifier": 390,
-      "leak_documents": 360,
-      "leak_rate": 0.9231,
-      "leak_rate_any_type": 0.9128,
-      "precision_direct": 0.9249,
+      "leak_documents": 371,
+      "leak_rate": 0.9513,
+      "leak_rate_any_type": 0.9436,
+      "precision_direct": 0.8413,
       "direct_predictions": 586,
       "per_gold_type": {
         "PERSON": {
           "gold": 697,
-          "covered": 260,
-          "recall": 0.373
+          "covered": 192,
+          "recall": 0.2755
         },
         "EMAIL": {
           "gold": 228,
-          "covered": 227,
-          "recall": 0.9956
+          "covered": 215,
+          "recall": 0.943
         },
         "PHONE": {
           "gold": 170,
@@ -351,8 +366,8 @@
         },
         "ID_DOC": {
           "gold": 269,
-          "covered": 21,
-          "recall": 0.0781
+          "covered": 13,
+          "recall": 0.0483
         },
         "ADDRESS": {
           "gold": 287,
@@ -393,18 +408,18 @@
         },
         "EMAIL": {
           "pred": 229,
-          "correct": 227,
-          "precision": 0.9913
+          "correct": 219,
+          "precision": 0.9563
         },
         "ID": {
           "pred": 41,
-          "correct": 29,
-          "precision": 0.7073
+          "correct": 21,
+          "precision": 0.5122
         },
         "PERSON": {
           "pred": 169,
-          "correct": 157,
-          "precision": 0.929
+          "correct": 124,
+          "precision": 0.7337
         },
         "PHONE": {
           "pred": 138,
@@ -419,16 +434,18 @@
         "pred": 235
       },
       "false_positives_by_where_they_land": {
+        "PERSON on PERSON": 32,
+        "PERSON on no gold span": 11,
         "ID on TAX_ID": 9,
         "PHONE on NATIONAL_ID": 9,
+        "ID on ID_DOC": 8,
+        "EMAIL on EMAIL": 8,
         "PHONE on CARD": 7,
-        "PERSON on no gold span": 5,
-        "PERSON on PERSON": 5,
         "ID on CARD": 3,
         "DATE on no gold span": 2,
         "EMAIL on no gold span": 2,
         "PERSON on ADDRESS": 1,
-        "ADDRESS on DATE": 1,
+        "ADDRESS on EMAIL": 1,
         "PERSON on CITY": 1,
         "CARD on PHONE": 1
       },
@@ -445,26 +462,26 @@
     "fr": {
       "documents": 500,
       "documents_with_direct_identifier": 487,
-      "leak_documents": 426,
-      "leak_rate": 0.8747,
-      "leak_rate_any_type": 0.8583,
-      "precision_direct": 0.9147,
+      "leak_documents": 473,
+      "leak_rate": 0.9713,
+      "leak_rate_any_type": 0.9692,
+      "precision_direct": 0.8105,
       "direct_predictions": 1161,
       "per_gold_type": {
         "PERSON": {
           "gold": 862,
-          "covered": 241,
-          "recall": 0.2796
+          "covered": 204,
+          "recall": 0.2367
         },
         "EMAIL": {
           "gold": 310,
-          "covered": 308,
-          "recall": 0.9935
+          "covered": 300,
+          "recall": 0.9677
         },
         "PHONE": {
           "gold": 256,
-          "covered": 205,
-          "recall": 0.8008
+          "covered": 204,
+          "recall": 0.7969
         },
         "NATIONAL_ID": {
           "gold": 91,
@@ -488,18 +505,18 @@
         },
         "PLATE": {
           "gold": 100,
-          "covered": 100,
-          "recall": 1.0
+          "covered": 0,
+          "recall": 0.0
         },
         "ID_DOC": {
           "gold": 234,
-          "covered": 9,
-          "recall": 0.0385
+          "covered": 7,
+          "recall": 0.0299
         },
         "ADDRESS": {
           "gold": 269,
-          "covered": 52,
-          "recall": 0.1933
+          "covered": 28,
+          "recall": 0.1041
         },
         "DATE": {
           "gold": 468,
@@ -508,8 +525,8 @@
         },
         "POSTCODE": {
           "gold": 140,
-          "covered": 30,
-          "recall": 0.2143
+          "covered": 0,
+          "recall": 0.0
         },
         "NATIONAL_ID/NIR": {
           "gold": 191,
@@ -520,8 +537,8 @@
       "per_pred_type": {
         "ADDRESS": {
           "pred": 26,
-          "correct": 22,
-          "precision": 0.8462
+          "correct": 21,
+          "precision": 0.8077
         },
         "CARD": {
           "pred": 29,
@@ -535,8 +552,8 @@
         },
         "EMAIL": {
           "pred": 308,
-          "correct": 308,
-          "precision": 1.0
+          "correct": 304,
+          "precision": 0.987
         },
         "IBAN": {
           "pred": 100,
@@ -545,8 +562,8 @@
         },
         "ID": {
           "pred": 32,
-          "correct": 13,
-          "precision": 0.4062
+          "correct": 11,
+          "precision": 0.3438
         },
         "NIR": {
           "pred": 99,
@@ -555,18 +572,18 @@
         },
         "PERSON": {
           "pred": 236,
-          "correct": 203,
-          "precision": 0.8602
+          "correct": 190,
+          "precision": 0.8051
         },
         "PHONE": {
           "pred": 231,
-          "correct": 205,
-          "precision": 0.8874
+          "correct": 204,
+          "precision": 0.8831
         },
         "PLATE": {
           "pred": 100,
-          "correct": 100,
-          "precision": 1.0
+          "correct": 0,
+          "precision": 0.0
         },
         "POSTCODE": {
           "pred": 35,
@@ -581,57 +598,69 @@
         "pred": 295
       },
       "false_positives_by_where_they_land": {
-        "POSTCODE on POSTCODE": 30,
+        "PLATE on PLATE": 100,
+        "POSTCODE on CITY": 30,
         "ID on TAX_ID": 18,
-        "PERSON on no gold span": 14,
+        "PERSON on PERSON": 16,
+        "PERSON on no gold span": 16,
         "CARD on NIR": 11,
         "PERSON on ORG": 9,
         "PHONE on CARD": 7,
         "PHONE on ID_DOC": 7,
         "PHONE on NATIONAL_ID": 6,
-        "PERSON on PERSON": 5,
+        "ADDRESS on ADDRESS": 5,
+        "EMAIL on EMAIL": 4,
         "CARD on NATIONAL_ID": 4,
-        "ADDRESS on ADDRESS": 4,
-        "PERSON on CITY": 3,
+        "PERSON on ADDRESS": 3,
         "POSTCODE on ADDRESS": 3,
         "PHONE on SIREN": 3,
         "PHONE on TAX_ID": 2,
-        "PERSON on ADDRESS": 2,
-        "POSTCODE on TAX_ID": 2,
+        "PERSON on CITY": 2,
+        "ID on ID_DOC": 2,
+        "PHONE on PHONE": 2,
+        "POSTCODE on no gold span": 2,
         "CARD on TAX_ID": 1,
-        "ID on ADDRESS": 1,
-        "PHONE on no gold span": 1,
+        "ID on CITY": 1,
         "DATE on no gold span": 1,
         "CARD on PHONE": 1
       },
       "round_trip": {
         "documents": 500,
-        "exact": 499,
-        "rate": 0.998,
+        "exact": 451,
+        "rate": 0.902,
         "texts_already_containing_a_placeholder": 0,
         "failed_ids": [
-          "776"
+          "776",
+          "synthetic_077",
+          "synthetic_046",
+          "synthetic_011",
+          "synthetic_066",
+          "synthetic_047",
+          "synthetic_062",
+          "synthetic_040",
+          "synthetic_076",
+          "synthetic_002"
         ]
       }
     },
     "en": {
       "documents": 400,
       "documents_with_direct_identifier": 390,
-      "leak_documents": 360,
-      "leak_rate": 0.9231,
-      "leak_rate_any_type": 0.9128,
-      "precision_direct": 0.9249,
+      "leak_documents": 371,
+      "leak_rate": 0.9513,
+      "leak_rate_any_type": 0.9436,
+      "precision_direct": 0.8413,
       "direct_predictions": 586,
       "per_gold_type": {
         "PERSON": {
           "gold": 697,
-          "covered": 260,
-          "recall": 0.373
+          "covered": 192,
+          "recall": 0.2755
         },
         "EMAIL": {
           "gold": 228,
-          "covered": 227,
-          "recall": 0.9956
+          "covered": 215,
+          "recall": 0.943
         },
         "PHONE": {
           "gold": 170,
@@ -665,8 +694,8 @@
         },
         "ID_DOC": {
           "gold": 269,
-          "covered": 21,
-          "recall": 0.0781
+          "covered": 13,
+          "recall": 0.0483
         },
         "ADDRESS": {
           "gold": 287,
@@ -707,18 +736,18 @@
         },
         "EMAIL": {
           "pred": 229,
-          "correct": 227,
-          "precision": 0.9913
+          "correct": 219,
+          "precision": 0.9563
         },
         "ID": {
           "pred": 41,
-          "correct": 29,
-          "precision": 0.7073
+          "correct": 21,
+          "precision": 0.5122
         },
         "PERSON": {
           "pred": 169,
-          "correct": 157,
-          "precision": 0.929
+          "correct": 124,
+          "precision": 0.7337
         },
         "PHONE": {
           "pred": 138,
@@ -733,16 +762,18 @@
         "pred": 235
       },
       "false_positives_by_where_they_land": {
+        "PERSON on PERSON": 32,
+        "PERSON on no gold span": 11,
         "ID on TAX_ID": 9,
         "PHONE on NATIONAL_ID": 9,
+        "ID on ID_DOC": 8,
+        "EMAIL on EMAIL": 8,
         "PHONE on CARD": 7,
-        "PERSON on no gold span": 5,
-        "PERSON on PERSON": 5,
         "ID on CARD": 3,
         "DATE on no gold span": 2,
         "EMAIL on no gold span": 2,
         "PERSON on ADDRESS": 1,
-        "ADDRESS on DATE": 1,
+        "ADDRESS on EMAIL": 1,
         "PERSON on CITY": 1,
         "CARD on PHONE": 1
       },
@@ -758,26 +789,26 @@
   "all": {
     "documents": 900,
     "documents_with_direct_identifier": 877,
-    "leak_documents": 786,
-    "leak_rate": 0.8962,
-    "leak_rate_any_type": 0.8826,
-    "precision_direct": 0.9181,
+    "leak_documents": 844,
+    "leak_rate": 0.9624,
+    "leak_rate_any_type": 0.9578,
+    "precision_direct": 0.8208,
     "direct_predictions": 1747,
     "per_gold_type": {
       "PERSON": {
         "gold": 1559,
-        "covered": 501,
-        "recall": 0.3214
+        "covered": 396,
+        "recall": 0.254
       },
       "EMAIL": {
         "gold": 538,
-        "covered": 535,
-        "recall": 0.9944
+        "covered": 515,
+        "recall": 0.9572
       },
       "PHONE": {
         "gold": 426,
-        "covered": 327,
-        "recall": 0.7676
+        "covered": 326,
+        "recall": 0.7653
       },
       "NATIONAL_ID": {
         "gold": 165,
@@ -801,18 +832,18 @@
       },
       "PLATE": {
         "gold": 100,
-        "covered": 100,
-        "recall": 1.0
+        "covered": 0,
+        "recall": 0.0
       },
       "ID_DOC": {
         "gold": 503,
-        "covered": 30,
-        "recall": 0.0596
+        "covered": 20,
+        "recall": 0.0398
       },
       "ADDRESS": {
         "gold": 556,
-        "covered": 52,
-        "recall": 0.0935
+        "covered": 28,
+        "recall": 0.0504
       },
       "DATE": {
         "gold": 829,
@@ -821,8 +852,8 @@
       },
       "POSTCODE": {
         "gold": 236,
-        "covered": 30,
-        "recall": 0.1271
+        "covered": 0,
+        "recall": 0.0
       },
       "NATIONAL_ID/NIR": {
         "gold": 265,
@@ -833,8 +864,8 @@
     "per_pred_type": {
       "ADDRESS": {
         "pred": 27,
-        "correct": 22,
-        "precision": 0.8148
+        "correct": 21,
+        "precision": 0.7778
       },
       "CARD": {
         "pred": 37,
@@ -848,8 +879,8 @@
       },
       "EMAIL": {
         "pred": 537,
-        "correct": 535,
-        "precision": 0.9963
+        "correct": 523,
+        "precision": 0.9739
       },
       "IBAN": {
         "pred": 100,
@@ -858,8 +889,8 @@
       },
       "ID": {
         "pred": 73,
-        "correct": 42,
-        "precision": 0.5753
+        "correct": 32,
+        "precision": 0.4384
       },
       "NIR": {
         "pred": 99,
@@ -868,18 +899,18 @@
       },
       "PERSON": {
         "pred": 405,
-        "correct": 360,
-        "precision": 0.8889
+        "correct": 314,
+        "precision": 0.7753
       },
       "PHONE": {
         "pred": 369,
-        "correct": 327,
-        "precision": 0.8862
+        "correct": 326,
+        "precision": 0.8835
       },
       "PLATE": {
         "pred": 100,
-        "correct": 100,
-        "precision": 1.0
+        "correct": 0,
+        "precision": 0.0
       },
       "POSTCODE": {
         "pred": 35,
@@ -894,39 +925,51 @@
       "pred": 530
     },
     "false_positives_by_where_they_land": {
-      "POSTCODE on POSTCODE": 30,
+      "PLATE on PLATE": 100,
+      "PERSON on PERSON": 48,
+      "POSTCODE on CITY": 30,
+      "PERSON on no gold span": 27,
       "ID on TAX_ID": 27,
-      "PERSON on no gold span": 19,
       "PHONE on NATIONAL_ID": 15,
       "PHONE on CARD": 14,
+      "EMAIL on EMAIL": 12,
       "CARD on NIR": 11,
-      "PERSON on PERSON": 10,
+      "ID on ID_DOC": 10,
       "PERSON on ORG": 9,
       "PHONE on ID_DOC": 7,
-      "PERSON on CITY": 4,
+      "ADDRESS on ADDRESS": 5,
+      "PERSON on ADDRESS": 4,
       "CARD on NATIONAL_ID": 4,
-      "ADDRESS on ADDRESS": 4,
-      "PERSON on ADDRESS": 3,
+      "PERSON on CITY": 3,
       "POSTCODE on ADDRESS": 3,
       "DATE on no gold span": 3,
       "PHONE on SIREN": 3,
       "ID on CARD": 3,
       "PHONE on TAX_ID": 2,
-      "POSTCODE on TAX_ID": 2,
+      "PHONE on PHONE": 2,
+      "POSTCODE on no gold span": 2,
       "CARD on PHONE": 2,
       "EMAIL on no gold span": 2,
       "CARD on TAX_ID": 1,
-      "ID on ADDRESS": 1,
-      "PHONE on no gold span": 1,
-      "ADDRESS on DATE": 1
+      "ID on CITY": 1,
+      "ADDRESS on EMAIL": 1
     },
     "round_trip": {
       "documents": 900,
-      "exact": 899,
-      "rate": 0.9989,
+      "exact": 851,
+      "rate": 0.9456,
       "texts_already_containing_a_placeholder": 5,
       "failed_ids": [
-        "776"
+        "776",
+        "synthetic_077",
+        "synthetic_046",
+        "synthetic_011",
+        "synthetic_066",
+        "synthetic_047",
+        "synthetic_062",
+        "synthetic_040",
+        "synthetic_076",
+        "synthetic_002"
       ]
     }
   },
@@ -938,8 +981,8 @@
       "NATIONAL_ID/NIR_recall>=0.98": false,
       "IBAN_recall>=0.98": true,
       "PHONE_recall>=0.98": false,
-      "EMAIL_recall>=0.98": true,
-      "PLATE_recall>=0.98": true,
+      "EMAIL_recall>=0.98": false,
+      "PLATE_recall>=0.98": false,
       "PERSON_recall>=0.95": false,
       "round_trip==1.0": false,
       "met": false
@@ -950,7 +993,7 @@
       "NATIONAL_ID/NIR_recall>=0.98": false,
       "IBAN_recall>=0.98": "not measurable (0 gold)",
       "PHONE_recall>=0.98": false,
-      "EMAIL_recall>=0.98": true,
+      "EMAIL_recall>=0.98": false,
       "PLATE_recall>=0.98": "not measurable (0 gold)",
       "PERSON_recall>=0.95": false,
       "round_trip==1.0": true,
@@ -959,14 +1002,14 @@
   },
   "kill_rule": {
     "rule": "if the regex baseline alone meets the leak-rate bar (<=1 % per language), the model half of E1 ends",
-    "fr_leak_rate": 0.8747,
-    "en_leak_rate": 0.9231,
+    "fr_leak_rate": 0.9713,
+    "en_leak_rate": 0.9513,
     "triggered": false
   },
   "person_miss_diagnosis": {
-    "candidate without a cue (the page would ask the model; no model here)": 949,
-    "capitalised but no candidate (NOT_NAME word, place or sentence-start skip, or CAP shape)": 84,
-    "candidate with a cue, lost to an overlapping entity or <50% covered": 24,
+    "candidate without a cue (the page would ask the model; no model here)": 939,
+    "candidate with a cue, lost to an overlapping entity or <50% covered": 140,
+    "capitalised but no candidate (NOT_NAME word, place or sentence-start skip, or CAP shape)": 83,
     "not capitalised": 1
   },
   "worst_person_misses": [
@@ -1012,11 +1055,11 @@
     },
     {
       "slice": "en_openpii",
-      "id": "581",
-      "text": "Maffezzini Ryhiner Majidzadeh",
+      "id": "629",
+      "text": "Kapánek Iencarelli von Kampen",
       "diagnosis": "candidate without a cue (the page would ask the model; no model here)",
       "fully_exposed": true,
-      "context": "Dear Mayoress Sunanda Iasna Maffezzini Ryhiner Majidzadeh, you can claim the registered agent fee as a busi"
+      "context": "Wissem Kapánek Iencarelli von Kampen, born on 2022-01-30T00:00:00 in Singapore Henders"
     },
     {
       "slice": "fr_synthetic",
@@ -1036,11 +1079,11 @@
     },
     {
       "slice": "en_openpii",
-      "id": "629",
-      "text": "Kapánek Iencarelli von Kampen",
+      "id": "330",
+      "text": "Marcelat Chellakudam Chentit",
       "diagnosis": "candidate without a cue (the page would ask the model; no model here)",
       "fully_exposed": true,
-      "context": "Wissem Kapánek Iencarelli von Kampen, born on 2022-01-30T00:00:00 in Singapore Henders"
+      "context": "Director Curzio Marcelat Chellakudam Chentit will conduct the quarterly Aquatic Plant Manageme"
     },
     {
       "slice": "fr_synthetic",
@@ -1056,34 +1099,5 @@
     "well-formed; masked as CARD": 10,
     "gold malformed (14 chars, year not zero-padded); uncovered": 7,
     "gold malformed (14 chars, year not zero-padded); masked as CARD": 1
-  },
-  "ablation_page_first_list": {
-    "preds": "preds/regex_page.jsonl",
-    "fr": {
-      "leak_rate": 0.9158,
-      "precision_direct": 0.9188,
-      "person_recall": 0.2425,
-      "person_precision": 0.8724
-    },
-    "en": {
-      "leak_rate": 0.9256,
-      "precision_direct": 0.926,
-      "person_recall": 0.3659,
-      "person_precision": 0.9329
-    }
-  },
-  "fail_proof_shift_plus5": {
-    "fr": {
-      "leak_rate": 0.9713,
-      "person_recall": 0.2367,
-      "email_recall": 0.9677,
-      "precision_direct": 0.8105
-    },
-    "en": {
-      "leak_rate": 0.9513,
-      "person_recall": 0.2755,
-      "email_recall": 0.943,
-      "precision_direct": 0.8413
-    }
   }
 }
