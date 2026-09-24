@@ -119,11 +119,11 @@ def find_patterns(text):
 _UP, _LO = 'A-ZÀ-ÖØ-Þ', "a-zà-öø-ÿ'’"
 _WORD = f'[{_UP}][{_LO}]+(?:-[{_UP}][{_LO}]+)?'
 CAP = re.compile(rf"(?<!\w)({_WORD}(?:{S}+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc){S}+)?{_WORD}){{0,5}})")
-RE_TITLE = re.compile(rf'(?:{B}(?:{TITLES}))\.?{S}*\Z')
-RE_GREET = re.compile(rf'(?:{B}Dear|{B}Hello|{B}Hi|{B}Bonjour|{B}Cher|{B}Chère|{B}Hallo|{B}Liebe[r]?|{B}Hola){S}*\Z', I)
+RE_TITLE = re.compile(rf'(?:(?<!\w)(?:{TITLES}))\.?{S}*\Z')
+RE_GREET = re.compile(rf'(?<!\w)(?:Dear|Hello|Hi|Bonjour|Cher|Chère|Hallo|Liebe[r]?|Hola){S}*\Z', I)
 RE_SIGN = re.compile(rf'(?:regards|sincerely|faithfully|cordialement|salutations|grüßen|saludos|signed|signé)[,.]?{S}*\Z', I)
 RE_REL = re.compile(rf'{B}(?:my|our|her|his|their){S}+(?:son|daughter|husband|wife|partner|mother|father|brother|sister|neighbour|neighbor|friend|colleague|tenant|landlord|child){S}*,?{S}*\Z', I)
-RE_CTX = re.compile(rf'{B}(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?|(?:nom|name|pr[ée]nom){S}*:){S}*\Z', I)
+RE_CTX = re.compile(rf'{B}(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?|(?:nom|name|nombre|pr[ée]nom){S}*:){S}*\Z', I)
 RE_PLACE = re.compile(rf'(?<!\w)(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da){S}*\Z', I)
 RE_SENT = re.compile(rf'(?:^|[.!?\n]{S}*)\Z')
 RE_POSS = re.compile("[’']s$")

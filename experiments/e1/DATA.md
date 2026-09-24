@@ -34,3 +34,4 @@ PERSON, EMAIL, PHONE, NATIONAL_ID/NIR, IBAN, CARD, PLATE, ID_DOC, ADDRESS
 - Total rows: 900 (800 from OpenPII + 100 synthetic)
 - French: 500 (400 OpenPII + 100 synthetic)
 - English: 400 (all from OpenPII)
+**Generator fix after the E1a run (2026-09-24, commit 3f371e9):** `gen_fr_claims.py` now zero-pads the NIR birth year; the 8 malformed 14-character NIRs in `data/synthetic_claims.jsonl` were produced before the fix and the dataset was NOT regenerated, so the E1a numbers stand as measured.

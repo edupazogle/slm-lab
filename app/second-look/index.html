@@ -1137,11 +1137,11 @@ function nameCandidates(text) {
     const before = text.slice(Math.max(0, start - 40), start);
     const after = text.slice(start + cand.length, start + cand.length + 3);
     let why = null;
-    if (new RegExp(`(?:\\b(?:${TITLES}))\\.?\\s*$`).test(before)) why = 'title';
-    else if (/(?:\bDear|\bHello|\bHi|\bBonjour|\bCher|\bChère|\bHallo|\bLiebe[r]?|\bHola)\s*$/i.test(before)) why = 'greeting';
+    if (new RegExp(`(?:(?<![\\p{L}\\p{N}_])(?:${TITLES}))\\.?\\s*$`, 'u').test(before)) why = 'title';
+    else if (/(?<![\p{L}\p{N}_])(?:Dear|Hello|Hi|Bonjour|Cher|Chère|Hallo|Liebe[r]?|Hola)\s*$/iu.test(before)) why = 'greeting';
     else if (/(?:regards|sincerely|faithfully|cordialement|salutations|grüßen|saludos|signed|signé)[,.]?\s*$/i.test(before)) why = 'sign-off';
     else if (/\b(?:my|our|her|his|their)\s+(?:son|daughter|husband|wife|partner|mother|father|brother|sister|neighbour|neighbor|friend|colleague|tenant|landlord|child)\s*,?\s*$/i.test(before)) why = 'relation';
-    else if (/\b(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?|(?:nom|name|pr[ée]nom)\s*:)\s*$/i.test(before)) why = 'context';   // "Nom:" and "Name:" labels count
+    else if (/\b(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?|(?:nom|name|nombre|pr[ée]nom)\s*:)\s*$/i.test(before)) why = 'context';   // "Nom:", "Name:", "Nombre:" labels count
     else if (FIRST.has(words[0].toLowerCase().normalize('NFD').replace(/\p{Mn}/gu, '').split('-')[0])) why = 'first name';   // "Jean-Pierre" checks "jean"
     if (!why && /(?<![\p{L}\p{N}_])(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da)\s*$/iu.test(before)) continue;   // a place: "skiing in Innsbruck" (not \b: "à" needs a Unicode boundary)
     const sentStart = /(?:^|[.!?\n]\s*)$/.test(before);

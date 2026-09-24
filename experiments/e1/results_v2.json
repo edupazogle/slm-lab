@@ -3,7 +3,7 @@
   "data": "data/combined_dataset.jsonl",
   "preds": "preds/regex_v2_extended.jsonl",
   "shift": 0,
-  "load_at_eval (uptime)": "14:50:55 up 12 min,  0 user,  load average: 0.07, 0.06, 0.01",
+  "load_at_eval (uptime)": "15:39:11 up 1 min,  0 user,  load average: 0.06, 0.04, 0.01",
   "slices": {
     "fr_openpii": {
       "documents": 400,
