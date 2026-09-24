@@ -12,16 +12,59 @@ const THEMES: { id: ThemeChoice; label: string }[] = [
   { id: 'carbonpaper', label: 'Dark' },
 ];
 
+/**
+ * A number box that keeps what is typed and clamps when the field is left. Clamping on every keystroke made most values
+ * impossible to type: "1024" in the context field became 256 at the "1", then 2560, then 8192, and was saved as 8192.
+ */
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onCommit(v: number): void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <label className="ff">
+      <span className="ff-label">{label}</span>
+      <input
+        className="typed field-input"
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={draft ?? value}
+        onChange={(e) => {
+          const text = e.target.value;
+          setDraft(text);
+          const v = Number(text);
+          if (text.trim() !== '' && Number.isFinite(v) && v >= min && v <= max) onCommit(v);
+        }}
+        onBlur={(e) => {
+          const text = e.target.value;
+          const v = Number(text);
+          if (text.trim() !== '' && Number.isFinite(v)) onCommit(Math.min(max, Math.max(min, v)));
+          setDraft(null);
+        }}
+      />
+    </label>
+  );
+}
+
 export default function SettingsScreen() {
   const { params, setParams, loadedModel, runtime } = useWllama();
   const { choice, setChoice } = useThemeState();
   const [prompt, setPrompt] = useState(params.systemPrompt);
 
-  const num = (key: 'temperature' | 'nPredict' | 'nContext', value: string, min: number, max: number) => {
-    const v = Number(value);
-    if (!Number.isFinite(v)) return;
-    setParams({ ...params, [key]: Math.min(max, Math.max(min, v)) });
-  };
+  const num = (key: 'temperature' | 'nPredict' | 'nContext', v: number) => setParams({ ...params, [key]: v });
 
   return (
     <div className="screen">
@@ -32,30 +75,22 @@ export default function SettingsScreen() {
         <section className="tier">
           <h2 className="tier-title">Answers</h2>
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className="ff">
-              <span className="ff-label">Temperature (0 = the same answer every time)</span>
-              <input
-                className="typed field-input"
-                type="number"
-                min={0}
-                max={2}
-                step={0.05}
-                value={params.temperature}
-                onChange={(e) => num('temperature', e.target.value, 0, 2)}
-              />
-            </label>
-            <label className="ff">
-              <span className="ff-label">Longest answer, in tokens (about ¾ of a word each)</span>
-              <input
-                className="typed field-input"
-                type="number"
-                min={16}
-                max={4096}
-                step={16}
-                value={params.nPredict}
-                onChange={(e) => num('nPredict', e.target.value, 16, 4096)}
-              />
-            </label>
+            <NumberField
+              label="Temperature (0 = the same answer every time)"
+              value={params.temperature}
+              min={0}
+              max={2}
+              step={0.05}
+              onCommit={(v) => num('temperature', v)}
+            />
+            <NumberField
+              label="Longest answer, in tokens (about ¾ of a word each)"
+              value={params.nPredict}
+              min={16}
+              max={4096}
+              step={16}
+              onCommit={(v) => num('nPredict', v)}
+            />
           </div>
 
           <label className="ff mt-2 block">
@@ -77,18 +112,14 @@ export default function SettingsScreen() {
         <section className="tier">
           <h2 className="tier-title">The engine</h2>
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className="ff">
-              <span className="ff-label">Context window, in tokens (prompt and answer together)</span>
-              <input
-                className="typed field-input"
-                type="number"
-                min={256}
-                max={MAX_CONTEXT}
-                step={256}
-                value={params.nContext}
-                onChange={(e) => num('nContext', e.target.value, 256, MAX_CONTEXT)}
-              />
-            </label>
+            <NumberField
+              label="Context window, in tokens (prompt and answer together)"
+              value={params.nContext}
+              min={256}
+              max={MAX_CONTEXT}
+              step={256}
+              onCommit={(v) => num('nContext', v)}
+            />
             <div className="ff">
               <span className="ff-label">Use the graphics card when one is usable</span>
               <label className="gpu-toggle typed">

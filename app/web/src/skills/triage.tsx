@@ -35,6 +35,7 @@ const BAND: Record<(typeof NEXT_STEP)[number], { band: string; label: string; me
   },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 function TriageRender({ object, streaming }: SkillRenderProps<Triage>) {
   const o = (object ?? {}) as Partial<Triage>;
   const step = o.next_step && BAND[o.next_step] ? BAND[o.next_step] : null;

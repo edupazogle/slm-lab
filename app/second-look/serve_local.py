@@ -11,7 +11,8 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Security-Policy", CSP); super().end_headers()
     def do_GET(self):
         if self.path in ("/", "/index.html"):
-            body = (SKEL + open(os.path.join(ROOT, "index.html"), encoding="utf-8").read() + "</body></html>").encode()
+            page = open(os.path.join(ROOT, "index.html"), encoding="utf-8").read()
+            body = (page if page.lstrip().lower().startswith("<!doctype") else SKEL + page + "</body></html>").encode()   # a full document is served as is
             self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
         return super().do_GET()
     def log_message(self, *a): pass

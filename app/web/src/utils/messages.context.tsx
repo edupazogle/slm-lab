@@ -176,6 +176,7 @@ export const MessagesProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider; a hot edit here reloads the page
 export const useMessages = () => {
   const ctx = useContext(MessagesContext);
   if (!ctx) throw new Error('useMessages must be used inside MessagesProvider');

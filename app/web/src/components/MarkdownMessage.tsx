@@ -1,6 +1,8 @@
 // Markdown for model output: react-markdown with GFM tables and highlighted code. Raw HTML is skipped rather than
 // sanitised (nothing from the model reaches innerHTML), and a link is only rendered as a link when it is http(s) or
-// mailto, so a model cannot emit a javascript: URL for someone to click.
+// mailto, so a model cannot emit a javascript: URL for someone to click. An image is never fetched: `![](https://host/?q=…)`
+// in an answer (copied from a pasted text, or planted there by one) would otherwise make the browser request that URL
+// the moment it renders, carrying whatever the model put in it off the device. It is shown as a link to click instead.
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -26,6 +28,16 @@ const components: Components = {
     return (
       <a href={safe} target="_blank" rel="noopener noreferrer" {...props}>
         {children}
+      </a>
+    );
+  },
+  img({ src, alt }) {
+    const safe = safeHref(src);
+    const label = `[image${alt ? `: ${alt}` : ''}]`;
+    if (!safe) return <span>{label}</span>;
+    return (
+      <a href={safe} target="_blank" rel="noopener noreferrer">
+        {label}
       </a>
     );
   },

@@ -30,6 +30,7 @@ export function NavProvider({ children, initialScreen }: { children: ReactNode; 
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider; a hot edit here reloads the page
 export function useNav() {
   const ctx = useContext(NavContext);
   if (!ctx) throw new Error('useNav must be used inside NavProvider');

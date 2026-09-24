@@ -1,6 +1,9 @@
 // Self-test page for the needle3 specialist engine: loads it in THIS browser and extracts two claims
-// (English and French). Results are shown and POSTed to /api/bench like every other measurement.
+// (English and French). Results are shown, and POSTed to /api/bench only when the URL asks for it with
+// ?post=1 (the lab's own runs): the result carries the browser's user agent, and on a public host the
+// server would log it, with the visitor's address, without the visitor knowing.
 import { loadNeedle, needleExtract, type JsonSchemaObject } from './lib/needle/needle';
+const q = new URLSearchParams(location.search);
 const el = document.getElementById('log')!; const out: string[] = [];
 const log = (s: string) => { out.push(s); el.textContent = out.join('\n'); };
 const schema: JsonSchemaObject = { type: 'object', properties: {
@@ -14,7 +17,7 @@ const CASES = [
     want: { policy_number: 'FR4471200', claimant: 'Madame Nadia Rousseau', incident_date: '2026-09-22', damage_type: 'dégât des eaux', amount: 3100 } },
 ];
 (async () => {
-  const result: any = { tag: new URLSearchParams(location.search).get('tag') ?? 'needle-selftest', engine: 'needle3-wasm',
+  const result: Record<string, unknown> & { runs: unknown[] } = { tag: q.get('tag') ?? 'needle-selftest', engine: 'needle3-wasm',
     env: { userAgent: navigator.userAgent, crossOriginIsolated: self.crossOriginIsolated, isSecureContext: self.isSecureContext, cores: navigator.hardwareConcurrency }, runs: [] };
   try {
     let last = -1;
@@ -28,7 +31,9 @@ const CASES = [
       log(`${c.lang}: ${ok}/5 fields correct in ${r.ms} ms · confidence ${r.confidence} · withheld=${r.withheld}\n   ${JSON.stringify(r.fields)}`);
     }
     result.ok = true;
-  } catch (e: any) { result.ok = false; result.error = String(e?.message ?? e); log('ERROR ' + result.error); }
-  try { await fetch('/api/bench', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(result) }); } catch { /* offline is fine */ }
+  } catch (e) { const msg = String((e as Error)?.message ?? e); result.ok = false; result.error = msg; log('ERROR ' + msg); }
+  if (q.get('post') === '1') {
+    try { await fetch('/api/bench', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(result) }); } catch { /* offline is fine */ }
+  }
   document.title = result.ok ? 'NEEDLE DONE' : 'NEEDLE FAILED';
 })();

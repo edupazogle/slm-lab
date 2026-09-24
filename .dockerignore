@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.cache
+app/second-look/ort
+app/second-look/models
+app/second-look/vendor
+app/second-look/tmp
+app/second-look/qa
+app/android-shell
+experiments
+phase1
+research
+critique
+.git

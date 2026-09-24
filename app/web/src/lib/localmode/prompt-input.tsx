@@ -54,6 +54,7 @@ const PromptInputContext =
   React.createContext<PromptInputContextValue | null>(null);
 
 /** Access composer state. Returns `null` when used outside a provider. */
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider; a hot edit here reloads the page
 export function usePromptInputContext() {
   return React.useContext(PromptInputContext);
 }

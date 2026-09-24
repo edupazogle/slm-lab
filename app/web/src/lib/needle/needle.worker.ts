@@ -4,7 +4,8 @@
 // Why it matters for phones: it is single-threaded and needs no SharedArrayBuffer, so unlike the
 // multi-threaded llama.cpp build it runs at full speed without cross-origin isolation — inside an Android
 // WebView, or on a phone that reached a laptop over plain http. The engine's JS glue contains no network
-// code at all; the only request is this worker fetching the model once, after which it is cached.
+// code at all; the only requests are this worker fetching the engine's .wasm from this site, and the model once,
+// after which it is cached.
 //
 // The engine owns ONE process-global conversation, so every extraction resets it first: independent
 // requests must never share context (phase 1 of this project published wrong results by reusing one).
@@ -81,7 +82,11 @@ self.onmessage = async (ev: MessageEvent<NeedleRequest>) => {
       const t0 = performance.now();
       if (!M) {
         importScripts(msg.engineBase + 'needle.js'); // classic Emscripten factory: defines createNeedle on the worker global
-        M = await createNeedle({ locateFile: (p: string) => msg.engineBase + p, print: () => {}, printErr: () => {} });
+        // This glue ignores Module.locateFile and looks for needle.wasm next to the WORKER script (assets/), where the
+        // build does not put it: measured, a 404 and "expected magic word" on every run. It does honour wasmBinary.
+        const wasm = await fetch(msg.engineBase + 'needle.wasm');
+        if (!wasm.ok) throw new Error(`engine download failed: HTTP ${wasm.status}`);
+        M = await createNeedle({ wasmBinary: await wasm.arrayBuffer(), print: () => {}, printErr: () => {} });
         const { buf, fromCache } = await fetchModel(msg.id, msg.modelUrl);
         const p = M._malloc(buf.length);
         M.HEAPU8.set(buf, p);
