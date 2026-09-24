@@ -88,7 +88,11 @@ const createWllamaInstance = () => {
   return instance;
 };
 
-const modelManager = new ModelManager({ logger: DebugLogger });
+// Created on first use, not at import: the constructor throws "No supported storage backend found" when the browser has
+// no OPFS (any plain-http page that is not localhost, older Safari), and a throw at import left chat.html blank instead
+// of showing the notice below. Every caller already catches.
+let modelManagerInstance: ModelManager | null = null;
+const getModelManager = () => (modelManagerInstance ??= new ModelManager({ logger: DebugLogger }));
 
 const SECURE = typeof window !== 'undefined' && window.isSecureContext;
 const INSECURE_MESSAGE =
@@ -130,6 +134,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
 
   const wllamaRef = useRef<Wllama | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const loadingRef = useRef(false);
 
   const refreshCachedModels = useCallback(async () => {
     if (!SECURE) {
@@ -137,7 +142,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      setCachedModels(await modelManager.getModels());
+      setCachedModels(await getModelManager().getModels());
     } catch (e) {
       DebugLogger.warn('cannot list cached models', e);
       setCachedModels([]);
@@ -188,7 +193,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
       }
       let lastPaint = 0;
       try {
-        await modelManager.downloadModel(
+        await getModelManager().downloadModel(
           { url: model.url, mmprojUrl: model.mmprojUrl },
           {
             signal: ctrl.signal,
@@ -238,7 +243,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
   const removeAllCachedModels = useCallback(async () => {
     if (loadedModel || isDownloading) return;
     try {
-      await modelManager.clear();
+      await getModelManager().clear();
     } catch (e) {
       setNotice(`Could not clear the model storage: ${errorText(e)}`);
     }
@@ -266,7 +271,10 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
         setNotice(INSECURE_MESSAGE);
         return;
       }
-      if (loadProgress) return;
+      // A ref, not the loadProgress state: loadProgress is only set after the unload below has been awaited, so a second
+      // click in that window passed the check and started a second Wllama whose worker, model included, nobody exited.
+      if (loadingRef.current) return;
+      loadingRef.current = true;
       if (wllamaRef.current) await unloadModel();
       setNotice(null);
       setLoadProgress({ url: model.url, phase: 'loading', loaded: 0, total: model.size });
@@ -324,11 +332,12 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
         setNotice(explainLoadError(e));
       } finally {
         unsubscribe();
+        loadingRef.current = false;
         setLoadProgress(null);
         await refreshCachedModels();
       }
     },
-    [loadProgress, params, refreshCachedModels, unloadModel]
+    [params, refreshCachedModels, unloadModel]
   );
 
   const addCustomModel = useCallback(
@@ -414,6 +423,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
   return <WllamaContext.Provider value={value}>{children}</WllamaContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider; a hot edit here reloads the page
 export const useWllama = () => {
   const ctx = useContext(WllamaContext);
   if (!ctx) throw new Error('useWllama must be used inside WllamaProvider');

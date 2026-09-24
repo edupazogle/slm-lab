@@ -19,9 +19,9 @@ export function formatDuration(ms: number | null | undefined): string {
   if (ms == null || !Number.isFinite(ms)) return 'not measured';
   if (ms < 1000) return `${Math.round(ms)} ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)} s`;
-  const m = Math.floor(ms / 60_000);
-  const s = Math.round((ms % 60_000) / 1000);
-  return `${m} min ${s} s`;
+  // round the whole seconds first: rounding only the remainder turned 119.6 s into "1 min 60 s"
+  const total = Math.round(ms / 1000);
+  return `${Math.floor(total / 60)} min ${total % 60} s`;
 }
 
 export function formatRate(tokS: number | null | undefined): string {

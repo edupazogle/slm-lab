@@ -11,7 +11,8 @@ const ctx = await browser.newContext(device ? { ...device } : {});
 const page = await ctx.newPage();
 page.on('console', (m) => { const t = m.text(); if (/error|fail|abort/i.test(t)) console.error('[console]', t.slice(0, 300)); });
 page.on('pageerror', (e) => console.error('[pageerror]', String(e).slice(0, 300)));
-const qs = new URLSearchParams({ url, threads, gpu, n, reps, tag });
+// post=1: bench.html sends its result to /api/bench only when asked (a visitor's run stays on the page)
+const qs = new URLSearchParams({ url, threads, gpu, n, reps, tag, post: '1' });
 await page.goto(`${origin}/bench.html?${qs}`);
 const t0 = Date.now();
 let last = '';

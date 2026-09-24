@@ -64,6 +64,7 @@ export interface Redaction {
 }
 
 /** Replace every occurrence of every entity the model found. Longest first, so overlapping matches cannot break a span. */
+// eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 export function redact(original: string, entities: { text: string; type: EntityType }[]): Redaction {
   const hay = original.toLowerCase();
   const seen = new Map<string, { text: string; type: EntityType }>();
@@ -234,6 +235,7 @@ function highlight(text: string, spans: Redaction['spans']) {
   return out;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 export const anonymiseSkill: Skill<AnonymiseResult> = {
   id: 'anonymise',
   name: 'Anonymise',

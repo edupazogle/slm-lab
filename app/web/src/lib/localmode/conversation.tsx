@@ -36,6 +36,7 @@ const ConversationContext =
   React.createContext<ConversationContextValue | null>(null);
 
 /** Access the conversation scroll state (within a `Conversation`). */
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider; a hot edit here reloads the page
 export function useConversation() {
   const ctx = React.useContext(ConversationContext);
   if (!ctx) {

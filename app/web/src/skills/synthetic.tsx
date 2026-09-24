@@ -24,6 +24,7 @@ const countOf = (input?: SkillInput) => {
   return Number.isFinite(n) ? Math.min(8, Math.max(1, Math.round(n))) : 4;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 function SyntheticRender({ object, streaming, skillInput }: SkillRenderProps<SyntheticClaims>) {
   const rows = (Array.isArray(object) ? object : []).filter((r) => r && typeof r === 'object');
   const wanted = countOf(skillInput);

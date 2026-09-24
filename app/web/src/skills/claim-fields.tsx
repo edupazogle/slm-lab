@@ -18,6 +18,7 @@ const schema = z.object({
 
 export type ClaimFields = z.infer<typeof schema>;
 
+// eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 function ClaimFieldsRender({ object, streaming }: SkillRenderProps<ClaimFields>) {
   const o = (object ?? {}) as Partial<ClaimFields>;
   const fmtAmount = (v: unknown) =>

@@ -57,4 +57,5 @@ const Button = React.forwardRef<
   );
 });
 
+// eslint-disable-next-line react-refresh/only-export-components -- the variants travel with the button, as upstream; a hot edit here reloads the page
 export { Button, buttonVariants };

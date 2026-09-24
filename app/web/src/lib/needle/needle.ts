@@ -75,7 +75,8 @@ export async function needleExtract(
   const tools = [{ name, description, parameters: schema }];
   const e = await call({ type: 'run', tools, system, input: text });
   if (e.type !== 'result') throw new Error('unexpected reply from the needle worker');
-  let doc: any = null;
+  type Call = { arguments?: Record<string, unknown> };
+  let doc: { function_calls?: Call[]; suppressed_calls?: Call[]; confidence?: unknown; reasoning?: string } | null = null;
   try { doc = JSON.parse(e.raw); } catch { /* the engine guarantees JSON; keep raw for the error surface */ }
   const live = doc?.function_calls?.[0]?.arguments ?? null;
   const held = doc?.suppressed_calls?.[0]?.arguments ?? null;
