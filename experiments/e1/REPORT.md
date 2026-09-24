@@ -1,219 +1,164 @@
-# E1 Experiment Report: Anonymisation Gate - Dataset + Regex Baseline
+# E1a — anonymisation gate: dataset + regex baseline (first half of E1)
 
-## Files Created
-- `DATA.md` - Dataset information and sources
-- `build_dataset.py` - Script to sample 400 FR + 400 EN rows from OpenPII 1.5M
-- `gen_fr_claims.py` - Script to generate 100 synthetic French claim emails
-- `combine_dataset.py` - Script to combine OpenPII samples with synthetic claims
-- `regex_baseline.py` - Regex baseline detector using patterns from second-look/index.html
-- `eval.py` - Evaluation script computing metrics and checking pass bar
-- `data/combined_dataset.jsonl` - Final dataset (900 samples: 500 FR, 400 EN)
-- `data/dataset.jsonl` - OpenPII samples (800 samples: 400 FR, 400 EN)
-- `data/synthetic_claims.jsonl` - Synthetic French claims (100 samples)
-- `results.json` - Final results from regex baseline
-- `results.jsonl` - Raw results from regex baseline (backup)
-- `REPORT.md` - This report
+Every number is read from `results.json` (written by `eval.py`) unless another file is named. Load when it was written: `16:00:51 up 11:57, load average: 1.21, 1.19, 0.96` (field `load_at_eval (uptime)`). Throughput was not measured.
 
-## Commands to Reproduce Each Number
+Written by the Opus delegate on 2026-09-24; its harness refused the `.md` write, so the supervisor pasted this text
+after checking the headline numbers against `results.json` (`kill_rule`, `pass_bar`).
 
-1. **Dataset Creation:**
-   ```bash
-   cd /home/edu/Public/bizloop/slm/experiments/e1
-   source .venv/bin/activate
-   python build_dataset.py
-   ```
+## Verdict
+**The pass bar is missed in both languages and the kill rule is not triggered.** The model half of E1 goes ahead.
+- Leak rate (typed): **FR 0.8747** (426 of 487 documents that hold a direct identifier) and **EN 0.9231** (360 / 390).
+- PERSON recall over all 900 documents: **0.3214** (501 / 1,559).
 
-2. **Synthetic French Claims Generation:**
-   ```bash
-   source .venv/bin/activate
-   python gen_fr_claims.py
-   ```
+## What was run (from `slm/experiments/e1/`)
+- Port check: `.venv/bin/python regex_baseline.py --check-page` asserts that TITLES, FIRST (166), NOT_NAME (199) and MONTHS equal the page's.
+- Detect: `.venv/bin/python regex_baseline.py data/combined_dataset.jsonl preds/regex_extended.jsonl --first extended`. The ablation is the same command with `--first page` → `preds/regex_page.jsonl`.
+- Parity: `node parity_check.js data/combined_dataset.jsonl preds/js_page.jsonl`, and `node parity_check.js data/combined_dataset.jsonl preds/js_extended.jsonl preds/extra_first.txt`. Then run `.venv/bin/python compare_parity.py preds/regex_<cfg>.jsonl preds/js_<cfg>.jsonl data/combined_dataset.jsonl preds/parity_<cfg>.json`.
+- Score: `.venv/bin/python eval.py --data data/combined_dataset.jsonl --preds preds/regex_extended.jsonl --ablation preds/regex_page.jsonl --out results.json`
+- Fail proof: `.venv/bin/python eval.py --preds preds/regex_extended.jsonl --shift 5 --out results_shift5.json`
+- `preds/extra_first.txt` is made with `.venv/bin/python -c "from first_names import EXTRA_FIRST; print(' '.join(sorted(EXTRA_FIRST)))"`.
 
-3. **Dataset Combination:**
-   ```bash
-   source .venv/bin/activate
-   python combine_dataset.py
-   ```
+**The port is faithful, and this is measured.**
+- `parity_check.js` runs the page's own detector block (`slm/app/second-look/index.html`) under node on all 900 documents. `compare_parity.py` finds 0 documents that differ in entities or in name candidates:
+  - `preds/parity_page.json`: 2,267 entities, 3,461 candidates.
+  - `preds/parity_extended.json`: 2,312 entities, 3,465 candidates.
+- JS offsets are UTF-16, so they are mapped to code points before comparing.
+- To match, the port reproduces the page's JS semantics, defects included:
+  - `\b` is ASCII-only.
+  - `\s` is Unicode.
+  - `$` means end of string.
+  - AMOUNT is dropped.
+  - Name candidates without a cue are dropped (the page would ask its model).
+  - Overlaps are removed greedily.
 
-4. **Regex Baseline Execution:**
-   ```bash
-   source .venv/bin/activate
-   python regex_baseline.py data/combined_dataset.jsonl results.jsonl
-   ```
+**The only intended change:** `first_names.py` adds 644 hand-written EN/FR/ES/DE/IT given names (810 in total). Given names that are also words, places or brands were left out, because the page checks the first-name cue before its place skip.
 
-5. **Evaluation:**
-   ```bash
-   source .venv/bin/activate
-   python eval.py results.jsonl
-   ```
+## Data and scoring
+**Data.** 900 documents (`data/combined_dataset.jsonl`, `DATA.md`):
+- 400 FR and 400 EN from OpenPII (CC-BY-4.0, Ai4Privacy / Ai Suisse SA).
+- 100 synthetic French claims (`gen_fr_claims.py`).
 
-## Results with Their Files
+**Failure checks.** `eval.py` exits non-zero when:
+- an input file is missing or empty;
+- the prediction rows differ from the documents in count or ids;
+- a slice does not hold 400 / 100 / 400 documents;
+- a slice lacks gold types it must have.
 
-### Overall Results (from results.json):
-- **True Positives:** 1273
-- **False Positives:** 197  
-- **False Negatives:** 4428
-- **Precision:** 0.8660
-- **Recall:** 0.2233
-- **F1-Score:** 0.3550
-- **Document Leak Rate:** 0.9837 (845/859)
+Tested: 899 rows → exit 1; empty file → exit 1; missing file → exit 1. The eval printed "scored 900 documents (fr 500, en 400)".
 
-### Per-Type Results:
-| Entity Type | Precision | Recall | F1-Score |
-|-------------|-----------|--------|----------|
-| EMAIL       | 0.996     | 0.998  | 0.997    |
-| IBAN        | 1.000     | 1.000  | 1.000    |
-| NIR         | 0.829     | 0.920  | 0.872    |
-| PHONE       | 0.852     | 0.787  | 0.818    |
-| PLATE       | 0.980     | 1.000  | 0.990    |
-| PERSON      | 0.000     | 0.000  | 0.000    |
-| DATE        | 0.000     | 0.000  | 0.000    |
+**Scoring rules.**
+- **Coverage:** a gold span is covered when at least 50 % of its characters fall inside predictions of an allowed type. A prediction is correct when at least 50 % of its characters fall inside gold spans of an allowed type. This is character coverage, not IoU, because OpenPII splits given name and surname into separate spans.
+- **Type map:** NIR → NIR or NATIONAL_ID; ID → ID_DOC or NATIONAL_ID.
+- **Direct identifiers (9):** PERSON, EMAIL, PHONE, NATIONAL_ID/NIR, IBAN, CARD, PLATE, ID_DOC, ADDRESS.
+- **Leak rate:** the share of documents holding at least one direct identifier where one or more is not covered. `leak_rate_any_type` also accepts a mask of the wrong type.
+- **DATE** is scored separately.
+- **Precision** for the bar is micro precision over the direct-identifier prediction types.
+- **Round trip:** the page's `placeholders()` and `applyPlaceholders()`, then each placeholder is restored to the text first given to it.
 
-### Per-Dataset Evaluation (from eval.py):
+## Results
+| | FR (500) | EN (400) |
+|---|---|---|
+| Leak rate, typed (bar ≤ 0.01) | 0.8747 (426/487) | 0.9231 (360/390) |
+| Leak rate, any type masks | 0.8583 | 0.9128 |
+| Precision, direct identifiers (bar ≥ 0.80) | 0.9147 (1,161 predictions) | 0.9249 (586) |
+| PERSON recall (bar ≥ 0.95) | 0.2796 (241/862) | 0.3730 (260/697) |
+| PERSON precision | 0.8602 | 0.9290 |
+| NATIONAL_ID/NIR recall (bar ≥ 0.98) | 0.5183 (99/191) | 0.1081 (8/74) |
+| EMAIL recall | 0.9935 | 0.9956 |
+| PHONE recall | 0.8008 | 0.7176 |
+| IBAN recall | 1.0000 | no gold |
+| PLATE recall | 1.0000 | no gold |
+| CARD recall | 0.1290 | 0.0722 |
+| ID_DOC recall | 0.0385 | 0.0781 |
+| ADDRESS recall | 0.1933 | 0.0000 |
+| Round trip (bar = 1.0) | 0.998 (499/500) | 1.000 |
+| DATE recall / precision | 0.6282 / 0.9966 | 0.6454 / 0.9915 |
+| Pass bar met | no | no |
 
-**FR OpenPII (372 samples):**
-- Document Leak Rate (direct IDs): 0.758 (282/372)
-- Average Precision (key types): 0.298
-- Per-Type Recall: 
-  - NIR: 0.000
-  - IBAN: 0.000  
-  - PHONE: 0.707
-  - EMAIL: 0.995
-  - PLATE: 0.000
-  - PERSON: 0.000
+By slice (typed leak rate · PERSON recall):
 
-**FR Synthetic (100 samples):**
-- Document Leak Rate (direct IDs): 1.000 (100/100)
-- Average Precision (key types): 0.817
-- Per-Type Recall:
-  - NIR: 0.920
-  - IBAN: 1.000  
-  - PHONE: 1.000
-  - EMAIL: 1.000
-  - PLATE: 1.000
-  - PERSON: 0.000
+| Slice | Leak rate | PERSON recall |
+|---|---|---|
+| FR OpenPII | 0.9406 | 0.1526 |
+| FR synthetic | 0.6200 | 0.7000 |
+| EN OpenPII | 0.9231 | 0.3730 |
 
-**EN OpenPII (387 samples):**
-- Document Leak Rate (direct IDs): 0.788 (305/387)
-- Average Precision (key types): 0.309
-- Per-Type Recall:
-  - NIR: 0.000
-  - IBAN: 0.000
-  - PHONE: 0.712
-  - EMAIL: 1.000
-  - PLATE: 0.000
-  - PERSON: 0.000
+**Pass-bar checks** (`pass_bar`):
+- FR passes precision, IBAN, EMAIL and PLATE; it fails leak, NIR, PHONE, PERSON and round trip.
+- EN passes precision, EMAIL and round trip; it fails leak, NIR, PHONE and PERSON. IBAN and PLATE have no gold, so they cannot be measured.
 
-## Pass Bar Assessment
+**Kill rule** (`kill_rule`): `triggered: false`.
 
-According to the E1 brief, the pass bar requires:
-- **Document-level leak rate ≤ 1% per language** at **precision ≥ 0.80**
-- **Recall ≥ 0.98** on NIR/IBAN/PHONE/EMAIL/PLATE
-- **Recall ≥ 0.95** on PERSON
-- **100% placeholder round trip** (not tested in this baseline)
+**Ablation** (`ablation_page_first_list`, the page's 166 names → the extended list):
 
-### Results:
-❌ **Leak Rate Criterion:** NOT MET (min leak rate 0.758 > 0.01)
-❌ **Precision Criterion:** NOT MET (max average precision 0.817 < 0.80 for FR_Synthetic, but FR OpenPII and EN OpenPII are lower)
-❌ **Recall Criterion:** NOT MET (most entity types have recall < 0.98)
-- Only EMAIL, IBAN, PHONE show good recall in some datasets (>0.98 in FR Synthetic for IBAN/PHONE/EMAIL/PLATE)
-- NIR recall is 0.920 in FR Synthetic (< 0.98)
-- PERSON recall is 0.000 in all datasets
+| | FR | EN |
+|---|---|---|
+| PERSON recall | 0.2425 → 0.2796 | 0.3659 → 0.3730 |
+| PERSON precision | 0.8724 → 0.8602 | 0.9329 → 0.9290 |
+| Leak rate | 0.9158 → 0.8747 | 0.9256 → 0.9231 |
 
-### Detailed Pass Bar Breakdown:
-**FR OpenPII:**
-- Leak Rate ≤ 1%: FAIL (0.758 > 0.01)
-- Precision ≥ 0.80: FAIL (0.298 < 0.80)
-- NIR Recall ≥ 0.98: FAIL (0.000 < 0.98)
-- IBAN Recall ≥ 0.98: FAIL (0.000 < 0.98)
-- PHONE Recall ≥ 0.98: FAIL (0.707 < 0.98)
-- EMAIL Recall ≥ 0.98: PASS (0.995 ≥ 0.98)
-- PLATE Recall ≥ 0.98: FAIL (0.000 < 0.98)
-- PERSON Recall ≥ 0.95: FAIL (0.000 < 0.95)
+## Why PERSON is missed (`person_miss_diagnosis`, 1,058 misses)
+| Cause | Misses |
+|---|---|
+| A candidate with no cue, which the page defers to its model (there is no model here) | 949 |
+| Capitalised, but no candidate | 84 |
+| A cued candidate lost to an overlap | 24 |
+| Not capitalised | 1 |
 
-**FR Synthetic:**
-- Leak Rate ≤ 1%: FAIL (1.000 > 0.01)
-- Precision ≥ 0.80: PASS (0.817 ≥ 0.80)
-- NIR Recall ≥ 0.98: FAIL (0.920 < 0.98)
-- IBAN Recall ≥ 0.98: PASS (1.000 ≥ 0.98)
-- PHONE Recall ≥ 0.98: PASS (1.000 ≥ 0.98)
-- EMAIL Recall ≥ 0.98: PASS (1.000 ≥ 0.98)
-- PLATE Recall ≥ 0.98: PASS (1.000 ≥ 0.98)
-- PERSON Recall ≥ 0.95: FAIL (0.000 < 0.95)
+So the regex half is a lower bound of the page, not the page itself.
 
-**EN OpenPII:**
-- Leak Rate ≤ 1%: FAIL (0.788 > 0.01)
-- Precision ≥ 0.80: FAIL (0.309 < 0.80)
-- NIR Recall ≥ 0.98: FAIL (0.000 < 0.98)
-- IBAN Recall ≥ 0.98: FAIL (0.000 < 0.98)
-- PHONE Recall ≥ 0.98: FAIL (0.712 < 0.98)
-- EMAIL Recall ≥ 0.98: PASS (1.000 ≥ 0.98)
-- PLATE Recall ≥ 0.98: FAIL (0.000 < 0.98)
-- PERSON Recall ≥ 0.95: FAIL (0.000 < 0.95)
+Defects in the page (reported, not fixed here — `slm/app/` is outside this experiment's folder):
+- `Nom:` is not a cue, and every synthetic claim has a `- Nom: <name>` line.
+- JS `\b` is ASCII-only, so a name starting with an accented capital ("Édith") is never picked up.
+- Hyphenated first names such as `Patrick-Xavier` never match the list.
+- The name pattern takes at most 4 words, so long names are split.
+- `Le` alone reuses the placeholder of `Albesjan Le Mao`. This is the one round-trip failure (document 776).
+- CARD wins a tie against NIR: 10 NIRs are masked, but as CARD (their 15 digits pass Luhn and CARD comes first in PATTERNS).
 
-## What Was Not Done and Why
+## The 10 worst PERSON misses (`worst_person_misses`)
+These are fully exposed (no prediction of any type touches the name), longest first, taken round-robin over the three slices. All ten are candidates with no cue.
+1. FR synthetic, synthetic_096: "Alexandrie-Claudine Martineau" (`- Nom: Alexandrie-Claudine Martineau - Téléphone: …`)
+2. FR OpenPII, 227: "Dovi-Apelete Willommet Kumarasinghage" (`Bonjour Sen Soraida Dovi-Apelete Willommet Kumarasinghage, …`)
+3. EN OpenPII, 172: "Kangakumar Velauthampillai Cengic" (`Employee: Gamar Kangakumar Velauthampillai Cengic Age: 39`)
+4. FR synthetic, synthetic_004: "Frédérique Deschamps-Ferrand" (`- Nom: …`)
+5. FR OpenPII, 361: "Nicchiotti Wentzlaff-Eggebert Baroth" (`Mtre Serdjan Nicchiotti … vous adresse ce courriel`)
+6. EN OpenPII, 581: "Maffezzini Ryhiner Majidzadeh" (`Dear Mayoress Sunanda Iasna Maffezzini Ryhiner Majidzadeh, …`)
+7. FR synthetic, synthetic_081: "Arnaude Étienne du Petitjean" (`- Nom: …`)
+8. FR OpenPII, 258: "Abbasi-Khalili Holecek Gyapoentsang" (`Mtre Zhao Sixtus Abbasi-Khalili … Organisation « Eau Pure …`)
+9. EN OpenPII, 629: "Kapánek Iencarelli von Kampen" (`Wissem Kapánek Iencarelli von Kampen, born on 2022-01-30…`)
+10. FR synthetic, synthetic_073: "Victoire Delahaye Le Peron" (`- Nom: …`)
 
-1. **Second Half of E1 (Presidio + French recognisers, GLiNER2-PII):**
-   - Not completed because we were instructed to work only on the first half (dataset + regex baseline) per the brief E1 title "anonymisation gate: dataset + regex baseline (first half of E1)"
-   - The brief explicitly states this is the "first half of E1"
+## NIR on the synthetic claims (`nir_miss_diagnosis_fr_synthetic`)
+- **82** are caught as NIR.
+- **10** well-formed NIRs are masked as CARD (the tie above).
+- **8** gold NIRs are malformed: 14 characters, because the birth year is written unpadded by `randint(0, 99)` in `gen_fr_claims.py`. 7 of them are uncovered.
 
-2. **Detailed Analysis of Worst Misses:**
-   - Not performed as this would require manual inspection of failure cases
-   - Would be part of the second half of E1 to identify what the model components should target
+The generator should be fixed before the model half is scored on NIR.
 
-3. **Placeholder Round Trip Test:**
-   - Not implemented as this requires implementing the full pseudonymization pipeline
-   - Would be part of a complete anonymisation system evaluation
-   - The brief mentions this as part of evaluation but focuses first half on dataset+baseline
+## A metric that can fail (`fail_proof_shift_plus5`, `results_shift5.json`)
+Every predicted span moved +5 characters:
 
-4. **Entity-specific validation functions (Luhn, mod-97, NIR key check) in regex_baseline.py:**
-   - Partially implemented for IBAN but not fully integrated due to complexity of adapting HTML JavaScript patterns to Python
-   - The focus was on demonstrating the baseline approach rather than achieving production-ready performance
+| Metric | Before | After +5 |
+|---|---|---|
+| Leak rate FR | 0.8747 | 0.9713 |
+| Leak rate EN | 0.9231 | 0.9513 |
+| PERSON recall FR | 0.2796 | 0.2367 |
+| PERSON recall EN | 0.3730 | 0.2755 |
+| EMAIL recall FR | 0.9935 | 0.9677 |
+| Precision FR | 0.9147 | 0.8105 |
+| Round trip FR | 0.998 | 0.902 |
 
-5. **Custom French recognisers for NIR, IBAN, SIREN, SIV plate:**
-   - Not implemented as this belongs to the model half of E1
-   - The regex baseline was meant to use ONLY the patterns from second-look/index.html
+DATE recall does not move: a 10-character date shifted by 5 is still exactly 50 % covered, because the 50 % rule is lenient.
 
-6. **Proper French NER (spaCy fr_core_news_lg):**
-   - Not implemented as this belongs to the model half of E1
-   - The brief clearly separates dataset+regex baseline (first half) from model components (second half)
+## What the second half should target
+1. PERSON names with no cue (949 of 1,058 misses). This needs a NER model or the page's NLI check.
+2. ID_DOC, CARD, OpenPII NATIONAL_ID and ADDRESS. The page's patterns are shaped for French claims.
+3. International PHONE formats.
+4. A NIR key check, SIREN detection, and the CARD-vs-NIR tie.
 
-## Key Findings
-
-1. **EMAIL and IBAN Detection Works Well:** 
-   - The regex pattern for email addresses achieves excellent precision and recall (>0.99 precision, >0.99 recall)
-   - IBAN detection achieves perfect scores due to proper mod-97 validation implementation
-
-2. **NIR and PHONE Show Moderate Performance:**
-   - NIR achieves 0.829 precision and 0.920 recall in FR Synthetic
-   - PHONE achieves 0.852 precision and 0.787 recall overall, with better recall in synthetic data (1.000)
-
-3. **PLATE Detection Works Well:**
-   - Plate detection achieves 0.980 precision and 1.000 recall due to good regex patterns
-
-4. **PERSON and DATE Detection Fails Completely:**
-   - PERSON shows 0.000 precision and recall because the regex patterns in second-look/index.html don't match our French naming conventions well
-   - DATE shows 0.000 precision and recall because the DATE pattern was commented out in regex_baseline.py
-
-5. **Document Leak Rate is High:** 
-   - Despite good performance on some entity types, the document-level leak rate is poor (0.758-1.000) because:
-     - Many documents contain multiple entity types
-     - Missing even one entity type (especially PERSON which we miss completely) counts as a leak
-     - This shows why both per-type metrics and document-level metrics are important
-
-## Conclusion
-
-The regex baseline from second-look/index.html shows:
-- Strong performance on EMAIL and IBAN detection
-- Moderate performance on NIR, PHONE, and PLATE detection
-- Complete failure on PERSON and DATE detection
-- Does NOT meet the E1 pass bar due to high leak rates (>0.75) and insufficient recall on key types (NIR, PERSON)
-
-For a production system, the model half of E1 would be necessary to add:
-- Proper French NER (spaCy fr_core_news_lg) for PERSON detection
-- Improved DATE patterns
-- Custom French recognisers for NIR, IBAN, SIREN, SIV plate (though IBAN already works well)
-- Better PHONE and ADDRESS patterns
-- Entity-specific validation (Luhn, mod-97, NIR key check) for all relevant types
-
-**Recommendation:** Proceed with model half of E1 to improve entity detection beyond regex alone, particularly focusing on PERSON detection which is completely missing.
+## Not done, and why
+- Throughput was not measured.
+- SIREN detection and the NIR key check are not in the page, and this brief asked for a faithful port.
+- The page's defects are reported, not fixed: the port must match the page.
+- The 8 malformed synthetic NIRs are reported; the dataset is unchanged.
+- The old debug scripts and `results.jsonl` (41 documents missing) were removed; they remain in git history (fe97f87).
