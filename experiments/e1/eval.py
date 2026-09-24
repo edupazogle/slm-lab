@@ -74,6 +74,9 @@ def _norm(s):
     return re.sub(r'[\s.\-/]+', '', s.lower())
 
 
+PARTICLES = {'de', 'du', 'da', 'van', 'von', 'der', 'le', 'la', 'di', 'del', 'dos', "o'", 'mc'}   # the page's PARTICLES
+
+
 def round_trip(text, ents):
     mp, count, ph = {}, Counter(), []
     for e in ents:
@@ -82,10 +85,10 @@ def round_trip(text, ents):
             count[e['type']] += 1
             mp[key] = f"[{e['type']}_{count[e['type']]}]"
         ph.append(mp[key])
-    for k, e in enumerate(ents):                      # a surname alone reuses the full name's placeholder
+    for k, e in enumerate(ents):                      # a surname alone reuses the full name's placeholder, never through a particle
         if e['type'] == 'PERSON' and ' ' not in e['text']:
             for j, f in enumerate(ents):
-                if f['type'] == 'PERSON' and ' ' in f['text'] and e['text'] in re.split(r'\s+', f['text']):
+                if f['type'] == 'PERSON' and ' ' in f['text'] and e['text'] in [w for w in re.split(r'\s+', f['text']) if w.lower() not in PARTICLES]:
                     ph[k] = ph[j]
                     break
     out, i = '', 0
@@ -245,7 +248,7 @@ def person_misses(by_slice):
                 elif not txt[:1].isupper():
                     why = 'not capitalised'
                 elif not txt[:1].isascii():
-                    why = 'starts with an accented capital (JS ASCII \\b: CAP cannot start there)'
+                    why = 'starts with a non-ASCII capital but is no candidate (outside CAP\'s Latin-1 ranges, or a skip)'
                 else:
                     why = 'capitalised but no candidate (NOT_NAME word, place or sentence-start skip, or CAP shape)'
                 diag[why] += 1

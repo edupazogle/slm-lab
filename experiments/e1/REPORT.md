@@ -162,3 +162,36 @@ DATE recall does not move: a 10-character date shifted by 5 is still exactly 50 
 - The page's defects are reported, not fixed: the port must match the page.
 - The 8 malformed synthetic NIRs are reported; the dataset is unchanged.
 - The old debug scripts and `results.jsonl` (41 documents missing) were removed; they remain in git history (fe97f87).
+
+## Addendum 2026-09-24: the page defects fixed, the port re-checked, the documents re-scored
+
+The six page defects listed above were fixed in `slm/app/second-look/index.html` the same day: `Nom:`, `Name:` and
+`Prénom:` labels are a name cue; CAP and the place skip start with `(?<![\p{L}\p{N}_])` instead of the ASCII-only `\b`,
+so "Édith" is a candidate and "à" is a place cue; the first part of a hyphenated given name is checked against the list;
+CAP takes up to 6 words; a surname alone never reuses a placeholder through a particle ("Le"); NIR sits before CARD in
+`PATTERNS`. `gen_fr_claims.py` now pads the birth year; the dataset itself is unchanged, so its 8 malformed NIRs remain.
+
+`regex_baseline.py` and the round trip in `eval.py` follow the page. Parity re-run on the 900 documents: 0 differ
+(`preds/parity_v2_page.json`: 2,386 entities, 3,199 candidates; `preds/parity_v2_extended.json`: 2,406 / 3,203; the
+inputs are `preds/js_v2_*.jsonl` and `preds/regex_v2_*.jsonl`). Scored again with the extended list
+(`results_v2.json`, ablation `preds/regex_v2_page.jsonl`):
+
+| | before (`results.json`) | after (`results_v2.json`) |
+|---|---|---|
+| Leak rate, typed, FR | 0.8747 (426/487) | 0.7639 (372/487) |
+| Leak rate, typed, EN | 0.9231 (360/390) | 0.9051 (353/390) |
+| PERSON recall, all 900 | 0.3214 (501/1,559) | 0.4150 (647/1,559) |
+| PERSON precision, all 900 | 0.8889 | 0.9018 |
+| Precision, direct identifiers, FR / EN | 0.9147 / 0.9249 | 0.9281 / 0.9237 |
+| NATIONAL_ID/NIR recall, FR | 0.5183 (99/191) | 0.5812 (111/191) |
+| NIR recall, FR synthetic | 0.82 (82/100) | 0.92 (92/100) |
+| Well-formed NIRs masked as CARD | 10 | 0 |
+| Round trip, FR | 0.998 (499/500) | 1.000 (500/500) |
+| FR synthetic slice: leak rate · PERSON recall | 0.62 · 0.70 | 0.12 · 0.95 |
+| FR OpenPII slice: leak rate · PERSON recall | 0.9406 · 0.1526 | 0.9302 · 0.2069 |
+| EN OpenPII slice: PERSON recall | 0.3730 | 0.4591 |
+| Pass bar met | no | no |
+
+The pass bar is still missed in both languages and the kill rule is still not triggered: the regex half remains a lower
+bound of the page, because name candidates without a cue still go to the model, which this scoring does not run. The 8
+gold NIRs of 14 characters stay uncovered until the synthetic claims are regenerated with the fixed generator.

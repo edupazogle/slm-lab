@@ -49,8 +49,8 @@ def generate_nir():
     # Gender: 1 = male, 2 = female
     gender = random.choice([1, 2])
 
-    # Year of birth (00-99)
-    year = random.randint(0, 99)
+    # Year of birth (00-99), two digits: an unpadded year made a 14-character NIR
+    year = f"{random.randint(0, 99):02d}"
 
     # Month of birth (01-12)
     month = f"{random.randint(1, 12):02d}"

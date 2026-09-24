@@ -13,7 +13,11 @@ every experiment (a 9-window test set reported as "perfect", invented dataset la
 Lessons: prescriptive briefs with exact code and count assertions work; open-ended "build a dataset" briefs do not.
 A headless delegate that writes a planning sentence without a tool call ends its job (now in `plan/briefs/_preface.md`).
 
-**Follow-up for the Second Look page** (`slm/app/second-look/index.html`), from E1a's parity run: add `Nom:` as a name cue;
-Unicode-aware word boundaries (`\b` is ASCII-only in JS, so "Édith" is never a candidate); hyphenated given names; names
-longer than 4 words; a surname-only placeholder must not match a particle ("Le"); NIR before CARD in `PATTERNS` (10 NIRs
-masked as CARD); and `gen_fr_claims.py` pads the birth year. Brief it as one small Opus task after the frontend wave.
+**Follow-up for the Second Look page** (`slm/app/second-look/index.html`), from E1a's parity run — **done 2026-09-24**
+(branch `claude/wizardly-allen-tu4p7a`): `Nom:` / `Name:` / `Prénom:` as a name cue; Unicode-aware boundaries in CAP and
+the place skip (`\b` is ASCII-only in JS, so "Édith" was never a candidate and "à" never a place cue); hyphenated given
+names; names up to 6 words; a surname-only placeholder never matches a particle ("Le"); NIR before CARD in `PATTERNS` (the
+10 NIRs masked as CARD); `gen_fr_claims.py` pads the birth year. The port (`regex_baseline.py`, `eval.py`) follows the
+page; parity 0/900 again; the numbers are in `experiments/e1/REPORT.md` (addendum) and `results_v2.json`. Verified in
+headless Chromium with the runtime and model files read back from the published artifact, and the artifact republished.
+Still open: regenerate the synthetic claims with the padded NIR before the model half is scored on NIR.

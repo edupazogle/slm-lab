@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """E1a regex baseline — a faithful Python port of the personal-data detectors in slm/app/second-look/index.html.
 
-Ported (page lines ~1021-1103): TITLES, FIRST, NOT_NAME, MONTHS, PATTERNS (EMAIL, IBAN+mod-97, CARD+Luhn, NIR, PHONE,
-DATE, PLATE, ADDRESS, POSTCODE, ID x2, AMOUNT), findPatterns(), CAP, nameCandidates() with every cue (title, greeting,
-sign-off, relation, context, first name), the preposition ("place") skip, the sentence-start rule, sentenceAround(),
+Ported (page section "personal data: detectors"): TITLES, FIRST, NOT_NAME, MONTHS, PATTERNS (EMAIL, IBAN+mod-97, NIR,
+CARD+Luhn, PHONE, DATE, PLATE, ADDRESS, POSTCODE, ID x2, AMOUNT), findPatterns(), CAP (up to 6 words), nameCandidates()
+with every cue (title, greeting, sign-off, relation, context incl. "Nom:" / "Name:" labels, first name incl. the first part
+of a hyphenated name), the preposition ("place") skip, the sentence-start rule, sentenceAround(),
 and detect() without the model: AMOUNT dropped (amounts=false), name candidates without a cue dropped (no model), then
 sorted by start / longest first and overlaps removed greedily — exactly as the page does.
 
 JavaScript semantics reproduced on purpose (so the port behaves like the page, defects included):
-  * `\\b` in a JS regex is ASCII-only, even with the u flag: an accented capital after a space (`Édith`) is NOT at a
-    word boundary, so CAP cannot start there, and `\\bà` never matches after a space. B below reproduces that.
+  * `\\b` in a JS regex is ASCII-only, even with the u flag. B below reproduces that for the patterns that still use it.
+    Since the 2026-09-24 follow-up the page's CAP and its place skip use `(?<![\\p{L}\\p{N}_])` instead, so `Édith` after a
+    space is a candidate and `à` is a place cue; Python's `(?<!\\w)` is the same class (letters, numbers, underscore).
   * JS `\\s` is Unicode whitespace (incl. U+00A0, U+202F); JS `\\d` is [0-9]; JS `$` (no m flag) is end of string -> \\Z.
   * cand = words.join(' '): if the words were separated by a newline or two spaces the span end is off — kept.
 Known residual differences: POSTCODE uses [^\\W\\d_] for \\p{L} (differs only on non-decimal numerals such as '²');
@@ -85,8 +87,8 @@ I = re.IGNORECASE
 PATTERNS = [
     ('EMAIL', re.compile(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', I), None, 0),
     ('IBAN', re.compile(rf'{B}[A-Z]{{2}}{D}{{2}}(?:[ ]?[A-Z0-9]{{4}}){{2,7}}(?:[ ]?[A-Z0-9]{{1,4}})?{B}'), iban_ok, 0),
-    ('CARD', re.compile(rf'{B}(?:{D}[ -]?){{13,19}}{B}'), _card_ok, 0),
     ('NIR', re.compile(rf'{B}[12][ ]?{D}{{2}}[ ]?(?:0[1-9]|1[0-2])[ ]?(?:{D}{{2}}|2A|2B)[ ]?{D}{{3}}[ ]?{D}{{3}}(?:[ ]?{D}{{2}})?{B}'), None, 0),
+    ('CARD', re.compile(rf'{B}(?:{D}[ -]?){{13,19}}{B}'), _card_ok, 0),
     ('PHONE', re.compile(rf'(?:(?:\+|00){D}{{1,3}}[ .-]?(?:\(0\)[ .-]?)?{D}{{1,4}}(?:[ .-]?{D}{{2,4}}){{2,4}})|{B}0[1-9](?:[ .-]?{D}{{2}}){{4}}{B}|{B}07{D}{{3}}[ ]?{D}{{6}}{B}'), None, 0),
     ('DATE', re.compile(rf'{B}(?:{D}{{1,2}}[/.-]{D}{{1,2}}[/.-](?:19|20){D}{{2}}|(?:19|20){D}{{2}}-{D}{{2}}-{D}{{2}}|{D}{{1,2}}(?:st|nd|rd|th|er)?{S}+(?:{MONTHS})\.?{S}+(?:19|20){D}{{2}}|(?:{MONTHS})\.?{S}+{D}{{1,2}}(?:st|nd|rd|th)?,?{S}+(?:19|20){D}{{2}}){B}', I), None, 0),
     ('PLATE', re.compile(rf'{B}(?:[A-Z]{{2}}-{D}{{3}}-[A-Z]{{2}}|[A-Z]{{2}}{D}{{2}}{S}?[A-Z]{{3}}|{D}{{4}}{S}?[BCDFGHJKLMNPRSTVWXYZ]{{3}}|[A-ZÄÖÜ]{{1,3}}-[A-Z]{{1,2}}{S}?{D}{{1,4}}[EH]?){B}'), None, 0),
@@ -116,13 +118,13 @@ def find_patterns(text):
 
 _UP, _LO = 'A-ZÀ-ÖØ-Þ', "a-zà-öø-ÿ'’"
 _WORD = f'[{_UP}][{_LO}]+(?:-[{_UP}][{_LO}]+)?'
-CAP = re.compile(rf"{B}({_WORD}(?:{S}+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc){S}+)?{_WORD}){{0,3}})")
+CAP = re.compile(rf"(?<!\w)({_WORD}(?:{S}+(?:(?:de|du|da|van|von|der|le|la|di|del|dos|O'|Mc){S}+)?{_WORD}){{0,5}})")
 RE_TITLE = re.compile(rf'(?:{B}(?:{TITLES}))\.?{S}*\Z')
 RE_GREET = re.compile(rf'(?:{B}Dear|{B}Hello|{B}Hi|{B}Bonjour|{B}Cher|{B}Chère|{B}Hallo|{B}Liebe[r]?|{B}Hola){S}*\Z', I)
 RE_SIGN = re.compile(rf'(?:regards|sincerely|faithfully|cordialement|salutations|grüßen|saludos|signed|signé)[,.]?{S}*\Z', I)
 RE_REL = re.compile(rf'{B}(?:my|our|her|his|their){S}+(?:son|daughter|husband|wife|partner|mother|father|brother|sister|neighbour|neighbor|friend|colleague|tenant|landlord|child){S}*,?{S}*\Z', I)
-RE_CTX = re.compile(rf'{B}(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?){S}*\Z', I)
-RE_PLACE = re.compile(rf'{B}(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da){S}*\Z', I)
+RE_CTX = re.compile(rf'{B}(?:called|named|name is|nom est|heißt|se llama|spoke (?:to|with)|contact(?:ed)?|driver,?|witness,?|handler,?|adjuster,?|(?:nom|name|pr[ée]nom){S}*:){S}*\Z', I)
+RE_PLACE = re.compile(rf'(?<!\w)(?:in|at|near|from|to|into|towards|via|en|à|au|aux|nach|bei|im|en|a|di|da){S}*\Z', I)
 RE_SENT = re.compile(rf'(?:^|[.!?\n]{S}*)\Z')
 RE_POSS = re.compile("[’']s$")
 
@@ -172,7 +174,7 @@ def name_candidates(text, first):
             why = 'relation'
         elif RE_CTX.search(before):
             why = 'context'
-        elif _fold(words[0]) in first:
+        elif _fold(words[0]).split('-')[0] in first:      # "Jean-Pierre" checks "jean"
             why = 'first name'
         if not why and RE_PLACE.search(before):
             continue

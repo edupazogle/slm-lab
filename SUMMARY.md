@@ -179,3 +179,6 @@ Source: `prd/PRD.md` §8 and `research/landscape/bizloop-applications.md`.
 models in the browser, offline (claim routing, legal and vulnerable-customer flags, urgency, an AI-reply guardrail, your own
 yes/no question), a calibration test on 30 labelled messages, a document redactor and synthetic claim variants from Word files.
 Published as https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh. See its README for the measured numbers and how to rebuild.
+Later the same day the six redactor defects E1a's parity run found were fixed in the page and its Python port, re-scored on
+the 900 documents (`experiments/e1/results_v2.json`: FR leak rate 0.87 → 0.76, PERSON recall 0.32 → 0.42, NIR recall 0.82 →
+0.92 on the synthetic claims; parity still 0/900), and the artifact republished.

@@ -10,7 +10,7 @@ offline once downloaded. No Jev call anywhere — the point is that the capabili
 |---|---|
 | Decisions | route a claim (choice, all-MiniLM-L6-v2 similarity to team descriptions), legal-threat flag, vulnerable-customer flag, urgency score, AI-reply guardrail, your own yes/no question (xtremedistil zero-shot NLI) |
 | The telling test | 30 synthetic labelled messages: AUC, average probability on true vs false cases, a reliability plot and a threshold slider (straight-through rate vs errors) |
-| Redactor | rules (email, phone, IBAN mod-97, card Luhn, French NIR, dates, addresses, postcodes, plates, policy/claim ids) + names (titles, greetings, sign-offs, relations, a first-name list; the model decides the unsure ones at p ≥ 0.8). Pseudonymisation, not anonymisation |
+| Redactor | rules (email, phone, IBAN mod-97, card Luhn, French NIR, dates, addresses, postcodes, plates, policy/claim ids) + names (titles, greetings, sign-offs, relations, `Nom:` / `Name:` labels, a first-name list that also reads the first part of a hyphenated name; the model decides the unsure ones at p ≥ 0.8). Pseudonymisation, not anonymisation |
 | Synthetic variants | upload .docx/.txt; every detected entity replaced by a same-format fake, consistent within a variant, gender from context, seeded |
 
 Measured in the browser (ONNX Runtime Web 1.17.3, int8) on `test/cases.json`: legal flag AUC 0.98 (true cases average p 0.63,
@@ -33,6 +33,16 @@ the page already downloaded (one download, cached in IndexedDB).
 Not verified on the live host by the author: the Chrome available to the session was signed into another claude.ai
 organisation. Verified end to end in headless Chromium behind an emulated CSP (download, all widgets, offline mode with 0
 requests, .docx upload). If the live page fails at "Starting the models", the host's CSP is refusing WebAssembly.
+
+Changed 2026-09-24, from E1a's parity run over 900 documents (`../../experiments/e1/REPORT.md`, addendum): `Nom:` / `Name:` /
+`Prénom:` labels are a name cue; the name pattern and the place skip use a Unicode-aware boundary (JS `\b` is ASCII-only,
+so "Édith" was never a candidate); the first part of a hyphenated given name is checked against the list; names of up to 6
+words; a surname alone never takes a placeholder through a particle ("Le"); NIR is tried before CARD (a 15-digit NIR can
+pass Luhn). Re-scored on those documents: FR leak rate 0.87 → 0.76, PERSON recall 0.32 → 0.42, NIR recall 0.82 → 0.92 on
+the synthetic claims. Verified again after the change in headless Chromium behind the same CSP, with the runtime and model
+files read back from the published artifact (the wasm's sha256 equals npm's onnxruntime-web 1.17.3 file): download, the six
+decisions, the 89-decision test reproducing the numbers above, the redactor on each fixed case, synthetic variants, and
+offline mode with 0 requests.
 
 Licences: xtremedistil-l6-h256-zeroshot-v1.1-all-33 MIT (Moritz Laurer); all-MiniLM-L6-v2 Apache-2.0 (sentence-transformers,
 ONNX by Xenova); ONNX Runtime Web MIT; mammoth.js BSD-2-Clause (loaded from cdnjs); UI patterns after LocalMode (MIT).
