@@ -14,6 +14,7 @@ offline once downloaded. No Jev call anywhere — the point is that the capabili
 | The telling test | 30 synthetic labelled messages: AUC, average probability on true vs false cases, a reliability plot and a threshold slider (straight-through rate vs errors) |
 | Redactor | rules (email, phone, IBAN mod-97, card Luhn, French NIR, dates, addresses, postcodes, plates, policy/claim ids) + names (titles, greetings, sign-offs, relations, `Nom:` / `Name:` labels, a first-name list that also reads the first part of a hyphenated name; the model decides the unsure ones at p ≥ 0.8). Pseudonymisation, not anonymisation |
 | Synthetic variants | upload .docx/.txt; every detected entity replaced by a same-format fake, consistent within a variant, gender from context, seeded |
+| Meter | every model call timed and counted in the tab, the way a LiteLLM-style gateway logs an API call: a receipt under each result (model, tokens in, output, ms with the model's share, tok/s, calls, 0 requests / 0 bytes / €0), live counters on the model cards and in the top bar, and a usage log (last 40 calls, copy as JSON lines). Times are `performance.now()` around the tokenizer and around the model run |
 
 Measured in the browser (ONNX Runtime Web 1.17.3, int8) on `test/cases.json`: legal flag AUC 0.98 (true cases average p 0.63,
 others 0.01); vulnerable AUC 0.98 (0.38 / 0.06); routing 79 % right, at p ≥ 0.60 76 % straight through and 86 % of those right;
@@ -48,6 +49,12 @@ offline mode with 0 requests.
 
 Licences: xtremedistil-l6-h256-zeroshot-v1.1-all-33 MIT (Moritz Laurer); all-MiniLM-L6-v2 Apache-2.0 (sentence-transformers,
 ONNX by Xenova); ONNX Runtime Web MIT; mammoth.js BSD-2-Clause (loaded from cdnjs); UI patterns after LocalMode (MIT).
+
+QA round (`test/qa_browser.js`, Playwright): the device check, the rules-only redactor, the download, every decision widget on
+every example (mechanics pass / fail, label agreement measured), the threshold slider, the 89-decision test, the redactor with
+the model on the E1a cases, a .docx upload (`test/sample-claim.docx`, from `test/make_sample_docx.py`), synthetic variants
+(same seed, same output), the meter, offline mode and the cached reload: 39 checks. Results and how to run it: [`QA.md`](QA.md).
+The Pages workflow runs it before every deploy and uploads the report as the `qa-report` artifact.
 
 Reference numbers in Python (`test/`): `python3 -m venv v && v/bin/pip install onnxruntime tokenizers numpy`, put the two
 models at `<dir>/models/xtremedistil/{vocab.txt,model_quantized.onnx}` and `<dir>/models/minilm/model_quantized.onnx`, copy

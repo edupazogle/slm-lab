@@ -2,3 +2,7 @@ ort/
 models/
 tmp/
 dist/
+qa/
+node_modules/
+package.json
+package-lock.json

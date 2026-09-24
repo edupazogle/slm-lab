@@ -152,6 +152,8 @@
   .json { font-family: var(--mono); font-size: 12px; line-height: 1.55; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--fg-soft); }
   .measured { font-size: 12.5px; color: var(--muted-fg); border-top: 1px dashed var(--border); padding-top: 10px; }
+  .receipt { display: flex; flex-wrap: wrap; gap: 3px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--muted-fg); border-top: 1px dashed var(--border); padding-top: 8px; }
+  .receipt b { font-weight: 500; color: var(--fg-soft); }
   .locked { font-size: 13px; color: var(--muted-fg); }
 
   /* test */
@@ -210,6 +212,7 @@
       <a href="#try">Try it</a><a href="#decisions">Decisions</a><a href="#test">The test</a><a href="#private">Private data</a><a href="#news">The news</a><a href="#models">Models</a>
     </nav>
     <div class="status">
+      <span class="pill req-pill" id="meterPill" title="Every model call this tab made: runs, tokens and time on this processor"><span class="dot"></span><span id="meterText">No model calls yet</span></span>
       <span class="pill req-pill" id="reqPill" title="Network requests this page made since the models became ready"><span class="dot"></span><span id="reqText">No models yet</span></span>
       <span class="pill on" id="netPill"><span class="dot"></span><span id="netText">Online</span></span>
     </div>
@@ -422,6 +425,14 @@
       </table>
     </div>
     <p class="sub" style="margin-top:10px;">Sizes and licences read from each model's Hugging Face page on 24 September 2026. The runtime is <a href="https://github.com/microsoft/onnxruntime" target="_blank" rel="noopener">ONNX Runtime Web</a> 1.17.3 (MIT), compiled to WebAssembly. Word files are read by <a href="https://github.com/mwilliamson/mammoth.js" target="_blank" rel="noopener">mammoth.js</a> (BSD-2-Clause). The interface follows the patterns of <a href="https://localmode.ai/" target="_blank" rel="noopener">LocalMode</a> (MIT).</p>
+    <div class="frame" style="margin-top:16px;">
+      <div class="label"><b>meter/usage-log</b><span id="meterTotals">no model calls yet</span></div>
+      <div class="body">
+        <p class="sub" style="margin:0;">What a gateway such as LiteLLM logs for every API call (model, tokens in, output, latency, cost), kept here in the tab for every call the two models make: the receipt under each result is one row of it. Times come from <code>performance.now()</code> around the tokenizer and around the model run. Nothing leaves the device, so requests, bytes sent and cost stay at zero.</p>
+        <div class="row"><span class="sub" id="meterNote">The last 40 calls, newest first.</span><button class="btn sm" id="meterCopy" type="button">Copy as JSON lines</button></div>
+        <div class="tablewrap"><table id="meterTable"></table></div>
+      </div>
+    </div>
   </section>
 
   <footer>
@@ -588,6 +599,7 @@ function renderModelCards() {
         <div style="min-width:0;"><div class="title-sm">${esc(f.name)}</div><div class="sub" data-status>Not downloaded · ${esc(f.sub)}</div></div></div>
       <div class="chips">${f.chips.map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
       <div class="progress"><i data-bar></i></div><div class="pct" data-pct>0 %</div>
+      <div class="sub" data-meter>No calls yet</div>
     </div>`).join('');
 }
 function setCard(key, pct, status) {
@@ -669,7 +681,7 @@ async function loadAll() {
     const opts = { executionProviders: ['wasm'], graphOptimizationLevel: 'all' };
     state.nli = await ort.InferenceSession.create(state.bytes.nli, opts);
     state.emb = await ort.InferenceSession.create(state.bytes.emb, opts);
-    await prepareRouting();
+    await measured('warm-up', prepareRouting);
     state.ready = true; net.readyAt = performance.now(); net.since = 0;
     $('#dlText').textContent = 'Models ready · running on this device';
     document.querySelectorAll('[data-needs-model]').forEach((b) => { b.disabled = false; });
@@ -685,6 +697,53 @@ async function loadAll() {
 }
 $('#dlBtn').addEventListener('click', loadAll);
 
+/* ---------------- the meter: every model call, timed and counted (what a LiteLLM-style gateway would log, kept in the tab) ---------------- */
+const MODEL_NAMES = { nli: 'xtremedistil-l6-h256', emb: 'all-MiniLM-L6-v2' };
+const newTotal = () => ({ calls: 0, tokens: 0, padded: 0, ms: 0, ms_infer: 0, list: [] });
+const meter = { calls: [], seq: 0, ctx: 'page', totals: { all: newTotal(), nli: newTotal(), emb: newTotal() } };
+async function measured(ctx, fn) { const prev = meter.ctx; meter.ctx = ctx; try { return await fn(); } finally { meter.ctx = prev; } }
+function record(model, encs, L, msTok, msRun, output) {
+  const tokens = encs.reduce((s, e) => s + e.ids.length, 0), padded = encs.length * L;
+  const call = { seq: ++meter.seq, at: Date.now(), ctx: meter.ctx, model: MODEL_NAMES[model], batch: encs.length, tokens_in: tokens, tokens_padded: padded, output,
+    ms_tokenize: +msTok.toFixed(2), ms_infer: +msRun.toFixed(2), ms: +(msTok + msRun).toFixed(2), tokens_per_s: Math.round(1000 * tokens / Math.max(msRun, 0.01)), online: navigator.onLine, requests: 0, bytes_sent: 0, cost_eur: 0 };
+  meter.calls.push(call); if (meter.calls.length > 2000) meter.calls.shift();
+  for (const t of [meter.totals.all, meter.totals[model]]) { t.calls++; t.tokens += tokens; t.padded += padded; t.ms += call.ms; t.ms_infer += call.ms_infer; t.list.push(call.ms_infer); if (t.list.length > 500) t.list.shift(); }
+  renderMeter();
+  return call;
+}
+const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const fmtK = (n) => n >= 10000 ? (n / 1000).toFixed(1) + 'k' : n.toLocaleString('en-GB');
+const fmtS = (ms) => ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(2) + ' s';
+function usageSince(seq0) {
+  const calls = meter.calls.filter((c) => c.seq > seq0);
+  const sum = (k) => calls.reduce((s, c) => s + c[k], 0);
+  const msInfer = sum('ms_infer'), tokens = sum('tokens_in');
+  return { model: [...new Set(calls.map((c) => c.model))].join(' + ') || null, calls: calls.length, tokens_in: tokens, tokens_padded: sum('tokens_padded'),
+    output: [...new Set(calls.map((c) => c.output))].join(' + ') || null, ms_tokenize: +sum('ms_tokenize').toFixed(1), ms_infer: +msInfer.toFixed(1), ms_median: +median(calls.map((c) => c.ms)).toFixed(1),
+    tokens_per_s: calls.length ? Math.round(1000 * tokens / Math.max(msInfer, 0.01)) : null, requests: 0, bytes_sent: 0, cost_eur: 0 };
+}
+function receiptHTML(u, ms) {
+  if (!u || !u.calls) return '';
+  return `<div class="receipt" title="Measured in this tab: the tokens the tokenizer produced and the time the model took on this processor">
+    <span><b>${esc(u.model)}</b></span><span><b>${u.tokens_in}</b> tokens in</span><span><b>${esc(u.output)}</b> out</span><span><b>${ms}</b> ms, ${u.ms_infer.toFixed(1)} in the model</span>
+    <span><b>${fmtK(u.tokens_per_s)}</b> tok/s</span><span>${u.calls} call${u.calls === 1 ? '' : 's'}</span><span>0 requests · 0 bytes sent · €0.0000</span></div>`;
+}
+function renderMeter() {
+  const all = meter.totals.all;
+  $('#meterText').textContent = all.calls ? `${all.calls} model call${all.calls === 1 ? '' : 's'} · ${fmtK(all.tokens)} tokens · ${fmtS(all.ms)}` : 'No model calls yet';
+  $('#meterPill').className = 'pill req-pill' + (all.calls ? ' ok' : '');
+  for (const m of ['nli', 'emb']) {
+    const t = meter.totals[m], el = document.querySelector(`#m-${m} [data-meter]`);
+    if (el) el.textContent = t.calls ? `${t.calls} call${t.calls === 1 ? '' : 's'} · ${fmtK(t.tokens)} tokens · median ${median(t.list).toFixed(1)} ms · ${fmtK(Math.round(1000 * t.tokens / Math.max(t.ms_infer, 0.01)))} tok/s` : 'No calls yet';
+  }
+  const rt = document.querySelector('#m-runtime [data-meter]');
+  if (rt) rt.textContent = all.calls ? `${all.calls} calls through the runtime · ${fmtS(all.ms_infer)} inside the models` : 'No calls yet';
+  $('#meterTotals').textContent = all.calls ? `${all.calls} calls · ${fmtK(all.tokens)} tokens · ${fmtS(all.ms)} · 0 requests` : 'no model calls yet';
+  const rows = meter.calls.slice(-40).reverse();
+  $('#meterTable').innerHTML = '<thead><tr><th>#</th><th>Time</th><th>Where</th><th>Model</th><th>Batch</th><th>Tokens in</th><th>Padded</th><th>Output</th><th>Tokenise ms</th><th>Model ms</th><th>tok/s</th><th>Online</th></tr></thead><tbody>' +
+    rows.map((c) => `<tr><td class="num">${c.seq}</td><td class="num">${new Date(c.at).toLocaleTimeString('en-GB')}</td><td>${esc(c.ctx)}</td><td>${esc(c.model)}</td><td class="num">${c.batch}</td><td class="num">${c.tokens_in}</td><td class="num">${c.tokens_padded}</td><td>${esc(c.output)}</td><td class="num">${c.ms_tokenize.toFixed(1)}</td><td class="num">${c.ms_infer.toFixed(1)}</td><td class="num">${fmtK(c.tokens_per_s)}</td><td>${c.online ? 'yes' : 'no'}</td></tr>`).join('') + '</tbody>';
+}
+
 /* ---------------- inference ---------------- */
 function feeds(encs, withTypes = true) {
   const L = Math.max(...encs.map((e) => e.ids.length)), n = encs.length;
@@ -695,8 +754,9 @@ function feeds(encs, withTypes = true) {
   return { f, L, n, mask };
 }
 async function nliEntail(premise, hyps) {
-  const { f } = feeds(hyps.map((h) => state.tok.encode(premise, h)));
+  const t0 = performance.now(), encs = hyps.map((h) => state.tok.encode(premise, h)), { f, L } = feeds(encs), t1 = performance.now();
   const out = await state.nli.run(f);
+  record('nli', encs, L, t1 - t0, performance.now() - t1, `${hyps.length * 2} logits`);
   const l = out.logits.data, rows = [];
   for (let i = 0; i < hyps.length; i++) rows.push([l[2 * i], l[2 * i + 1]]);   // [entailment, not_entailment]
   return rows;
@@ -704,9 +764,9 @@ async function nliEntail(premise, hyps) {
 const sigmoid2 = ([e, n]) => 1 / (1 + Math.exp(n - e));
 async function pYes(premise, hyp) { return sigmoid2((await nliEntail(premise, [hyp]))[0]); }
 async function embed(texts) {
-  const encs = texts.map((t) => state.tok.encode(t));
-  const { f, L, n, mask } = feeds(encs, true);
+  const t0 = performance.now(), encs = texts.map((t) => state.tok.encode(t)), { f, L, n, mask } = feeds(encs, true), t1 = performance.now();
   const out = await state.emb.run(f);
+  record('emb', encs, L, t1 - t0, performance.now() - t1, `${n} × 384-d vector${n === 1 ? '' : 's'}`);
   const h = out.last_hidden_state.data, D = 384, vecs = [];
   for (let r = 0; r < n; r++) {
     const v = new Float32Array(D); let cnt = 0;
@@ -842,32 +902,35 @@ function renderResult(w) {
     html = `<div class="answer"><span class="big">${esc(top.label)}</span><span class="p">p = ${top.p.toFixed(2)}</span>
         <span class="pill ${go ? 'ok' : 'run'}"><span class="dot"></span>${go ? 'Straight through to ' + esc(top.label) : 'Refer to a person'}</span></div>
       <div class="dist">${r.ranked.map((x) => `<span>${esc(x.label)}</span><span class="track"><i style="width:${(100 * x.p).toFixed(1)}%"></i></span><span class="v">${x.p.toFixed(2)}</span>`).join('')}</div>`;
-    json = { question: 'route_claim', type: 'choice', answer: top.label, p: +top.p.toFixed(3), threshold: t, action: go ? 'straight_through' : 'refer', ms: r.ms, bytes_sent: 0 };
+    json = { question: 'route_claim', type: 'choice', answer: top.label, p: +top.p.toFixed(3), threshold: t, action: go ? 'straight_through' : 'refer', ms: r.ms, usage: r.usage };
   } else if (w.type === 'yesno' || w.type === 'custom') {
     const yes = r.p >= t;
     html = `<div class="answer"><span class="big">${yes ? 'Yes' : 'No'}</span><span class="p">p(yes) = ${r.p.toFixed(2)}</span>
         <span class="pill ${w.type === 'custom' ? (yes ? 'run' : '') : (yes ? 'bad' : 'ok')}"><span class="dot"></span>${esc(yes ? w.yes : w.no)}</span></div>
       <div class="pbar" aria-label="Probability ${r.p.toFixed(2)} against threshold ${t}"><i style="width:${(100 * r.p).toFixed(1)}%"></i><b style="left:calc(${(100 * t).toFixed(1)}% - 1px)"></b></div>`;
-    json = { question: w.type === 'custom' ? r.statement : w.id, type: 'yes_no', answer: yes, p: +r.p.toFixed(3), threshold: t, ms: r.ms, bytes_sent: 0 };
+    json = { question: w.type === 'custom' ? r.statement : w.id, type: 'yes_no', answer: yes, p: +r.p.toFixed(3), threshold: t, ms: r.ms, usage: r.usage };
   } else {
     const fast = r.score >= t;
     html = `<div class="answer"><span class="big">${r.score.toFixed(1)} / 5</span><span class="p">expected level</span>
         <span class="pill ${fast ? 'bad' : 'ok'}"><span class="dot"></span>${fast ? 'Fast-track' : 'Normal queue'}</span></div>
       <div class="dist">${URGENCY.map((x, i) => `<span>${i + 1} · ${esc(x)}</span><span class="track"><i style="width:${(100 * r.p[i]).toFixed(1)}%"></i></span><span class="v">${r.p[i].toFixed(2)}</span>`).join('')}</div>`;
-    json = { question: 'urgency', type: 'score', score: +r.score.toFixed(2), levels: 5, threshold: t, ms: r.ms, bytes_sent: 0 };
+    json = { question: 'urgency', type: 'score', score: +r.score.toFixed(2), levels: 5, threshold: t, ms: r.ms, usage: r.usage };
   }
-  box.innerHTML = html + `<pre class="json">${esc(JSON.stringify(json, null, 1))}</pre>`;
+  box.innerHTML = html + receiptHTML(r.usage, r.ms) + `<pre class="json">${esc(JSON.stringify(json, null, 1))}</pre>`;
 }
 async function runWidget(w) {
   if (!state.ready) return;
   const text = $('#in-' + w.id).value.trim(); if (!text) return;
-  const t0 = performance.now();
+  const t0 = performance.now(), seq0 = meter.seq;
   let r;
-  if (w.type === 'choice') r = { ranked: await route(text) };
-  else if (w.type === 'yesno') r = { p: await pYes(text, w.hyp) };
-  else if (w.type === 'custom') { const st = $('#st-' + w.id).value.trim(); if (!st) return; r = { p: await pYes(text, st), statement: st }; }
-  else r = await urgency(text);
-  r.ms = Math.round(performance.now() - t0);
+  await measured(w.id, async () => {
+    if (w.type === 'choice') r = { ranked: await route(text) };
+    else if (w.type === 'yesno') r = { p: await pYes(text, w.hyp) };
+    else if (w.type === 'custom') { const st = $('#st-' + w.id).value.trim(); if (!st) return; r = { p: await pYes(text, st), statement: st }; }
+    else r = await urgency(text);
+  });
+  if (!r) return;
+  r.ms = Math.round(performance.now() - t0); r.usage = usageSince(seq0);
   lastResult[w.id] = r; renderResult(w); countRun();
 }
 async function runAllWidgets() { for (const w of WIDGETS) await runWidget(w); }
@@ -995,17 +1058,20 @@ function drawChart(T, live) {
 async function runTest() {
   if (!state.ready) return;
   $('#testRun').disabled = true; $('#testRun').textContent = 'Running…';
-  const t0 = performance.now();
-  for (const k of ['legal', 'vuln']) {
-    const p = []; for (const c of CASES) p.push(await pYes(c[0], HYP[k]));
-    const y = CASES.map((c) => c[TESTS[k].col]);
-    const mean = (f) => { const a = p.filter((_, i) => f(y[i])); return a.reduce((s, x) => s + x, 0) / a.length; };
-    test.live[k] = { p, auc: auc(p, y), pos: mean((v) => v), neg: mean((v) => !v) };
-  }
-  const rows = [];
-  for (const c of CASES) { if (!c[1]) continue; const r = await route(c[0]); rows.push({ p: r[0].p, ok: r[0].label === c[1] }); }
-  test.live.route = { rows, acc: rows.filter((r) => r.ok).length / rows.length };
-  $('#testRun').textContent = `Ran 89 decisions in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+  const t0 = performance.now(), seq0 = meter.seq;
+  await measured('test', async () => {
+    for (const k of ['legal', 'vuln']) {
+      const p = []; for (const c of CASES) p.push(await pYes(c[0], HYP[k]));
+      const y = CASES.map((c) => c[TESTS[k].col]);
+      const mean = (f) => { const a = p.filter((_, i) => f(y[i])); return a.reduce((s, x) => s + x, 0) / a.length; };
+      test.live[k] = { p, auc: auc(p, y), pos: mean((v) => v), neg: mean((v) => !v) };
+    }
+    const rows = [];
+    for (const c of CASES) { if (!c[1]) continue; const r = await route(c[0]); rows.push({ p: r[0].p, ok: r[0].label === c[1] }); }
+    test.live.route = { rows, acc: rows.filter((r) => r.ok).length / rows.length };
+  });
+  const u = usageSince(seq0);
+  $('#testRun').textContent = `Ran 89 decisions in ${((performance.now() - t0) / 1000).toFixed(1)} s · ${fmtK(u.tokens_in)} tokens · median ${u.ms_median} ms each`;
   countRun(); renderTest(); renderCaseTable();
 }
 function renderCaseTable() {
@@ -1095,7 +1161,7 @@ async function detect(text, { amounts = false, useModel = true } = {}) {
   for (const c of nameCandidates(text)) {
     if (c.why) { ents.push(c); continue; }
     if (useModel && state.ready) {
-      const p = await pYes(c.sentence, `${c.text} is a person.`); modelChecks++;
+      const p = await measured('redactor', () => pYes(c.sentence, `${c.text} is a person.`)); modelChecks++;
       if (p >= 0.8) ents.push({ ...c, why: `model p ${p.toFixed(2)}` });
     }
   }
@@ -1161,15 +1227,16 @@ Ana Garcia Lopez` },
 let anonLast = null;
 async function runAnon() {
   const text = $('#anonIn').value; if (!text.trim()) return;
-  const t0 = performance.now();
+  const t0 = performance.now(), seq0 = meter.seq;
   const { ents, modelChecks } = await detect(text, { amounts: $('#anonAmounts').checked, useModel: $('#anonModel').checked });
+  const u = usageSince(seq0);
   placeholders(ents);
   anonLast = { text, ents, out: applyPlaceholders(text, ents) };
   $('#anonMarked').innerHTML = renderMarked(text, ents, 'mark');
   $('#anonOut').innerHTML = renderMarked(text, ents, 'ph');
   const byType = {}; ents.forEach((e) => { byType[e.type] = (byType[e.type] || 0) + 1; });
   $('#anonMeta').textContent = `${ents.length} items replaced (${Object.entries(byType).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(', ') || 'none'}) in ${Math.round(performance.now() - t0)} ms. ` +
-    (state.ready ? (modelChecks ? `The model checked ${modelChecks} unsure name${modelChecks === 1 ? '' : 's'}.` : 'No unsure names for the model to check.') : 'Rules only: download the models to let the model check unsure names.');
+    (state.ready ? (modelChecks ? `The model checked ${modelChecks} unsure name${modelChecks === 1 ? '' : 's'}: ${u.tokens_in} tokens, ${Math.round(u.ms_infer)} ms in the model.` : 'No unsure names for the model to check.') : 'Rules only: download the models to let the model check unsure names.');
   const seen = new Set();
   $('#anonMap').innerHTML = '<thead><tr><th>Placeholder</th><th>Original</th><th>Found by</th></tr></thead><tbody>' +
     ents.filter((e) => { const k = e.ph + e.text; if (seen.has(k)) return false; seen.add(k); return true; })
@@ -1301,7 +1368,8 @@ wireDrop($('#synDrop'), $('#synFile'), async (files) => {
 });
 
 /* ---------------- start ---------------- */
-renderModelCards(); deviceCheck(); mountWidgets(); renderTest(); renderCaseTable(); renderNet();
+renderModelCards(); deviceCheck(); mountWidgets(); renderTest(); renderCaseTable(); renderNet(); renderMeter();
+$('#meterCopy').addEventListener('click', () => { if (meter.calls.length) copyText(meter.calls.map((c) => JSON.stringify(c)).join('\n')); else toast('No model calls yet'); });
 $('#anonIn').value = SAMPLE_DOCS[0].text; runAnon();
 renderSynFiles(); runSyn();
 $('#dlTotal').textContent = `0 / ${MB(TOTAL)}`; $('#dlText').textContent = `Download the models · ${Math.round(TOTAL / 1e6)} MB`;

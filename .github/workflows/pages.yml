@@ -25,6 +25,21 @@ jobs:
       - name: Build the static site
         working-directory: app/second-look
         run: python3 build_pages.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: QA round in headless Chromium (every widget, every model, offline, the meter)
+        working-directory: app/second-look
+        run: |
+          npm init -y >/dev/null && npm install --no-save playwright@1.56.1 >/dev/null
+          npx playwright install --with-deps chromium
+          python3 -m http.server 8792 --bind 127.0.0.1 --directory dist >/dev/null 2>&1 &
+          node test/qa_browser.js --url http://127.0.0.1:8792/ --out qa/report.json --shots qa
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-report
+          path: app/second-look/qa
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app/second-look/dist

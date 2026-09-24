@@ -181,4 +181,7 @@ yes/no question), a calibration test on 30 labelled messages, a document redacto
 Published as https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh. See its README for the measured numbers and how to rebuild.
 Later the same day the six redactor defects E1a's parity run found were fixed in the page and its Python port, re-scored on
 the 900 documents (`experiments/e1/results_v2.json`: FR leak rate 0.87 → 0.76, PERSON recall 0.32 → 0.42, NIR recall 0.82 →
-0.92 on the synthetic claims; parity still 0/900), and the artifact republished.
+0.92 on the synthetic claims; parity still 0/900), and the artifact republished. Then a usage meter (tokens, ms and tok/s under
+every decision, per-model counters, a usage log of every model call, as a LiteLLM-style gateway would keep) and a 39-check QA
+round in headless Chromium (`app/second-look/test/qa_browser.js`, results in `app/second-look/QA.md`), which the Pages workflow
+now runs before each deploy.

@@ -51,4 +51,7 @@ Experiments: `experiments/v2/` (needle3 fine-tune with a 4-bit untuned control: 
 - **The Second Look decision page:** https://edupazogle.github.io/slm-lab/ — built and deployed by `.github/workflows/pages.yml`
   on every push that touches `app/second-look/`; the runtime and the two models are fetched at build time, never committed.
   Verified live 2026-09-24: models ready in 6.5 s, every decision widget answers, redactor and variants run offline (0 requests).
+  The workflow now runs the 39-check QA round (`app/second-look/test/qa_browser.js`, headless Chromium) before each deploy;
+  results in [`app/second-look/QA.md`](app/second-look/QA.md). The page carries a usage meter: tokens, ms and tok/s under
+  every decision, per-model counters, and a usage log.
 - The same page as a claude.ai artifact (private): https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh
