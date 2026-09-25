@@ -9,8 +9,8 @@ import { mkdirSync } from 'fs';
 
 const [stage = 'shots', size = 'desktop', theme = 'carbon'] = process.argv.slice(2);
 const ORIGIN = process.env.QA_ORIGIN ?? 'http://127.0.0.1:8099';
-const PROFILE = '/home/edu/.cache/slm-pw-chat';
-const QA = '/home/edu/Public/bizloop/slm/app/qa';
+const PROFILE = process.env.QA_PROFILE ?? '/home/edu/.cache/slm-pw-chat';
+const QA = process.env.QA_DIR ?? '/home/edu/Public/bizloop/slm/app/qa';
 const MODEL = 'SmolLM2 360M Instruct';
 const isMobile = size === 'mobile';
 mkdirSync(QA, { recursive: true });
@@ -167,7 +167,7 @@ if (stage === 'e2e' || stage === 'skill' || stage === 'skills-all' || stage === 
 }
 
 if (stage === 'skills-all') {
-  for (const name of ['Anonymise', 'Triage a claim', 'Synthetic claims']) {
+  for (const name of ['Pseudonymise', 'Triage a claim', 'Synthetic claims']) {
     await page.locator('.skill-chip', { hasText: name }).click();
     await page.waitForTimeout(200);
     if (name !== 'Synthetic claims') await page.getByRole('button', { name: 'Use an example', exact: true }).click();

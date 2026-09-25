@@ -3,10 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- its own icon, like chat.html: under /lab/ the browser's default /favicon.ico is the site root's, not this app's -->
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <title>SLM Lab · in-browser benchmark</title>
     <style>
       body { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 16px; background: #0d1117; color: #d6deeb; }
       h1 { font-size: 16px; } .ok { color: #7ee787; } .bad { color: #ff7b72; } pre { white-space: pre-wrap; word-break: break-word; }
+      a.go { display: inline-block; padding: 8px 14px; border: 1px solid #7ee787; border-radius: 4px; color: #7ee787; text-decoration: none; }
+      a.go:hover { background: #7ee78722; } a.go:focus-visible { outline: 2px solid #d6deeb; outline-offset: 2px; }
     </style>
   </head>
   <body>

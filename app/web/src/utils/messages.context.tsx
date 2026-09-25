@@ -2,8 +2,9 @@
 // store that JSON-stringified every conversation into localStorage on every streamed token (5 MB quota, synchronous,
 // O(history) per token). Writes are debounced while an answer streams and flushed when it ends.
 //
-// Data that must live in memory only (the Anonymise mapping between placeholders and real values) is removed by
-// `forStorage` before a record is written, so it never reaches the disk.
+// Data that must live in memory only (the text given to Pseudonymise, and its mapping between placeholders and real
+// values) is removed by `forStorage` before a record is written, so it never reaches the disk. Records saved before that
+// rule held the original text: they are cleaned when they are read, and written back cleaned.
 import {
   createContext,
   useCallback,
@@ -14,7 +15,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createStore, del, entries, set } from 'idb-keyval';
+import { clear, createStore, del, entries, set, setMany } from 'idb-keyval';
 import type { Conversation, Message } from './types';
 import { errorText, newId } from './utils';
 import { forStorage } from '../skills/storage';
@@ -31,6 +32,8 @@ interface MessagesContextValue {
   setMessages(convId: number, fn: (prev: Message[]) => Message[], opts?: { flush?: boolean }): void;
   renameConversation(id: number, title: string): void;
   deleteConversation(id: number): void;
+  /** Empty the conversation store of this browser. Resolves false when the browser refused. */
+  deleteAllConversations(): Promise<boolean>;
 }
 
 const MessagesContext = createContext<MessagesContextValue | null>(null);
@@ -59,17 +62,32 @@ export const MessagesProvider = ({ children }: { children: ReactNode }) => {
         const all = await entries<number, Conversation>(getStore());
         if (cancelled) return;
         const map: ConvMap = {};
+        const cleaned: [number, Conversation][] = [];
         for (const [id, conv] of all) {
           if (conv && Array.isArray(conv.messages)) {
             // an answer that was streaming when the page closed is finished as it stands
-            map[Number(id)] = {
+            const loaded: Conversation = {
               ...conv,
-              messages: conv.messages.map((m) => (m.pending ? { ...m, pending: false, error: m.error ?? 'Interrupted when the page was closed.' } : m)),
+              messages: conv.messages.map((m) =>
+                m.pending
+                  ? {
+                      ...m,
+                      pending: false,
+                      error: m.error ?? 'Interrupted when the page was closed.',
+                      ...(m.skillRun?.status === 'running' ? { skillRun: { ...m.skillRun, status: 'failed' as const, valid: false } } : {}),
+                    }
+                  : m
+              ),
             };
+            // a record saved before the storage rules existed may still hold what they strip: clean it now
+            const clean = forStorage(loaded);
+            map[Number(id)] = clean;
+            if (clean !== loaded) cleaned.push([Number(id), clean]);
           }
         }
         convsRef.current = map;
         setConvs(map);
+        if (cleaned.length > 0) await setMany(cleaned, getStore());
       } catch (e) {
         setStorageError(`Conversations are not being saved: this browser refused its local database (${errorText(e)}).`);
       } finally {
@@ -154,6 +172,21 @@ export const MessagesProvider = ({ children }: { children: ReactNode }) => {
     [commit, schedule]
   );
 
+  const deleteAllConversations = useCallback(async () => {
+    for (const t of Object.values(timers.current)) clearTimeout(t);
+    timers.current = {};
+    failedWrites.current.clear();
+    commit({});
+    try {
+      await clear(getStore());
+      setStorageError(null);
+      return true;
+    } catch (e) {
+      setStorageError(`The conversations are gone from this page, but the browser refused to delete them from its storage: ${errorText(e)}.`);
+      return false;
+    }
+  }, [commit]);
+
   const conversations = useMemo(
     () => Object.values(convs).sort((a, b) => b.updatedAt - a.updatedAt),
     [convs]
@@ -174,6 +207,7 @@ export const MessagesProvider = ({ children }: { children: ReactNode }) => {
         setMessages,
         renameConversation,
         deleteConversation,
+        deleteAllConversations,
       }}
     >
       {children}

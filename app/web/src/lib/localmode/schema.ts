@@ -1,7 +1,8 @@
 // Lifted from LocalMode-AI/LocalMode @ 3ef8bc4 — packages/core/src/generation/schema.ts (MIT, Copyright (c) 2025 LocalMode).
 // Changes: types imported from ./types (local excerpt); `/no_think` is now opt-in via a `noThink` argument instead of being
 // hard-coded into every structured prompt (it is a Qwen3 soft switch and literal noise for other model families);
-// `repairJSON` is exported; the pretty-printed schema in the prompt is compacted (prompt processing is slow in WASM).
+// `repairJSON` is exported; the pretty-printed schema in the prompt is compacted (prompt processing is slow in WASM);
+// `withoutRawText` drops the model output that `extractJSON` quotes in its error (a skill's output can list personal data).
 /**
  * Schema Utilities for Structured Output
  *
@@ -444,6 +445,15 @@ export function extractJSON(text: string): unknown {
   throw new Error(
     `No valid JSON found in model output. Raw text: "${trimmed.slice(0, 200)}${trimmed.length > 200 ? '...' : ''}"`
   );
+}
+
+/**
+ * An error line without the model output that {@link extractJSON} ("Raw text: ...") or a StructuredOutputError hint
+ * ("Raw output: ...") quotes. For a skill whose output lists personal data, that quote would put the values into the
+ * run's issues, the message's error and, from there, into storage.
+ */
+export function withoutRawText(message: string): string {
+  return message.replace(/\s*Raw (?:text|output): [\s\S]*$/, '');
 }
 
 /**

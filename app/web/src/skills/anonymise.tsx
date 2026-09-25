@@ -1,12 +1,17 @@
-// "Anonymise": the model LISTS the personal data it can see; this file — not the model — does the replacing, so the
-// redacted text can only ever contain spans that really occur in the original, and the same value always becomes the
-// same placeholder. The mapping back to the real values is held in this tab's memory: it is stripped before the
-// conversation is written to storage (see `forStorage`).
+// "Pseudonymise" (the id stays `anonymise`, so conversations saved before the rename still find it): the model LISTS
+// the personal data it can see; this file — not the model — does the replacing, so the redacted text can only ever
+// contain spans that really occur in the original, and the same value always becomes the same placeholder. Whatever the
+// model misses stays in the text, which is why the result is called pseudonymised, not anonymised, and has to be checked
+// before it is shared. The original text and the mapping back to the real values are held in this tab's memory: they
+// are stripped before the conversation is written to storage (see `forStorage` and `personalData`).
 import type { ReactNode } from 'react';
 import { z } from 'zod';
 import type { Skill, SkillRenderProps } from './types';
 import type { SkillRunRecord } from '../utils/types';
 import { CopyButton } from './ui';
+
+const CHECK_FIRST =
+  'Check the pseudonymised text before you share it: a model this size misses some personal data, and whatever it missed is still in plain view.';
 
 export const ENTITY_TYPES = [
   'person',
@@ -133,14 +138,19 @@ export function redact(original: string, entities: { text: string; type: EntityT
   return { redacted: out, mapping: [...byValue.values()], spans, notFound };
 }
 
-/** What survives a page reload: the redacted text and how many values of each kind were replaced. Never the values. */
+/**
+ * What survives a page reload: the redacted text of a finished run (null for a run that did not finish, whose "redacted"
+ * text would still be the original) and how many values of each kind were replaced. Never the values.
+ */
 interface StoredAnonymise {
-  redacted: string;
+  redacted: string | null;
   counts: Partial<Record<EntityType, number>>;
 }
 
 function isStored(o: unknown): o is StoredAnonymise {
-  return !!o && typeof o === 'object' && typeof (o as StoredAnonymise).redacted === 'string';
+  if (!o || typeof o !== 'object' || !('redacted' in o)) return false;
+  const r = (o as { redacted: unknown }).redacted;
+  return typeof r === 'string' || r === null;
 }
 
 /** The well-formed entries of `entities`. An answer from the fallback path is any JSON: `entities` may not be a list. */
@@ -153,18 +163,29 @@ function entitiesOf(o: unknown): { text: string; type: EntityType }[] {
 
 function AnonymiseRender({ object, streaming, input, run }: SkillRenderProps<AnonymiseResult>) {
   if (isStored(object)) {
+    if (object.redacted === null) {
+      return (
+        <div className="skill-result">
+          <p className="text-sm text-base-content/70">
+            This run did not finish, so nothing of it was saved: not the text, not the values the model found. To run it
+            again, paste the text into the box.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="skill-result">
         <div className="ff">
-          <span className="ff-label">Redacted text</span>
+          <span className="ff-label">Pseudonymised text</span>
           <span className="typed whitespace-pre-wrap break-words">{object.redacted}</span>
         </div>
+        <p className="notice notice-warn text-sm">{CHECK_FIRST}</p>
         <p className="text-sm text-base-content/70">
-          The mapping between the placeholders and the real values was held in this page's memory only, and went when the
-          page closed. Run the skill again to rebuild it.
+          The original text and the mapping between the placeholders and the real values were kept in this page's memory
+          only, and went when the page closed. To rebuild the mapping, paste the text into the box and run the skill again.
         </p>
         <div className="skill-actions">
-          <CopyButton text={object.redacted} label="Copy redacted text" />
+          <CopyButton text={object.redacted} label="Copy the pseudonymised text" />
         </div>
       </div>
     );
@@ -182,14 +203,14 @@ function AnonymiseRender({ object, streaming, input, run }: SkillRenderProps<Ano
           </span>
         </div>
         <div className="ff">
-          <span className="ff-label">Redacted</span>
+          <span className="ff-label">Pseudonymised</span>
           <span className="typed whitespace-pre-wrap break-words">{r.redacted}</span>
         </div>
       </div>
 
       <p className="notice notice-warn text-sm">
-        A model this size misses things. Read the redacted text before it goes anywhere: anything it missed is still in
-        plain view. {streaming ? 'It is still reading.' : `${r.mapping.length} value${r.mapping.length === 1 ? '' : 's'} replaced in ${r.spans.length} place${r.spans.length === 1 ? '' : 's'}.`}
+        {CHECK_FIRST}{' '}
+        {streaming ? 'It is still reading.' : `${r.mapping.length} value${r.mapping.length === 1 ? '' : 's'} replaced in ${r.spans.length} place${r.spans.length === 1 ? '' : 's'}.`}
       </p>
 
       {r.mapping.length > 0 && (
@@ -212,9 +233,10 @@ function AnonymiseRender({ object, streaming, input, run }: SkillRenderProps<Ano
         </p>
       )}
 
-      {!streaming && (
+      {/* a run that failed or was stopped has not replaced everything it found: nothing to copy */}
+      {!streaming && run.status === 'done' && (
         <div className="skill-actions">
-          <CopyButton text={r.redacted} label="Copy redacted text" />
+          <CopyButton text={r.redacted} label="Copy the pseudonymised text" />
           <span className="text-xs text-base-content/70">
             {run.path === 'grammar' ? 'The list of values was constrained to the schema.' : 'The list of values came back through the fallback path.'}
           </span>
@@ -243,10 +265,11 @@ function highlight(text: string, spans: Redaction['spans']) {
 // eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 export const anonymiseSkill: Skill<AnonymiseResult> = {
   id: 'anonymise',
-  name: 'Anonymise',
-  purpose: 'Finds the personal data in a text and replaces each value with a stable placeholder.',
-  inputLabel: 'Text to anonymise',
-  placeholder: 'Paste the text that has to leave the team without personal data in it.',
+  name: 'Pseudonymise',
+  purpose:
+    'Replaces the personal data the model finds with stable placeholders; check the result before you share it, because the model can miss some.',
+  inputLabel: 'Text to pseudonymise',
+  placeholder: 'Paste the text whose personal data should be replaced before it leaves the team.',
   example:
     'Marie Dubois (born 04/07/1981), 12 rue des Lilas, 69007 Lyon, called about policy AXP-4471-22. Phone 06 21 44 90 03, email marie.dubois@example.fr. Her car FR-482-QT was hit on the car park.',
   requiresText: true,
@@ -257,17 +280,24 @@ export const anonymiseSkill: Skill<AnonymiseResult> = {
   buildPrompt: (text) => `Text:\n${text.trim()}`,
   maxTokens: () => 320,
   Render: AnonymiseRender,
-  // What goes to storage: the redacted text (which by construction holds no personal value) and how many values of
-  // each kind were replaced. The values themselves, and the raw model output that lists them, do not.
+  personalData: { title: 'Pseudonymised text' },
+  // What goes to storage: for a finished run, the redacted text (which by construction holds none of the values the
+  // model found) and how many values of each kind were replaced. For a run that failed, was stopped, or was still
+  // running when the debounced write fired, no text at all: nothing (or not everything) had been replaced yet, so its
+  // "redacted" text would be the original. The values themselves, and the raw model output that lists them, never.
+  // The user turn and the error lines are handled for every `personalData` skill in skills/storage.ts.
   forStorage(run: SkillRunRecord, input: string): SkillRunRecord {
     const o = run.object as AnonymiseResult | StoredAnonymise | undefined;
-    if (isStored(o)) return run;
+    if (isStored(o)) {
+      // a record saved before this rule may hold the text of a run that did not finish
+      return o.redacted !== null && run.status !== 'done' ? { ...run, object: { ...o, redacted: null } } : run;
+    }
     const entities = entitiesOf(o);
     const counts: Partial<Record<EntityType, number>> = {};
     for (const e of entities) counts[e.type] = (counts[e.type] ?? 0) + 1;
     return {
       ...run,
-      object: { redacted: redact(input, entities).redacted, counts } satisfies StoredAnonymise,
+      object: { redacted: run.status === 'done' ? redact(input, entities).redacted : null, counts } satisfies StoredAnonymise,
       rawText: '',
       memoryOnlyDropped: true,
     };

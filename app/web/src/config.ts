@@ -293,6 +293,9 @@ export const LIST_MODELS: ListedModel[] = [
   },
 ];
 
+/** The model the chat's empty state offers to start in one click: the first and smallest in the list above. */
+export const STARTER_MODEL_URL = LIST_MODELS[0].url;
+
 export const LICENCES_CHECKED_ON = '2026-09-21';
 
 /**

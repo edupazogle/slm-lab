@@ -1,5 +1,5 @@
 // The chat: the conversation, the skill bar, and the composer.
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { ImagePlus, X } from 'lucide-react';
 import {
   Conversation,
@@ -22,6 +22,8 @@ import { MediaData, ModelState, Screen } from '../utils/types';
 import { SKILLS, getSkill } from '../skills';
 import { AssistantMessage, UserMessage } from './MessageItem';
 import { formatBytes } from '../utils/format';
+import { isOfferable } from '../utils/displayed-model';
+import { STARTER_MODEL_URL } from '../config';
 
 const SUGGESTIONS = [
   {
@@ -60,10 +62,13 @@ export default function ChatScreen() {
   const lastUserId = [...messages].reverse().find((m) => m.role === 'user')?.id;
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
 
-  // a skill takes one text and answers once: clear the composer when switching
-  useEffect(() => {
-    setText('');
-  }, [skillId]);
+  // A skill takes one text and answers once: the composer is cleared when the person switches to another chip. This was
+  // an effect on `skillId`, which also ran after a suggestion was picked with a skill chip active (the suggestion sets
+  // the chip back to Chat, then its text) and emptied the box it had just filled.
+  const pickSkill = (id: string | null) => {
+    if (id !== skillId) setText('');
+    setSkillId(id);
+  };
 
   const focusComposer = () => {
     composerRef.current?.querySelector('textarea')?.focus();
@@ -106,8 +111,9 @@ export default function ChatScreen() {
               <h1>What you type here stays on this device</h1>
               <p>
                 The model runs inside this browser tab. Ask it something, or pick one of the skills under the box —
-                they fill a form, redact a text, triage a claim or invent test data.
+                they fill a form, pseudonymise a text, triage a claim or invent test data.
               </p>
+              {!loadedModel && !loadProgress && <StartModel />}
               <Suggestions>
                 {SUGGESTIONS.map((s) => (
                   <Suggestion
@@ -141,6 +147,11 @@ export default function ChatScreen() {
                   inputText={messages[i - 1]?.content ?? ''}
                   modelName={loadedModel?.name ?? 'the model'}
                   canRegenerate={!isGenerating && !!loadedModel && m.id === lastAssistant?.id}
+                  regenerateBlocked={
+                    messages[i - 1]?.textNotSaved
+                      ? 'The original text was not saved, so the skill cannot run on it again. Paste it into the box instead.'
+                      : undefined
+                  }
                   onRegenerate={() => convId != null && void regenerate(convId, m.id)}
                 />
               )
@@ -156,7 +167,7 @@ export default function ChatScreen() {
             type="button"
             className={`skill-chip${skill ? '' : ' is-active'}`}
             aria-pressed={!skill}
-            onClick={() => setSkillId(null)}
+            onClick={() => pickSkill(null)}
           >
             Chat
           </button>
@@ -166,7 +177,7 @@ export default function ChatScreen() {
               type="button"
               className={`skill-chip${skill?.id === s.id ? ' is-active' : ''}`}
               aria-pressed={skill?.id === s.id}
-              onClick={() => setSkillId(s.id)}
+              onClick={() => pickSkill(s.id)}
             >
               {s.name}
             </button>
@@ -288,7 +299,7 @@ function ModelStrip() {
       </div>
     );
   }
-  const last = models.find((m) => m.url === lastModelUrl && m.state === ModelState.READY);
+  const last = models.find((m) => m.url === lastModelUrl && m.state === ModelState.READY && isOfferable(m));
   return (
     <div className="model-strip model-strip-empty">
       <span>No model is loaded in this tab.</span>
@@ -301,6 +312,63 @@ function ModelStrip() {
           Choose a model
         </Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * The first run in one click: the smallest model in the list, downloaded (once) and started in this tab. The download
+ * goes through `downloadModel`, which asks the browser to keep the file and can be cancelled; it reports whether the
+ * file arrived, and only then is the model loaded. A model kept for engine tests (lab only) is never offered here.
+ */
+function StartModel() {
+  const { models, secureContext, downloadModel, cancelDownload, loadModel } = useWllama();
+  const { navigate } = useNav();
+  const [starting, setStarting] = useState(false);
+  const starter = models.find((m) => m.url === STARTER_MODEL_URL);
+  if (!secureContext || !starter || !isOfferable(starter)) return null;
+
+  const onDevice = starter.state === ModelState.READY;
+  const downloading = starter.state === ModelState.DOWNLOADING && starter.downloadLoaded >= 0;
+  const start = async () => {
+    setStarting(true);
+    try {
+      if (onDevice || (await downloadModel(starter))) await loadModel(starter);
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="start-model">
+      {downloading ? (
+        <p role="status">
+          Downloading {starter.name}: {formatBytes(starter.downloadLoaded)} of{' '}
+          {formatBytes(starter.downloadTotal || starter.size)} ({Math.round(starter.downloadPercent * 100)}%). It starts in
+          this tab when the download ends.
+        </p>
+      ) : (
+        <p>
+          {onDevice
+            ? `${starter.name} is already on this device. One click starts it in this tab.`
+            : `To start, one click downloads ${starter.name}, the smallest model in the list (${formatBytes(starter.size)}, once, from huggingface.co), keeps it in this browser's storage and starts it in this tab.`}
+        </p>
+      )}
+      <div className="start-model-actions">
+        {downloading ? (
+          <Button type="button" size="sm" variant="outline" onClick={() => cancelDownload(starter.url)}>
+            Cancel the download
+          </Button>
+        ) : (
+          <Button type="button" size="sm" disabled={starting} onClick={() => void start()}>
+            Start with {starter.name}
+            {onDevice ? '' : ` (${formatBytes(starter.size)})`}
+          </Button>
+        )}
+        <Button type="button" size="sm" variant="ghost" onClick={() => navigate(Screen.MODEL)}>
+          Choose another model
+        </Button>
+      </div>
     </div>
   );
 }

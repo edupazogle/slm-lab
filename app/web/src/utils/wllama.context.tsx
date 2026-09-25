@@ -48,7 +48,8 @@ interface WllamaContextValue {
    */
   secureContext: boolean;
   models: DisplayedModel[];
-  downloadModel(model: DisplayedModel): Promise<void>;
+  /** Resolves true when the file is now in this browser's storage; a failure is shown as a notice and resolves false. */
+  downloadModel(model: DisplayedModel): Promise<boolean>;
   cancelDownload(url: string): void;
   removeCachedModel(model: DisplayedModel): Promise<void>;
   removeAllCachedModels(): Promise<void>;
@@ -176,12 +177,12 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
   const isDownloading = Object.keys(downloads).length > 0;
 
   const downloadModel = useCallback(
-    async (model: DisplayedModel) => {
+    async (model: DisplayedModel): Promise<boolean> => {
       if (!SECURE) {
         setNotice(INSECURE_MESSAGE);
-        return;
+        return false;
       }
-      if (downloads[model.url]) return;
+      if (downloads[model.url]) return false;
       const ctrl = new AbortController();
       downloadCtrls.current[model.url] = ctrl;
       setDownloads((p) => ({ ...p, [model.url]: { loaded: 0, total: model.size } }));
@@ -192,6 +193,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
         /* not available */
       }
       let lastPaint = 0;
+      let ok = false;
       try {
         await getModelManager().downloadModel(
           { url: model.url, mmprojUrl: model.mmprojUrl },
@@ -205,6 +207,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
             },
           }
         );
+        ok = !ctrl.signal.aborted;
       } catch (e) {
         if (!ctrl.signal.aborted)
           setNotice(
@@ -219,6 +222,7 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
         });
         await refreshCachedModels();
       }
+      return ok;
     },
     [downloads, refreshCachedModels]
   );

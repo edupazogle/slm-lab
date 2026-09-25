@@ -10,7 +10,8 @@ import { errorText, newId } from './utils';
 import type { StreamOutcome } from './engine';
 import { getSkill } from '../skills';
 import { runSkill } from '../skills/run';
-import type { SkillInput } from '../skills/types';
+import { neutralTitle } from '../skills/storage';
+import type { Skill, SkillInput } from '../skills/types';
 
 /** The one moment of ceremony: the stamp lands on the first answer that finishes in this session. */
 export const stampState: { firstReceiptId: number | null } = { firstReceiptId: null };
@@ -22,10 +23,12 @@ export interface SendArgs {
   skillInput?: SkillInput;
 }
 
-function titleFor(text: string, skillName?: string): string {
+function titleFor(text: string, skill?: Skill): string {
+  // a text that went to a skill handling personal data is kept in memory only; a title quoting it would be saved
+  if (skill?.personalData) return neutralTitle(skill.personalData.title, Date.now());
   const t = text.trim().replace(/\s+/g, ' ');
   const head = t.length > 52 ? `${t.slice(0, 52)}…` : t;
-  if (skillName) return head ? `${skillName}: ${head}` : skillName;
+  if (skill) return head ? `${skill.name}: ${head}` : skill.name;
   return head || 'New conversation';
 }
 
@@ -179,7 +182,7 @@ export function useChatActions() {
 
       let convId = nav.convId;
       if (convId == null || !msgs.readConversation(convId)) {
-        const conv = msgs.createConversation(titleFor(text, skill?.name), [userMsg, assistantMsg]);
+        const conv = msgs.createConversation(titleFor(text, skill), [userMsg, assistantMsg]);
         convId = conv.id;
         nav.navigate(Screen.CHAT, convId);
       } else {
@@ -195,6 +198,13 @@ export function useChatActions() {
   const regenerate = useCallback(
     async (convId: number, assistantId: number) => {
       if (!loadedModel) return;
+      // after a reload, a text that went to a personal-data skill is a placeholder: running the skill on it helps nobody
+      const conv = msgs.readConversation(convId);
+      const index = conv?.messages.findIndex((m) => m.id === assistantId) ?? -1;
+      if (index > 0 && conv?.messages[index - 1].textNotSaved) {
+        setNotice('The original text was not saved, so the skill cannot run on it again. Paste it into the box instead.');
+        return;
+      }
       patch(convId, assistantId, (m) => ({
         ...m,
         content: '',
@@ -206,7 +216,7 @@ export function useChatActions() {
       }));
       await respond(convId, assistantId);
     },
-    [loadedModel, patch, respond]
+    [loadedModel, msgs, patch, respond, setNotice]
   );
 
   /** Change the last user message and ask again; everything after it is dropped. */
