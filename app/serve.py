@@ -21,6 +21,10 @@ POST /api/bench  (application/json, same-origin only) appends one line to bench_
 --public is for a hosted deploy (Railway, see the Dockerfile at the repo root): binds 0.0.0.0 on $PORT, and turns
 POST /api/bench off, because on the open internet it would let anyone append to a file on the server's disk. The bench
 page keeps its results in the browser either way. Directory listings are off in every mode.
+
+--redirect FROM=TO (repeatable) answers 301 for a path that is not a file on disk: FROM is exact, or a prefix when it ends
+in * ("/second-look/*=/" sends /second-look/x to /x). The query string is kept. The hosted site uses it for the URLs it
+retired (see the Dockerfile).
 """
 import argparse, json, os, re, sys, time
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
@@ -28,7 +32,7 @@ from urllib.parse import urlsplit
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAX_BODY = 256 * 1024
-HASHED = re.compile(r"^/assets/[^/]+-[A-Za-z0-9_-]{8}\.(?:js|css|wasm|woff2?|png|svg)$")   # Vite: name-<8-char hash>.ext
+HASHED = re.compile(r"^(?:/lab)?/assets/[^/]+-[A-Za-z0-9_-]{8}\.(?:js|css|wasm|woff2?|png|svg)$")   # Vite: name-<8-char hash>.ext
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -56,6 +60,34 @@ class Handler(SimpleHTTPRequestHandler):
         elif HASHED.match(path):
             self.send_header("Cache-Control", "public, max-age=31536000, immutable")
         super().end_headers()
+
+    def redirected(self):
+        """301 for a retired URL; a file that exists on disk is always served, never redirected."""
+        parts = urlsplit(self.path)
+        local = self.translate_path(parts.path)
+        if os.path.isfile(local) or os.path.isfile(os.path.join(local, "index.html")):
+            return False
+        for src, dst in self.server.redirects:
+            if src.endswith("*") and parts.path.startswith(src[:-1]):
+                to = dst + parts.path[len(src) - 1:]
+            elif parts.path == src:
+                to = dst
+            else:
+                continue
+            self.send_response(301)
+            self.send_header("Location", to + ("?" + parts.query if parts.query else ""))
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return True
+        return False
+
+    def do_GET(self):
+        if not self.redirected():
+            super().do_GET()
+
+    def do_HEAD(self):
+        if not self.redirected():
+            super().do_HEAD()
 
     def list_directory(self, path):
         # no directory listings: a folder without an index.html is a 404, not an index of the files in it
@@ -99,6 +131,7 @@ def main():
     mode.add_argument("--lan", action="store_true", help="bind 0.0.0.0 so a phone on the LAN can reach it")
     mode.add_argument("--public", action="store_true", help="hosted deploy: bind 0.0.0.0, POST /api/bench off")
     ap.add_argument("--results", default=os.path.join(HERE, "bench_results.jsonl"))
+    ap.add_argument("--redirect", action="append", default=[], metavar="FROM=TO", help="301 for a path not on disk (repeatable)")
     a = ap.parse_args()
     if not os.path.isdir(a.dir):
         sys.exit(f"no such directory: {a.dir}  (run `npm run build` in web/ first)")
@@ -106,6 +139,7 @@ def main():
     host = "0.0.0.0" if a.lan or a.public else "127.0.0.1"
     srv = ThreadingHTTPServer((host, a.port), Handler)
     srv.results_path, srv.bench, srv.public = a.results, not a.public, a.public
+    srv.redirects = [tuple(r.split("=", 1)) for r in a.redirect]
     results = "off" if a.public else f"-> {a.results}"
     print(f"serving {a.dir} on http://{host}:{a.port}  (COOP/COEP on; bench results {results})", flush=True)
     srv.serve_forever()
