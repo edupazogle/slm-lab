@@ -67,7 +67,17 @@ export interface ListedModel {
   thinks?: boolean;
   /** Understands Qwen3's /no_think switch (used by Skills so the JSON is not preceded by pages of thinking). */
   noThinkSwitch?: boolean;
+  /** Kept from the engine author's test list only: hidden unless the address carries ?lab=1 (see LAB_MODE). */
+  labOnly?: boolean;
 }
+
+/**
+ * True when the page address carries `?lab=1`. Read once, when the page loads. Without it the chat does not offer the
+ * models kept only for engine tests (a community fine-tune, two models whose refusal behaviour a third party removed,
+ * and an 8B squeezed to Q2): none of them is a sensible choice for insurance work, and a first-time visitor should not
+ * have to know that.
+ */
+export const LAB_MODE = typeof location !== 'undefined' && new URLSearchParams(location.search).get('lab') === '1';
 
 // The entries (URL, size) are the vendored wllama list: curated by wllama's author and known to load.
 // The notes, languages and licences were added here; languages and licences come from the model cards, never from memory.
@@ -207,6 +217,7 @@ export const LIST_MODELS: ListedModel[] = [
     url: 'https://huggingface.co/ngxson/wllama-split-models/resolve/main/neuralreyna-mini-1.8b-v0.3.q4_k_m-00001-of-00005.gguf',
     size: 1217753472,
     name: 'NeuralReyna mini 1.8B',
+    labOnly: true,
     maker: 'community fine-tune',
     note: 'A community fine-tune kept from the engine author’s test list. No reason to prefer it for insurance work.',
     languages: null,
@@ -220,6 +231,7 @@ export const LIST_MODELS: ListedModel[] = [
     url: 'https://huggingface.co/ngxson/wllama-split-models/resolve/main/gemma-2-2b-it-abliterated-Q4_K_M-00001-of-00004.gguf',
     size: 1708583264,
     name: 'Gemma 2 2B (abliterated)',
+    labOnly: true,
     maker: 'Google, modified by a third party',
     note: 'A third party removed this model’s refusal behaviour. Kept from the engine author’s test list; not for work use.',
     languages: null,
@@ -255,6 +267,7 @@ export const LIST_MODELS: ListedModel[] = [
     url: 'https://huggingface.co/ngxson/wllama-split-models/resolve/main/Meta-Llama-3.1-8B-Instruct-Q2_K-00001-of-00014.gguf',
     size: 3179138048,
     name: 'Llama 3.1 8B Instruct (Q2)',
+    labOnly: true,
     maker: 'Meta',
     note: 'An 8B model at the most aggressive compression (Q2). A 3.2 GB download that is slow on a processor and may not load at all.',
     languages: null,
@@ -268,6 +281,7 @@ export const LIST_MODELS: ListedModel[] = [
     url: 'https://huggingface.co/ngxson/wllama-split-models/resolve/main/meta-llama-3.1-8b-instruct-abliterated.Q2_K-00001-of-00014.gguf',
     size: 3179133600,
     name: 'Llama 3.1 8B (abliterated, Q2)',
+    labOnly: true,
     maker: 'Meta, modified by a third party',
     note: 'A third party removed this model’s refusal behaviour. Kept from the engine author’s test list; not for work use.',
     languages: null,

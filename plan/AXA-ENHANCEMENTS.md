@@ -63,10 +63,38 @@ Railway edge already compresses (gzip, zstd); the service runs in us-west2, so e
 | 15 | Pin model revisions in `build.sh` and check sha256 (a changed upstream file breaks every build) | not started |
 | 16 | Dock-panel chip contrast; hide the Ctrl ↵ hint on phones; tour step 2 text on phones; "Load it for me" label; hero button stuck disabled after Turn off; test button cannot re-run; toast when an example is clicked before the models; error handling in Pseudonymise and variants; storage shown in GB; footer "30 messages" for every widget | not started |
 | 17 | UK address, standalone UK postcode and "3rd of May 1961" dates in the redactor. Needs the Python port (`experiments/e1/regex_baseline.py`) changed too, and the 900-document parity re-run to 0 diffs | not started, deliberately |
-| 18 | Web app: hide the abliterated / community / 3.2 GB models unless `?lab=1` | **in progress, uncommitted when handed over** (see below) |
+| 18 | Web app: hide the abliterated / community / 3.2 GB models unless `?lab=1` (a hidden model already on the device stays listed, with a note, so it can be deleted) | **done**; build and lint pass, not checked in a browser |
 | 19 | Web app: the anonymise skill stops storing the original text; neutral titles; "Delete all conversations" | not started |
 | 20 | Web app: triage wording, landing error messages (insecure context, huggingface.co unreachable), honest offline copy, one-click "Start with SmolLM2", message kept while a model loads, suggestion/chip bug, schema-badge wording, bench landing, "Measure this device" size warning, link to Second Look from the landing, chat contrast | not started |
 | 21 | Railway preview environment on this branch, in an EU region | see "Deployment" |
+
+## Notes for the web-app items (read in the code on 2026-09-25, not yet changed)
+
+- **19, anonymise storage** leaks in more places than the user turn and the title (`chat-actions.ts:25-30`, `182`):
+  `anonymise.tsx` `forStorage` stores `redact(input, entities)`, which is the original text when a run failed, was stopped
+  or was still running when the debounced write fired (no entities yet), so store text only when `status === 'done'`;
+  `extractJSON` (`lib/localmode/schema.ts:444`) puts "Raw text: <first 200 chars of the model output>" into its error,
+  which reaches `run.issues` and the message's `error` field, and for Anonymise that output lists the personal values;
+  once the user turn is a placeholder, "Ask again" after a reload would run the skill on the placeholder (guard it);
+  conversations already saved still hold the original and should be cleaned on load (`messages.context.tsx:53-80`);
+  `idb-keyval`'s `clear` gives "Delete all conversations".
+- **Chat contrast**: both failing pairs come from `opacity-60` on the disabled composer (`lib/localmode/prompt-input.tsx`).
+  The label (`--ink-soft` on `--field`) is 6.03:1 light and 6.37:1 dark without the fade; the placeholder
+  (`placeholder:text-base-content/45`) is 2.85:1 and 3.5:1 even without it. Use `--ink-soft` and drop the fade.
+- **Message lost while a model loads**: `PromptInput.submit()` calls `setText('')` even when `send()` returns early and
+  navigates to Models (`chat-actions.ts:165-168`); the composer stays enabled while loading (`ChatScreen.tsx:219`). Send has
+  to be held inside `PromptInput`, because Enter calls `submit()` directly. For a one-click start, `downloadModel` swallows
+  errors, so it must report success before `loadModel` runs. `isOfferable()` in `utils/displayed-model.tsx` is there for
+  that button (never offer a lab-only model).
+- **Suggestion emptied by a chip**: the effect is at `ChatScreen.tsx:64-66`; the chips' `onClick` handlers are at 153 and 163.
+- **Triage**: the model's `next_step` values are `log`, `ask_customer`, `human_review`; "refuse" is only display text
+  (`triage.tsx:32`, `69`, `78`) and the CSS class `.decision-refuse` (`index.css:647`).
+- **Landing errors**: an unreachable host throws "Failed to fetch" and a proxy's 403 "Failed to fetch … HTTP 403"; both are
+  classed as `download` (`demo-engine.ts:114-118`). Telling them apart needs a bytes-received counter in the progress callback.
+- **Offline copy**: no manifest and no service worker; wllama keeps the model in OPFS, but the page is not cached, so an
+  offline reload fails.
+- **Bench landing**: importing `BENCH_HREF` from `sections.tsx` pulls in `findings.json` (144 kB); move it to a small
+  constants module.
 
 ## Open decisions for the operator
 

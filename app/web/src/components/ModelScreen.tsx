@@ -6,7 +6,7 @@ import { Button } from '../lib/localmode/button';
 import { StorageMeter } from '../lib/localmode/storage-meter';
 import { useCapabilities } from '../lib/localmode/use-environment';
 import { probeWebGPU, type GpuProbe } from '../lib/thales/localWllama';
-import { LICENCES_CHECKED_ON, MAX_GGUF_SIZE, TIERS, isOpenLicence } from '../config';
+import { LAB_MODE, LICENCES_CHECKED_ON, MAX_GGUF_SIZE, TIERS, isOpenLicence } from '../config';
 import { useWllama } from '../utils/wllama.context';
 import { useNav } from '../utils/nav.context';
 import { ModelState, Screen } from '../utils/types';
@@ -297,6 +297,11 @@ function ModelCard({
         </div>
       </dl>
       {info?.licence.note && <p className="model-licence-note">{info.licence.note}</p>}
+      {info?.labOnly && !LAB_MODE && (
+        <p className="model-licence-note">
+          Kept only for engine tests and normally hidden. It is listed because its file is already on this device.
+        </p>
+      )}
 
       {downloading && (
         <div className="download">

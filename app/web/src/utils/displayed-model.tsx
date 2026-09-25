@@ -3,7 +3,7 @@
 import { Model } from '@wllama/wllama';
 import { ModelState } from './types';
 import { WllamaStorage } from './utils';
-import { LIST_MODELS, ListedModel, ModelTier, tierOf } from '../config';
+import { LAB_MODE, LIST_MODELS, ListedModel, ModelTier, tierOf } from '../config';
 import { modelDisplayName } from './format';
 
 export class DisplayedModel {
@@ -102,11 +102,20 @@ export function updateUserAddedModels(models: DisplayedModel[]) {
 }
 
 export function getPresetModels(cachedModels: Model[]): DisplayedModel[] {
-  return LIST_MODELS.map((m) => {
+  return LIST_MODELS.flatMap((m) => {
     const cachedModel = cachedModels.find((cm) => cm.url === m.url);
-    return new DisplayedModel(m.url, m.size, false, cachedModel, m.mmprojUrl, m.modalities, m);
+    // A lab-only model is left out without ?lab=1, except when its file is already on this device: then it stays on
+    // the Models screen, so the file can still be seen and deleted rather than sit in storage where nothing shows it.
+    if (m.labOnly && !LAB_MODE && !cachedModel) return [];
+    return [new DisplayedModel(m.url, m.size, false, cachedModel, m.mmprojUrl, m.modalities, m)];
   });
 }
+
+/**
+ * Whether the chat may propose this model on its own (the first-run button, "Load the last model"). A lab-only model
+ * that is listed only because it is on this device can still be loaded from the Models screen, but is never offered.
+ */
+export const isOfferable = (m: DisplayedModel): boolean => LAB_MODE || !m.info?.labOnly;
 
 export function getDisplayedModels(cachedModels: Model[]): DisplayedModel[] {
   return [...getUserAddedModels(cachedModels), ...getPresetModels(cachedModels)];
