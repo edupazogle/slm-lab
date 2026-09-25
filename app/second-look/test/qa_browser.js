@@ -51,7 +51,11 @@ const EXPECT = {
     if (args['no-net']) await ctx.route('**/*', (route) => route.request().url().startsWith(URL) ? route.continue() : route.abort());
     const p = await ctx.newPage();
     await p.goto(URL, { waitUntil: 'load' });
-    await p.waitForSelector('#tour:not([hidden])', { timeout: 10000 });
+    // v9: the tour is offered, not imposed: a new visitor meets the page, and the tour starts from the hero button
+    const auto = await p.waitForSelector('#tour:not([hidden])', { timeout: 1500 }).then(() => true, () => false);
+    check('tour-opt-in', !auto, auto ? 'the tour opened over the page on its own' : 'the page opens without the tour over it');
+    await p.click('#tourStartBtn');                                                // a real, hit-tested click
+    await p.waitForSelector('#tour:not([hidden])', { timeout: 5000 });
     await p.click('#tourNext');                                                    // "Start"
     await p.waitForFunction(() => /Download/.test(document.querySelector('#tourStep').textContent), null, { timeout: 5000 });
     await p.waitForTimeout(700);                                                   // the ring moves onto the button (.45 s)
