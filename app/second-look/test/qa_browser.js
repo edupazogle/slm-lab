@@ -43,6 +43,25 @@ const EXPECT = {
   const download = async (sel) => { const [d] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), click(sel)]); return { name: d.suggestedFilename(), buf: fs.readFileSync(await d.path()) }; };
   const unzipNames = (buf) => { const out = []; let e = buf.length - 22; while (e >= 0 && buf.readUInt32LE(e) !== 0x06054b50) e--; let p = buf.readUInt32LE(e + 16); for (let k = 0; k < buf.readUInt16LE(e + 10); k++) { const nl = buf.readUInt16LE(p + 28); out.push(buf.slice(p + 46, p + 46 + nl).toString()); p += 46 + nl + buf.readUInt16LE(p + 30) + buf.readUInt16LE(p + 32); } return out; };
 
+  // 0. the first-visit tour, as a new visitor meets it, in its own context (the rest of this round skips the tour and uses
+  //    DOM clicks, which is how a highlight ring that took the click on "Download & turn on" went unnoticed: step 1 then
+  //    waited for a download that never started). Real, hit-tested clicks only.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    if (args['no-net']) await ctx.route('**/*', (route) => route.request().url().startsWith(URL) ? route.continue() : route.abort());
+    const p = await ctx.newPage();
+    await p.goto(URL, { waitUntil: 'load' });
+    await p.waitForSelector('#tour:not([hidden])', { timeout: 10000 });
+    await p.click('#tourNext');                                                    // "Start"
+    await p.waitForFunction(() => /Download/.test(document.querySelector('#tourStep').textContent), null, { timeout: 5000 });
+    await p.waitForTimeout(700);                                                   // the ring moves onto the button (.45 s)
+    const hit = await p.$eval('#dockBtn', (b) => { const r = b.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, t = document.elementFromPoint(x, y); return { x, y, ok: !!t && b.contains(t), top: t ? t.id || String(t.className) : 'nothing' }; });
+    await p.mouse.click(hit.x, hit.y);
+    const started = await p.waitForFunction(() => /Downloading|Starting|Models ready/.test(document.querySelector('#dlText').textContent), null, { timeout: 15000 }).then(() => true, () => false);
+    check('tour-first-visit', hit.ok && started, !hit.ok ? `a click on the highlighted button lands on #${hit.top}` : started ? 'the highlighted button takes a real click and the download starts' : 'the button took the click but no download started');
+    await ctx.close();
+  }
+
   // 1. the device check
   await page.goto(URL, { waitUntil: 'load' });
   await waitText('#capTitle', /Can run|lacks/, 15000);
