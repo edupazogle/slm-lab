@@ -34,4 +34,17 @@ PERSON, EMAIL, PHONE, NATIONAL_ID/NIR, IBAN, CARD, PLATE, ID_DOC, ADDRESS
 - Total rows: 900 (800 from OpenPII + 100 synthetic)
 - French: 500 (400 OpenPII + 100 synthetic)
 - English: 400 (all from OpenPII)
-**Generator fix after the E1a run (2026-09-24, commit 3f371e9):** `gen_fr_claims.py` now zero-pads the NIR birth year; the 8 malformed 14-character NIRs in `data/synthetic_claims.jsonl` were produced before the fix and the dataset was NOT regenerated, so the E1a numbers stand as measured.
+
+## Synthetic NIRs corrected in place (2026-09-25)
+- **The defect:** before the 2026-09-24 generator fix, `gen_fr_claims.py` wrote the NIR birth year unpadded, so 8 of the 100 synthetic NIRs had 14 characters, not 15. The generator fix left the dataset unchanged, so `results.json`, `results_v2.json` and `results_v3.json` were all measured on the malformed gold.
+- **Why the set was not regenerated:** the set was drawn unseeded, so the generator cannot reproduce it. Two fresh runs differed from the committed file, and from each other, on all 100 rows.
+- **What was done instead:** the 8 NIRs were corrected in place in `data/synthetic_claims.jsonl`. For each one:
+  - the year is zero-padded;
+  - the key is recomputed with the generator's own formula (`97 - (13 digits mod 97)`, 2A→19 and 2B→18), the formula that reproduces all 100 old keys;
+  - every span after the NIR moves +1.
+
+  This is what the fixed generator would have written from the same random draws, because the fix changes only how the year is written, not what is drawn.
+- **Ids corrected:** `synthetic_016`, `023`, `026`, `027`, `031`, `034`, `073` and `077`.
+- **Everything else is unchanged:** the other 92 claims are byte-identical, and in the 8 corrected claims only the NIR and the later offsets differ. `combine_dataset.py` (seed 42) was re-run, so exactly those 8 lines of `data/combined_dataset.jsonl` changed. All 100 gold NIRs now have 15 characters.
+- **Where the numbers are:** the re-score is `results_v4.json` (REPORT.md, addendum 3).
+- **The generator is now seeded** (`SEED = 42` for `random` and Faker), so it is reproducible. Running it now writes a different set from the committed one.

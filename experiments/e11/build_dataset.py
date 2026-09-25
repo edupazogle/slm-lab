@@ -11,15 +11,23 @@ Implements the exact specification from E11-fix-2.md:
 - Test split: by job 70/30 with seed 13, test set must have ≥15 jobs
 """
 
+import argparse
 import json
 import os
 import random
+import re
 import sys
 from datetime import datetime
+from pathlib import Path
 
 # Configuration
-RUNS_DIR = "/home/edu/Public/bizloop/cockpit/runs"
-OUTPUT_DIR = "/home/edu/Public/bizloop/slm/experiments/e11/data"
+# Everything this experiment writes lives next to this script. The one external input -- the cockpit's job
+# transcripts, private to the BizLoop checkout -- comes from --runs-dir, else $E11_RUNS_DIR, else
+# $BIZLOOP_ROOT/cockpit/runs (BIZLOOP_ROOT defaults to the owner's checkout, so nothing changes there).
+HERE = Path(__file__).resolve().parent
+BIZLOOP_ROOT = os.environ.get("BIZLOOP_ROOT", "/home/edu/Public/bizloop")
+RUNS_DIR = os.environ.get("E11_RUNS_DIR", os.path.join(BIZLOOP_ROOT, "cockpit", "runs"))
+OUTPUT_DIR = str(HERE / "data")
 WINDOW_SIZE = 6000  # bytes
 STEP_SIZE = 2000    # bytes
 MAX_WINDOWS_PER_JOB = 60
@@ -150,60 +158,113 @@ def add_synthetic_garble(text, generator_type):
         return text
     return text
 
-def get_pane_state_from_structure(event_pieces, window_end_byte_offset):
-    """
-    Determine pane state based on the FIRST event after the window's last byte.
-    Returns one of: 'working', 'finished-report', 'waiting-permission', 'api-error'
-    """
-    # Find the first event that starts after our window ends
-    # event_pieces is list of (event_index, text) in order
-    # We need to map back to original events to check structure
+# Structural cues from the brief (E11-fix-2.md, step 1). They are read at the window's END position, per window.
+APPROVAL_PHRASES = ["requires approval", "permission", "not allowed"]
+API_ERROR_SIGNATURES = re.compile(r"API Error|\b402\b|\b429\b|overloaded|Insufficient Balance|rate limit", re.IGNORECASE)
+API_ERROR_TAIL = 800  # bytes at the end of the window that are searched for an API error signature
 
-    # For simplicity in this implementation, we'll look at the last few pieces
-    # to determine state based on the brief's criteria
-    if not event_pieces:
+def get_pane_state_from_structure(full_text, pieces, byte_offsets, window_start, window_end):
+    """
+    Pane state of the window full_text[window_start:window_end], from the transcript's structure at the window's end
+    (brief E11-fix-2.md, step 1), checked in this order:
+      - the FIRST piece after the window's last byte is a `result` event (or the window ends inside/at it)
+        -> 'finished-report'
+      - the last tool result visible in the window contains an approval phrase -> 'waiting-permission'
+      - an API error signature in the window's last 800 bytes -> 'api-error'
+      - otherwise -> 'working'
+    `pieces` is visible_pieces() output and byte_offsets[k] is where piece k starts in full_text (pieces are joined
+    with "\n"). Before 2026-09-25 this looked at the last 5 pieces of the whole JOB for every window, so all windows of
+    a job shared one label (and "completed"/"finished"/"error" anywhere in them decided it).
+    """
+    if not pieces:
         return 'working'
 
-    # Get the last few pieces to check for indicators
-    recent_text = " ".join([piece[1] for piece in event_pieces[-5:]])  # Last 5 pieces
-    recent_text_lower = recent_text.lower()
+    # Pieces overlapping the window, and the first piece starting at or after the window's last byte
+    in_window = [k for k in range(len(pieces))
+                 if byte_offsets[k] < window_end and byte_offsets[k] + len(pieces[k][1]) > window_start]
+    next_k = next((k for k in range(len(pieces)) if byte_offsets[k] >= window_end), None)
 
-    # Check for finished-report: next event is a `result`
-    # Since we don't have direct access to next event type in this simplified version,
-    # we'll infer from text patterns
-    if "[result " in recent_text or "completed" in recent_text_lower or "finished" in recent_text_lower:
+    def is_result(k):
+        return k is not None and pieces[k][1].startswith("[result ")
+
+    if is_result(next_k) or (in_window and is_result(in_window[-1])):
         return 'finished-report'
 
-    # Check for waiting-permission: last tool result contains approval phrases
-    approval_phrases = ["requires approval", "permission", "not allowed", "approval required",
-                       "confirm", "authorize", "waiting for"]
-    if any(phrase in recent_text_lower for phrase in approval_phrases):
-        return 'waiting-permission'
+    tool_results = [k for k in in_window if pieces[k][1].startswith("  ⎿ ")]
+    if tool_results:
+        k = tool_results[-1]
+        visible = full_text[max(window_start, byte_offsets[k]):min(window_end, byte_offsets[k] + len(pieces[k][1]))]
+        if any(phrase in visible.lower() for phrase in APPROVAL_PHRASES):
+            return 'waiting-permission'
 
-    # Check for api-error: window contains API error signature in last 800 bytes
-    error_signatures = ["api error", "402", "429", "overloaded", "insufficient balance",
-                       "rate limit", "error", "failed", "timeout"]
-    # Check last 800 characters for error signatures
-    last_part = recent_text[-800:] if len(recent_text) >= 800 else recent_text
-    last_part_lower = last_part.lower()
-    if any(sig in last_part_lower for sig in error_signatures):
+    tail = full_text[max(window_start, window_end - API_ERROR_TAIL):window_end]
+    if API_ERROR_SIGNATURES.search(tail):
         return 'api-error'
 
-    # Default to working
     return 'working'
 
+def job_agent_hours(path):
+    """
+    (agent_hours, source) for one job, for false alarms per 8 agent-hours (brief E11-fix-1.md, step 5):
+    first to last top-level event `timestamp`; if the transcript has none, the sum of its `result` events'
+    `duration_ms`; else (None, None) and the false-alarm rate is reported as not measured.
+    """
+    first = last = None
+    duration_ms = 0
+    for line in open(path, errors="replace"):
+        if '"timestamp"' not in line and '"duration_ms"' not in line:
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(r, dict):
+            continue
+        ts = r.get("timestamp")
+        if isinstance(ts, str):
+            try:
+                t = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except ValueError:
+                t = None
+            if t is not None:
+                first = t if first is None or t < first else first
+                last = t if last is None or t > last else last
+        if r.get("type") == "result" and isinstance(r.get("duration_ms"), (int, float)):
+            duration_ms += r["duration_ms"]
+    if first is not None and last is not None and last > first:
+        return (last - first).total_seconds() / 3600.0, "timestamps"
+    if duration_ms > 0:
+        return duration_ms / 3.6e6, "result.duration_ms"
+    return None, None
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Build the E11 window dataset from the cockpit's job transcripts.")
+    ap.add_argument("--runs-dir", default=RUNS_DIR,
+                    help="directory of <job>.jsonl stream-json transcripts "
+                         "(default: $E11_RUNS_DIR, else $BIZLOOP_ROOT/cockpit/runs; now %(default)s)")
+    return ap.parse_args()
+
 def main():
+    args = parse_args()
+    runs_dir = args.runs_dir
+    if not os.path.isdir(runs_dir):
+        print(f"ERROR: transcripts directory not found: {runs_dir}\n"
+              f"  The job transcripts are private to the BizLoop checkout and are not in this repo. Point at them with\n"
+              f"  --runs-dir DIR, E11_RUNS_DIR=DIR, or BIZLOOP_ROOT=<checkout> (uses <checkout>/cockpit/runs).",
+              file=sys.stderr)
+        sys.exit(1)
+
     # Ensure output directory exists
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # Collect all .jsonl files
+    # Collect all .jsonl files, sorted so the seeded split is the same on every machine (os.listdir order is not)
     all_files = []
-    for fname in os.listdir(RUNS_DIR):
+    for fname in sorted(os.listdir(runs_dir)):
         if fname.endswith('.jsonl'):
-            all_files.append(os.path.join(RUNS_DIR, fname))
+            all_files.append(os.path.join(runs_dir, fname))
 
     if not all_files:
-        print("No .jsonl files found in", RUNS_DIR, file=sys.stderr)
+        print("No .jsonl files found in", runs_dir, file=sys.stderr)
         sys.exit(1)
 
     print(f"Found {len(all_files)} job transcript files")
@@ -230,6 +291,8 @@ def main():
 
     # Process each split
     all_windows = []  # Collect all windows to verify minimums
+    split_label_counts = {}  # split -> {label: windows}
+    jobs_out = []  # one row per job: split and agent-hours (for false alarms per 8 agent-hours)
 
     for split_name, file_list, gen_list in [('train', train_files, train_generators),
                                             ('test', test_files, [test_generator])]:
@@ -244,6 +307,8 @@ def main():
             if not pieces:
                 print(f"Warning: no visible pieces extracted from {job_id}", file=sys.stderr)
                 continue
+            agent_hours, hours_source = job_agent_hours(filepath)
+            windows_before_job = len(windows_out)
 
             # Concatenate pieces with "\n" and track byte offsets
             full_text = ""
@@ -272,7 +337,6 @@ def main():
                     'text': full_text,
                     'start': 0,
                     'end': text_len,
-                    'pieces_in_window': pieces,  # For labeling
                     'byte_start': 0,
                     'byte_end': text_len
                 }]
@@ -283,23 +347,12 @@ def main():
                     end = start + WINDOW_SIZE
                     window_text = full_text[start:end]
 
-                    # Find which pieces are in this window
-                    pieces_in_window = []
-                    byte_start = start
-                    byte_end = end
-
-                    # Simple approach: include pieces that overlap with window
-                    # For better accuracy, we'd need to track exact byte positions per piece
-                    # but for now we'll use all pieces as approximation
-                    pieces_in_window = pieces
-
                     all_windows_for_job.append({
                         'text': window_text,
                         'start': start,
                         'end': end,
-                        'pieces_in_window': pieces_in_window,
-                        'byte_start': byte_start,
-                        'byte_end': byte_end
+                        'byte_start': start,
+                        'byte_end': end
                     })
 
                 # If we have more than MAX_WINDOWS_PER_JOB, sample evenly
@@ -320,7 +373,6 @@ def main():
                             'text': full_text[final_start:final_end],
                             'start': final_start,
                             'end': final_end,
-                            'pieces_in_window': pieces,  # Approximation
                             'byte_start': final_start,
                             'byte_end': final_end
                         })
@@ -332,8 +384,7 @@ def main():
                 byte_end = window['byte_end']
 
                 # Determine pane state from structure (FIRST event after window's last byte)
-                # For now, we'll use the pieces in window as approximation
-                pane_state = get_pane_state_from_structure(window['pieces_in_window'], byte_end)
+                pane_state = get_pane_state_from_structure(full_text, pieces, byte_offsets, byte_start, byte_end)
 
                 # Compute features
                 ratio = compute_non_latin_ratio(window_text)
@@ -368,10 +419,17 @@ def main():
                 # Garble label is ONLY from synthetic generation (per brief)
                 is_garble = is_synthetic
 
+                # `label` is the brief's 5-class field (E11-fix-2.md: always one of the 5 strings). `pane_state` keeps
+                # the structural state of the window under any garble; rows written before 2026-09-25 carry only
+                # `pane_state` (never 'garble'), and the readers derive `label` from it (baselines.row_label).
+                label = 'garble' if is_garble else pane_state
+                assert label in PANE_STATE_CLASSES, f"label {label!r} is not one of {PANE_STATE_CLASSES}"
+
                 # Create dataset entry
                 entry = {
                     'job_id': job_id,
                     'text': window_text,
+                    'label': label,
                     'pane_state': pane_state,
                     'is_synthetic': 1 if is_synthetic else 0,
                     'generator': generator_used if is_synthetic else '',
@@ -382,6 +440,9 @@ def main():
                 }
                 windows_out.append(entry)
                 all_windows.append(entry)  # For global counting
+
+            jobs_out.append({'job_id': job_id, 'split': split_name, 'windows': len(windows_out) - windows_before_job,
+                             'agent_hours': agent_hours, 'hours_source': hours_source})
 
         # Write windows to JSONL file
         out_path = os.path.join(OUTPUT_DIR, f'{split_name}.jsonl')
@@ -403,6 +464,30 @@ def main():
                 if count > 0:
                     print(f"    {gen}: {count}")
 
+        # Per-label breakdown
+        split_label_counts[split_name] = {c: sum(1 for e in windows_out if e['label'] == c) for c in PANE_STATE_CLASSES}
+        print("  Per label: " + ", ".join(f"{c} {n}" for c, n in split_label_counts[split_name].items()))
+
+    # Job rows (split, agent-hours) for evaluate.py's false alarms per 8 agent-hours
+    jobs_path = os.path.join(OUTPUT_DIR, 'jobs.jsonl')
+    with open(jobs_path, 'w', encoding='utf-8') as f:
+        for row in jobs_out:
+            f.write(json.dumps(row) + '\n')
+    no_hours = [j['job_id'] for j in jobs_out if j['agent_hours'] is None]
+    print(f"Written {len(jobs_out)} job rows to {jobs_path} ({len(no_hours)} without timestamps)")
+
+    # The split is by job and a pane state is a property of a job's windows, so a class can land entirely in one
+    # split. Its test recall is then not measurable (it is not 0.0): warn here, and say so in DATA.md.
+    split_warnings = []
+    for c in PANE_STATE_CLASSES:
+        n_train, n_test = split_label_counts['train'][c], split_label_counts['test'][c]
+        if n_train + n_test > 0 and n_test == 0:
+            split_warnings.append(f"'{c}' has {n_train} train windows and 0 test windows: its test recall is not measurable")
+        elif n_train + n_test > 0 and n_train == 0:
+            split_warnings.append(f"'{c}' has 0 train windows and {n_test} test windows: no classifier can learn it")
+    for w in split_warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+
     # Verify minimums and create DATA.md
     data_md_path = os.path.join(OUTPUT_DIR, 'DATA.md')
     total_real_windows = len(all_windows)
@@ -416,10 +501,10 @@ def main():
     assert total_real_windows >= 1000, f"Need ≥1000 real windows, got {total_real_windows}"
     assert total_synthetic_windows >= 300, f"Need ≥300 synthetic garble windows, got {total_synthetic_windows}"
 
-    # Count by pane state
+    # Count by label (the 5-class field; synthetic windows are 'garble')
     pane_state_counts = {}
     for window in all_windows:
-        state = window['pane_state']
+        state = window['label']
         pane_state_counts[state] = pane_state_counts.get(state, 0) + 1
 
     # Create DATA.md with detailed information
@@ -451,18 +536,21 @@ def main():
                         if gen_count > 0:
                             f.write(f'  - {gen}: {gen_count}\n')
 
-        f.write(f'\nBy pane state:\n')
+        f.write(f'\nBy label (`label` field; train / test):\n')
         for state in PANE_STATE_CLASSES:
             count = pane_state_counts.get(state, 0)
-            f.write(f'- {state}: {count}\n')
+            f.write(f'- {state}: {count} ({split_label_counts["train"][state]} / {split_label_counts["test"][state]})\n')
             if count < 10:
                 f.write(f'  ⚠️  Less than 10 examples - noted as requested\n')
+        for w in split_warnings:
+            f.write(f'- ⚠️  {w}\n')
 
         f.write(f'\n## Job Split Information\n')
         f.write(f'- Total jobs: {len(all_files)}\n')
         f.write(f'- Training jobs: {len(train_files)}\n')
         f.write(f'- Test jobs: {len(test_files)} (assert: ≥15) {"✓" if len(test_files) >= 15 else "✗"}\n')
         f.write(f'- Random seed: {RANDOM_SEED}\n')
+        f.write(f'- Jobs with agent-hours: {len(jobs_out) - len(no_hours)} of {len(jobs_out)} (`jobs.jsonl`)\n')
 
         f.write(f'\n## Notes\n')
         f.write('- Used exact visible_pieces() function from brief\n')

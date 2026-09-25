@@ -16,6 +16,14 @@ import random
 from faker import Faker
 from faker.providers import ssn, company, automotive, phone_number, person, date_time
 
+# Seeds both `random` and Faker's shared generator, so two runs write the same file (added 2026-09-25).
+# The committed data/synthetic_claims.jsonl PREDATES this seed: it was drawn unseeded before the E1a run (first committed
+# on 2026-09-24, c685528) and was corrected in place on 2026-09-25 (the 8 NIRs with an unpadded birth year: year padded,
+# key recomputed with generate_nir()'s formula, later spans +1; see DATA.md). Running this script now therefore writes a
+# different (reproducible) set of 100 claims, not the committed one, and it overwrites data/synthetic_claims.jsonl
+# relative to the working directory, so run it elsewhere unless you mean to replace the E1a data.
+SEED = 42
+
 def luhn_checksum(card_num):
     """Calculate Luhn checksum"""
     def digits_of(n):
@@ -203,6 +211,9 @@ Cordialement,
 
 def main():
     """Generate 100 synthetic French claim emails"""
+    random.seed(SEED)
+    Faker.seed(SEED)   # every Faker('fr_FR') made below draws from this shared, seeded generator
+
     # Initialize Faker
     fake = Faker('fr_FR')
 

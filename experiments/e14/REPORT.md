@@ -34,3 +34,13 @@ All changes are confined to slm/experiments/e14/, as allowed.
 
 ## First-party nano comparison: not measured
 We did not run a comparison with first-party nano-class models.
+## Follow-up (2026-09-25)
+- `PROPOSAL.md` sets out the change BizLoop needs for both findings. (a) A `base_url` field, plus an optional
+  `api_key_env`, in the binding, so a local OpenAI-compatible server is a `models.json` row. (b) A 0.00 EUR price row,
+  so the cost line reads "0.00 (self-hosted, hardware not counted)".
+- This folder's `models.json` now gives `llamacpp-local` a `base_url`. `call_binding.py` reads it and falls back to the
+  old hard-coded URL only without it. `--dry-run` prints the resolved request without sending it. The BizLoop checkout
+  comes from `BIZLOOP_ROOT`, default `/home/edu/Public/bizloop`.
+- `serve.sh` takes `E14_MODEL_PATH` and `E14_PYTHON`, and writes its PID and log next to itself.
+- Correction to the numbers above: the "Cost line" was typed into `call_binding.py` by hand. BizLoop's pricing code
+  did not print it, and its output for this model has not been observed.

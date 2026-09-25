@@ -1,0 +1,8 @@
+{
+  "documents": 900,
+  "python_entities": 2410,
+  "python_name_candidates": 3203,
+  "documents_with_entity_diff": 0,
+  "documents_with_candidate_diff": 0,
+  "examples": []
+}
