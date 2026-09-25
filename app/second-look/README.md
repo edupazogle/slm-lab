@@ -13,11 +13,11 @@ offline once downloaded. No Jev call anywhere — the point is that the capabili
 |---|---|
 | Decisions | route a claim (choice, all-MiniLM-L6-v2 similarity to team descriptions), legal-threat flag, vulnerable-customer flag, urgency score, AI-reply guardrail, your own yes/no question (xtremedistil zero-shot NLI) |
 | The telling test | 30 synthetic labelled messages: AUC, average probability on true vs false cases, a reliability plot and a threshold slider (straight-through rate vs errors) |
-| Design | the Claude Design "Second Look v7" layout (BrowserLLM · "TinyLLM. Huge Possibilities."): floating sidebar, AXA blue on a soft ground, KPI cards, a four-step anonymiser in the hero, decision tabs, a black model bar pinned to the bottom that glows mint when the models are on, a guided first-visit tour. Headings in Publico Headline when the device has it installed, otherwise Source Serif 4 (OFL, shipped): Publico is a commercial face and is not published here. Body in Source Sans Pro (OFL, shipped) |
-| Redactor | rules (email, phone, IBAN mod-97, card Luhn, French NIR, dates, addresses, postcodes, plates, policy/claim ids) + names (titles, greetings, sign-offs, relations, `Nom:` / `Name:` labels, a first-name list that also reads the first part of a hyphenated name; the model decides the unsure ones at p ≥ 0.8). Pseudonymisation, not anonymisation |
-| Files | read in the tab: .docx (mammoth, with the page's own reader as fallback), .xlsx (every sheet, one row per line, cells tab-separated), .pptx, .txt/.md/.csv/.tsv/.json/.eml. The pseudonymised text saves as a .docx; the synthetic variants save as a .zip (one .txt per variant plus `variants.jsonl`) |
+| Design | the Claude Design "Second Look v7" layout (BrowserLLM · "TinyLLM. Huge Possibilities."): floating sidebar, AXA blue on a soft ground, KPI cards, a four-step pseudonymiser in the hero, decision tabs, a black model bar pinned to the bottom that glows mint when the models are on, a guided first-visit tour. Headings in Publico Headline when the device has it installed, otherwise Source Serif 4 (OFL, shipped): Publico is a commercial face and is not published here. Body in Source Sans Pro (OFL, shipped) |
+| Redactor | rules (email, phone, IBAN mod-97, card Luhn, French NIR, dates incl. "3rd of May 1961", addresses in the French and the English order ("12 rue des Lilas", "27 Harrow Road"), postcodes (with a town, or a UK postcode alone), plates, policy/claim ids) + names (titles, greetings, sign-offs, relations, `Nom:` / `Name:` labels, a first-name list that also reads the first part of a hyphenated name; the model decides the unsure ones at p ≥ 0.8). Pseudonymisation, not anonymisation: the page calls it that, and shows the leak rate E1a v4 measured for these rules beside the result (0.7515 on 487 French documents, the page's own name list, no model) |
+| Files | read in the tab: .docx (mammoth, with the page's own reader as fallback), .xlsx (every sheet, one row per line, cells tab-separated), .pptx, .txt/.md/.csv/.tsv/.json/.eml. Limits: 5 MB of text, an Office file up to 50 MB and no more than 100 MB unzipped from it (counted as it inflates, so a zip bomb is refused in well under a second). The pseudonymised text saves as a .docx; the synthetic variants save as a .zip (one .txt per variant plus `variants.jsonl`) |
 | Synthetic variants | upload files; every detected entity replaced by a same-format fake, consistent within a variant, gender from context, seeded |
-| Meter | every model call timed and counted in the tab, the way a LiteLLM-style gateway logs an API call: a receipt under each result (model, tokens in, output, ms with the model's share, tok/s, calls, 0 requests / 0 bytes / €0), live counters in the model bar's chips (calls · tokens · median ms per model), a "Usage meter" section (totals, median and p95 in the model, tok/s, per-model cards with a latency sparkline) and a usage log (last 40 calls, copy as JSON lines, save every call as .csv, reset). Times are `performance.now()` around the tokenizer and around the model run |
+| Meter | every model call timed and counted in the tab, the way a LiteLLM-style gateway logs an API call: a receipt under each result (model, tokens in, output, ms with the model's share, tok/s, calls, and the live request counter: "0 requests since the models started · 0 bytes sent", or how many there were), live counters in the model bar's chips (calls · tokens · median ms per model), a "Usage meter" section (totals, median and p95 in the model, tok/s, per-model cards with a latency sparkline) and a usage log (last 40 calls, copy as JSON lines, save every call as .csv — up to the last 50,000, and the note and the file name say so past that — reset). Times are `performance.now()` around the tokenizer and around the model run. Every model call goes through one queue (the wasm backend is not re-entrant: five overlapping decisions crashed the tab), and each run keeps its own calls, so a receipt and the log's "Where" are that run's |
 
 Measured in the browser (ONNX Runtime Web 1.17.3, int8) on `test/cases.json`: legal flag AUC 0.98 (true cases average p 0.63,
 others 0.01); vulnerable AUC 0.98 (0.38 / 0.06); routing 79 % right, at p ≥ 0.60 76 % straight through and 86 % of those right;
@@ -33,10 +33,15 @@ Build and test locally:
 
 ```bash
 ./build.sh                                  # fetches the runtime, the scripts and the models: ort/, vendor/, models/ (git-ignored)
+./build.sh --lock                           # where huggingface.co is reachable: pins the model files to a commit, rewrites models.lock
 python3 build_pages.py                      # dist/: the site as GitHub Pages serves it
 python3 -m http.server 8792 --bind 127.0.0.1 --directory dist   # open http://127.0.0.1:8792/ (the service worker needs localhost or https)
 python3 serve_local.py . 8791               # the same page behind an artifact-like CSP
 ```
+
+`models.lock` lists every file `build.sh` fetches: its URL (a Hugging Face URL carries the commit it was read at), its size
+(the one the page expects) and its sha256; the build stops on a mismatch. `--lock` reads each commit from the `x-repo-commit`
+header of the resolve URL and records the sha256; it stops too if a size changed upstream.
 
 Why base64: the artifact host serves `.wasm` and text types only (it refused `application/octet-stream`), so the model
 weights ship as base64 `.txt` chunks under the 16 MB text limit (57 MB in total, under the 64 MB version limit) and the page
@@ -58,14 +63,19 @@ decisions, the 89-decision test reproducing the numbers above, the redactor on e
 offline mode with 0 requests.
 
 Licences: xtremedistil-l6-h256-zeroshot-v1.1-all-33 MIT (Moritz Laurer); all-MiniLM-L6-v2 Apache-2.0 (sentence-transformers,
-ONNX by Xenova); ONNX Runtime Web MIT; mammoth.js BSD-2-Clause (loaded from cdnjs); UI patterns after LocalMode (MIT).
+ONNX by Xenova); ONNX Runtime Web MIT; mammoth.js BSD-2-Clause (npm's copy, served from vendor/; cdnjs is the page's fallback); UI patterns after LocalMode (MIT).
 
 QA round (`test/qa_browser.js`, Playwright): the device check, the self-hosted scripts, the rules-only redactor, the download,
 every decision widget on every example (mechanics pass / fail, label agreement measured) and each "Run all" table, keyboard
 tabs, the threshold slider, the 89-decision test, the redactor with the model on the E1a cases, a .docx upload
 (`test/sample-claim.docx`, from `test/make_sample_docx.py`) and the .docx export, an .xlsx upload (`test/sample-claims.xlsx`,
 from `test/make_sample_xlsx.py`), synthetic variants (same seed, same output) and their .zip, the meter, its model-bar chips
-and its .csv, offline mode, the cached reload and a reload with no connection: 55 checks. Results and how to run it: [`QA.md`](QA.md).
+and its .csv, offline mode, the cached reload and a reload with no connection (its own context, through a proxy the script
+shuts before the reload: Playwright 1.56's `setOffline` does not reach the service worker's fetches). Added in v10: eight
+decisions fired at once, the pseudonymiser's wording and leak rate, a UK letter, the live request counter in the receipts and
+the hero, the hero button after "Turn off", a second run of the test, failures that say so, the tour's focus, a phone layout,
+the model bar's switches at 1280 px, and a service worker that leaves `lab/` alone: 76 checks, at the site root or under a
+sub-path. Results of the v8 round and how to run it: [`QA.md`](QA.md).
 The Pages workflow runs it before every deploy and uploads the report as the `qa-report` artifact.
 
 Reference numbers in Python (`test/`): `python3 -m venv v && v/bin/pip install onnxruntime tokenizers numpy`, put the two

@@ -2,7 +2,8 @@
 """E1a regex baseline — a faithful Python port of the personal-data detectors in slm/app/second-look/index.html.
 
 Ported (page section "personal data: detectors"): TITLES, FIRST, NOT_NAME, MONTHS, PATTERNS (EMAIL, IBAN+mod-97, NIR,
-CARD+Luhn, PHONE, DATE, PLATE, ADDRESS, POSTCODE, ID x2, AMOUNT), findPatterns(), CAP (up to 6 words), nameCandidates()
+CARD+Luhn, PHONE, DATE incl. "3rd of May 1961", PLATE, ADDRESS x2 (the French order and the English "27 Harrow Road"),
+POSTCODE x2 (with a town, and a UK postcode alone), ID x2, AMOUNT), findPatterns(), CAP (up to 6 words), nameCandidates()
 with every cue (title, greeting, sign-off, relation, context incl. "Nom:" / "Name:" labels, first name incl. the first part
 of a hyphenated name), the preposition ("place") skip, the sentence-start rule, sentenceAround(),
 and detect() without the model: AMOUNT dropped (amounts=false), name candidates without a cue dropped (no model), then
@@ -91,10 +92,12 @@ PATTERNS = [
     ('NIR', re.compile(rf'{B}[12][ ]?{D}{{2}}[ ]?(?:0[1-9]|1[0-2])[ ]?(?:{D}{{2}}|2A|2B)[ ]?{D}{{3}}[ ]?{D}{{3}}(?:[ ]?{D}{{2}})?{B}'), None, 0),
     ('CARD', re.compile(rf'{B}(?:{D}[ -]?){{13,19}}{B}'), _card_ok, 0),
     ('PHONE', re.compile(rf'(?:(?:\+|00){D}{{1,3}}[ .-]?(?:\(0\)[ .-]?)?{D}{{1,4}}(?:[ .-]?{D}{{2,4}}){{2,4}})|{B}0[1-9](?:[ .-]?{D}{{2}}){{4}}{B}|{B}07{D}{{3}}[ ]?{D}{{6}}{B}'), None, 0),
-    ('DATE', re.compile(rf'{B}(?:{D}{{1,2}}[/.-]{D}{{1,2}}[/.-](?:19|20){D}{{2}}|(?:19|20){D}{{2}}-{D}{{2}}-{D}{{2}}|{D}{{1,2}}(?:st|nd|rd|th|er)?{S}+(?:{MONTHS})\.?{S}+(?:19|20){D}{{2}}|(?:{MONTHS})\.?{S}+{D}{{1,2}}(?:st|nd|rd|th)?,?{S}+(?:19|20){D}{{2}}){B}', I), None, 0),
+    ('DATE', re.compile(rf'{B}(?:{D}{{1,2}}[/.-]{D}{{1,2}}[/.-](?:19|20){D}{{2}}|(?:19|20){D}{{2}}-{D}{{2}}-{D}{{2}}|{D}{{1,2}}(?:st|nd|rd|th|er)?{S}+(?:of{S}+)?(?:{MONTHS})\.?,?{S}+(?:19|20){D}{{2}}|(?:{MONTHS})\.?{S}+{D}{{1,2}}(?:st|nd|rd|th)?,?{S}+(?:19|20){D}{{2}}){B}', I), None, 0),
     ('PLATE', re.compile(rf'{B}(?:[A-Z]{{2}}-{D}{{3}}-[A-Z]{{2}}|[A-Z]{{2}}{D}{{2}}{SP}?[A-Z]{{3}}|{D}{{4}}{SP}?[BCDFGHJKLMNPRSTVWXYZ]{{3}}|[A-ZÄÖÜ]{{1,3}}-[A-Z]{{1,2}}{SP}?{D}{{1,4}}[EH]?){B}'), None, 0),
     ('ADDRESS', re.compile(rf'{B}{D}{{1,4}}(?:{S}?(?:bis|ter))?,?{S}+(?:rue|avenue|av\.|boulevard|bd\.?|chemin|allée|allee|place|impasse|quai|route|street|st\.|road|rd\.|lane|drive|close|way|straße|strasse|str\.|weg|calle|avenida|via|viale|piazza){B}[^\n,.;]{{2,40}}', I), None, 0),
+    ('ADDRESS', re.compile(rf"{B}{D}{{1,4}}[A-Z]?,?[ \u00A0]+(?:[A-Z][a-z'’]+[ \u00A0]+){{1,3}}(?:Road|Rd|Street|St|Avenue|Ave|Lane|Drive|Close|Way|Crescent|Gardens|Grove|Terrace|Place|Square|Court|Hill|Mews|Row|Walk|Rise|Park|Parade|Green|View){B}"), None, 0),
     ('POSTCODE', re.compile(rf"{B}(?:{D}{{5}}|[A-Z]{{1,2}}{D}[A-Z0-9]?{SP}{D}[A-Z]{{2}}){SP}+[A-ZÉÈÀ](?:{LETTER}|['-])+(?:[ -][A-ZÉÈÀ](?:{LETTER}|['-])+)?"), None, 0),
+    ('POSTCODE', re.compile(rf'{B}[A-PR-UWYZ][A-HK-Y]?{D}[A-Z0-9]?{SP}{D}[ABD-HJLNP-UW-Z]{{2}}{B}'), None, 0),
     ('ID', re.compile(rf'{B}(?:policy|police|contract|contrat|claim|sinistre|dossier|reference|référence|ref\.?|case|file|n°|no\.)(?:{S}+(?:number|numéro|no\.?|n°|#|is|reference|ref\.?))*{S}*[:#]?{S}*((?=[A-Z0-9/-]*{D})[A-Z0-9][A-Z0-9/-]{{3,}}[A-Z0-9])', I), None, 1),
     ('ID', re.compile(rf'{B}(?=[A-Z-]*{D})[A-Z]{{2,5}}(?:-[A-Z0-9]{{1,8}}){{1,4}}{B}'), None, 0),
     ('AMOUNT', re.compile(rf'(?:€|EUR|£|\$){S}?{D}{{1,3}}(?:[ ,. ]{D}{{3}})*(?:[.,]{D}{{1,2}})?|{B}{D}{{1,3}}(?:[ ,. ]{D}{{3}})*(?:[.,]{D}{{1,2}})?{S}?(?:€|euros?|EUR|£|pounds|\$)', I), None, 0),

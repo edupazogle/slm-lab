@@ -1,0 +1,15 @@
+# Second Look: every file build.sh fetches, pinned. One line per file: where it goes, its URL, its size in bytes, its sha256.
+# A Hugging Face URL names the commit it was read at (resolve/<commit>/...), so a change upstream cannot reach the build.
+# The sizes are the ones index.html expects (FILES and VOCAB in the page script): a file of another size breaks the page.
+# ./build.sh checks the size and the sha256 of every file it fetches and stops at the first mismatch ("-": not recorded).
+# ./build.sh --lock, where huggingface.co is reachable (CI), fetches every file from resolve/main, reads the commit from the
+# x-repo-commit header, checks the sizes against the ones below, and rewrites this file with the commits and the sha256.
+# The three script and wasm files are npm's (onnxruntime-web 1.17.3, mammoth 1.12.3, served by jsDelivr); their sha256 were
+# computed from the npm tarballs on 2026-09-25.
+# Status: written 2026-09-25 with no access to huggingface.co: the model files still read resolve/main, sizes checked, no sha256
+ort/ort-wasm-simd.wasm https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort-wasm-simd.wasm 10551547 6783fcd6647ce1b426a527c31412a9c40894552faa609e9c931b3239a3438071
+vendor/ort.wasm.min.js https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.3/dist/ort.wasm.min.js 145070 654435ead2d823e56d5893ec53be49f6ddb7e827096561aae63501071470cf23
+vendor/mammoth.browser.min.js https://cdn.jsdelivr.net/npm/mammoth@1.12.3/mammoth.browser.min.js 636898 f9465c0e4b91c6ab5fe03db285aa3c5bd33a1d20da781b8dffc5676bc9689a95
+models/vocab.txt https://huggingface.co/MoritzLaurer/xtremedistil-l6-h256-zeroshot-v1.1-all-33/resolve/main/vocab.txt 231508 -
+tmp/xtremedistil.onnx https://huggingface.co/MoritzLaurer/xtremedistil-l6-h256-zeroshot-v1.1-all-33/resolve/main/onnx/model_quantized.onnx 13114198 -
+tmp/minilm.onnx https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx 22972370 -
