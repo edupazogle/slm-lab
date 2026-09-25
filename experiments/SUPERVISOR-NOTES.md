@@ -10,6 +10,17 @@ every experiment (a 9-window test set reported as "perfect", invented dataset la
 | E14 local binding | spike **passes with two findings** | `gateway.lanes.resolve` took the local binding from a config dict; a real call through it: 99 ms median, 45 tokens (`e14/results.json`) | the binding shape has no base-URL field (the caller had to know it: a code change for provider `llamacpp`), and no price row exists (`cost_line: not measured`) |
 | E1a anonymisation | measured, pass bar **missed**, kill rule **not triggered** | faithful port of the page's detectors — 0 of 900 documents differ from the page's own JS run under node (`e1/preds/parity_*.json`) — plus 644 hand-written first names; all 900 documents, 9 direct-identifier types: leak rate FR 0.8747 / EN 0.9231, precision 0.91 / 0.92, PERSON recall 0.3214 overall (FR 0.28, EN 0.37), NIR/NATIONAL_ID 0.52 / 0.11, PHONE 0.80 / 0.72, EMAIL 0.99, IBAN & PLATE 1.00, DATE 0.63 / 0.65 (`e1/results.json`); 949 of 1,058 PERSON misses are cue-less candidates the page defers to its model; +5 shift raises leak to 0.97 / 0.95 (`e1/results_shift5.json`) | 8 of 100 synthetic NIRs are malformed gold (unpadded birth year in `gen_fr_claims.py`); `REPORT.md` written by the supervisor from the delegate's text (its harness refused the .md write); no SIREN / NIR-key check (not in the page); throughput not measured |
 
+**Correction 2026-09-25 (E11 row): those numbers are not valid; do not quote them.** A code review found that the test
+metrics were in-sample (`baselines.py` and `evaluate.py` fitted a fresh logistic regression on the test windows and scored
+the same windows), "pane-state accuracy 0.97" was the binary garble accuracy, "3.6 false alarms / 8 agent-hours" came
+from a placeholder formula (`fp_rate * 8 * 100`), "CPU 0.5 ms" was a constant, and waiting-permission recall was a
+hard-coded 0.0 (the 62 such windows existed; no pane-state classifier did). Also: every window in a job shared one label,
+and `pane_state` could never be `garble`. All fixed in the scripts the same day (train-fitted models, a 5-class pane-state
+classifier, per-class test counts, measured CPU time, agent-hours from `data/jobs.jsonl`, the `label` field, and step 3's
+small-LM feature with the kill rule); the pipeline has to be re-run on the owner's machine, where the transcripts are
+(`e11/REPORT.md`, "How to run step 3"). E14's missing `base_url` field and price row are written up as a change for
+BizLoop in `e14/PROPOSAL.md`.
+
 Lessons: prescriptive briefs with exact code and count assertions work; open-ended "build a dataset" briefs do not.
 A headless delegate that writes a planning sentence without a tool call ends its job (now in `plan/briefs/_preface.md`).
 

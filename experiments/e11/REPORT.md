@@ -44,6 +44,12 @@ This experiment aimed to develop a local watchdog classifier for the agent fleet
 ## Results
 Results are taken directly from `results/comprehensive_results.json` and `results/baselines_results.json`.
 
+> **2026-09-25: these numbers predate the code fixes listed under "Code fixes" at the end, and most of them are not
+> valid measurements.** Baseline 1's "test" figures come from a model fitted on the test windows themselves. The
+> waiting-permission recall (0.0) and the CPU time (0.5 ms) were constants written into the code. The false-alarm rate
+> was a placeholder formula, and "pane-state accuracy" was actually the binary garble accuracy. Re-run the pipeline
+> ("How to run step 3") before quoting any of them.
+
 ### Baseline 0 Performance (Test Set)
 | Metric | Value |
 |--------|-------|
@@ -168,3 +174,77 @@ Despite not meeting all pass bar criteria, Baseline 1 represents a strong founda
 - Good garble detection overall (91.60% recall) and on Latin slice (90.91% recall)
 - Reasonable generalization to unseen garble types (91.60% recall on held-out generator)
 - Solid per-class precision (98.36% for garble, 96.53% for non-garble)
+
+## Code fixes (2026-09-25)
+Found by reading the code. None of this has been re-run on the real transcripts, which are only on the owner's machine.
+- **Test metrics were in-sample.** `baselines.py` and `evaluate.py` called `evaluate_baseline_1(test…)`, which fits a
+  new logistic regression on the test windows and scores those same windows. Both now fit on train and apply that
+  model to test. On a synthetic dataset, the held-out-generator recall went from 1.00 in-sample to 0.28 held-out.
+- **`label` vs `pane_state`.** Brief E11-fix-2 asks for a `label` field that is always one of the 5 classes.
+  `build_dataset.py` wrote only `pane_state`, and that field was never `garble` (a garbled window kept its underlying
+  state; DATA.md shows "garble: 0"). `build_dataset.py` now writes both:
+  - `label`, which is `garble` for synthetic windows, with an assert that it is one of the 5 classes;
+  - `pane_state`, the structural state under any garble.
+  Readers go through `baselines.row_label()`, which reads `label` and otherwise derives it from
+  `is_synthetic` + `pane_state`, so older data files still load.
+- **Waiting-permission recall 0.0.** It was a constant, not a measurement:
+  `calculate_waiting_permission_recall()` returned 0.0 and no pane-state classifier existed. The data was not short of
+  such windows: DATA.md counts 62. `evaluate.py` now fits a 5-class logistic regression on the same features and
+  computes pane-state accuracy, per-class recall and waiting-permission recall. For a class with no test windows it
+  reports `not measurable (0 test windows)` instead of 0.0. Both `build_dataset.py` and `evaluate.py` print the
+  train/test count for each class, with a warning for any class the job-level split leaves out of the test set.
+- **Labeller.** `get_pane_state_from_structure()` was given all of a job's pieces and read the job's last 5, so every
+  window of a job got the same label. It also used text cues ("completed", "finished", "error", "failed", "confirm")
+  instead of the brief's rules. It now labels each window from its end position: a `result` next means
+  finished-report, an approval phrase in the last tool result means waiting-permission, an API error signature in the
+  last 800 bytes means api-error, and anything else is working.
+- **Split order and agent-hours.** The transcript list is sorted before the seeded shuffle, because `os.listdir` order
+  is not the same on every machine. `build_dataset.py` also writes `data/jobs.jsonl` with each job's split and its
+  agent-hours: first to last event `timestamp`, or else the result events' `duration_ms`.
+- **False alarms and CPU time are now measured.** False alarms per 8 agent-hours are the false positives divided by
+  the test jobs' agent-hours, times 8, or "not measured" without `jobs.jsonl`; the old formula was `fp_rate × 800`.
+  CPU ms per classification is the median over 200 test windows, replacing the constant 0.5.
+- **Paths.** Every script finds `data/`, `models/` and `results/` next to itself. The transcripts come from
+  `--runs-dir`, else `E11_RUNS_DIR`, else `$BIZLOOP_ROOT/cockpit/runs`. With neither variable set, that is
+  `/home/edu/Public/bizloop/cockpit/runs`.
+
+Still open: the held-out-generator *rotation* across all 4 generators (only `truncated_json` is held out), and real
+(non-synthetic) garble windows.
+
+## How to run step 3
+Step 3 is the small-LM garble feature (brief E11-step-3.md). On the owner's machine, from this folder:
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install numpy scikit-learn transformers
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+export NEEDLE_TELEMETRY=0 DO_NOT_TRACK=1 HF_HUB_DISABLE_TELEMETRY=1 OMP_NUM_THREADS=4 TOKENIZERS_PARALLELISM=false
+
+python3 build_dataset.py        # transcripts: /home/edu/Public/bizloop/cockpit/runs (or --runs-dir DIR / BIZLOOP_ROOT)
+python3 baselines.py            # Baseline 0 and 1 -> results/baselines_results.json
+for i in 1 2 3 4 5 6; do python3 lm_feature.py --limit 300 || break; done
+                                # SmolLM2-135M NLL per window -> data/lm_scores.jsonl (resumes; <= 300 per call)
+python3 evaluate.py             # Baseline 1 vs Baseline 2, kill rule -> results/summary.json
+```
+
+- **Rebuilding the dataset.** `build_dataset.py` rebuilds it, which gives per-window labels and `jobs.jsonl`.
+  To score the old dataset unchanged instead, as the step-3 brief asked, copy
+  `/home/edu/Public/bizloop/slm/experiments/e11/data/{train,test}.jsonl` into `data/` and skip `build_dataset.py`.
+  Then the labels are the old job-level ones, and false alarms read "not measured" because that dataset has no
+  `jobs.jsonl`.
+- **The LM loop.** It stops at the first error. `lm_feature.py` prints "All N windows scored" when it is done.
+- **Choosing the model.** Use `--model` or `E11_LM_MODEL`; the default is `HuggingFaceTB/SmolLM2-135M`. A cache
+  written with another model is refused.
+- **What `results/summary.json` holds:**
+  - Baseline 1 at the top level;
+  - Baseline 2 under `baseline_2`, with the LM's median CPU and wall ms per window, and `cpu_ms_per_poll`, which
+    includes the LM;
+  - `kill_rule.decision`. Baseline 2 is kept only if it beats Baseline 1 by more than 2 points of garble recall, with
+    false alarms per 8 agent-hours ≤ 1 and ≤ 1 s CPU per poll.
+- **Machine load.** `results/lm_scores_summary.json` and `results/comprehensive_results.json` record it.
+
+This pipeline was checked end to end, but not on SmolLM2: huggingface.co is unreachable from the machine that did
+the work. It ran on 72 synthetic transcripts (1,087 windows) with a randomly initialised 53k-parameter Llama built
+locally from a `transformers` config. Its scores sit at ln(vocab), as expected, so those runs test the plumbing and
+say nothing about garble detection.
+

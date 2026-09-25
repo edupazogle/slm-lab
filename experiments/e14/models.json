@@ -38,6 +38,7 @@
     "llamacpp-local": {
       "provider": "llamacpp",
       "model": "smollm2-360m-instruct-q8_0",
+      "base_url": "http://127.0.0.1:8190/v1",
       "residency": "unknown",
       "residency_note": "local llama.cpp server on this machine",
       "lanes": ["lab"]
