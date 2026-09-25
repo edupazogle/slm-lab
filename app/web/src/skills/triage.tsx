@@ -1,5 +1,7 @@
 // "Triage a claim": one claim note in, a decision card out. The next step is the point: it says which band the claim
-// falls in — act, confirm or refuse — which is the BizLoop routing rule made concrete.
+// falls in — act, confirm or hand over — which is the BizLoop routing rule made concrete. The rule names the third band
+// "refuse"; shown to a person, that read as "the claim is refused", which is not what `human_review` means, so the card
+// says what happens instead: a handler decides.
 import { z } from 'zod';
 import type { Skill, SkillRenderProps } from './types';
 import { CopyButton, Field } from './ui';
@@ -17,19 +19,23 @@ const schema = z.object({
 
 export type Triage = z.infer<typeof schema>;
 
-const BAND: Record<(typeof NEXT_STEP)[number], { band: string; label: string; meaning: string }> = {
+// `key` names the CSS class (.decision-act, -confirm, -handover); `band` is the word shown
+const BAND: Record<(typeof NEXT_STEP)[number], { key: string; band: string; label: string; meaning: string }> = {
   log: {
+    key: 'act',
     band: 'act',
     label: 'Log the claim',
     meaning: 'complete and routine: the system may file it on its own',
   },
   ask_customer: {
+    key: 'confirm',
     band: 'confirm',
     label: 'Ask the customer',
     meaning: 'something is missing: a person approves the question before it goes out',
   },
   human_review: {
-    band: 'refuse',
+    key: 'handover',
+    band: 'hand over',
     label: 'Send to a handler',
     meaning: 'the model does not decide this one; a claims handler does',
   },
@@ -40,12 +46,15 @@ function TriageRender({ object, streaming }: SkillRenderProps<Triage>) {
   const o = (object ?? {}) as Partial<Triage>;
   const step = o.next_step && BAND[o.next_step] ? BAND[o.next_step] : null;
   const missing = Array.isArray(o.missing_information) ? o.missing_information.filter((s) => typeof s === 'string' && s.trim()) : [];
+  // the fallback path can put an object here, and React throws on an object
+  const line = typeof o.line === 'string' ? o.line : '';
+  const urgency = typeof o.urgency === 'string' ? o.urgency : '';
 
   return (
     <div className="skill-result">
       <div className="grid gap-2 sm:grid-cols-2">
-        <Field label="Line of business" value={o.line ?? ''} missing={!o.line} />
-        <Field label="Urgency" value={o.urgency ?? ''} missing={!o.urgency} />
+        <Field label="Line of business" value={line} missing={!line} />
+        <Field label="Urgency" value={urgency} missing={!urgency} />
       </div>
 
       <div className="ff">
@@ -61,7 +70,7 @@ function TriageRender({ object, streaming }: SkillRenderProps<Triage>) {
         )}
       </div>
 
-      <div className={`decision-card decision-${step?.band ?? 'none'}`}>
+      <div className={`decision-card decision-${step?.key ?? 'none'}`}>
         <span className="ff-label">Next step</span>
         {step ? (
           <>
@@ -75,7 +84,8 @@ function TriageRender({ object, streaming }: SkillRenderProps<Triage>) {
       </div>
 
       <p className="text-xs text-base-content/70">
-        Bands: act — safe for the system alone; confirm — a person approves first; refuse — the model hands it to a human.
+        Bands: act — safe for the system alone; confirm — a person approves first; hand over — a person decides, not the
+        model.
       </p>
 
       {!streaming && (

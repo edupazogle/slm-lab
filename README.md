@@ -20,9 +20,10 @@ Moved here from the Valheim repo on 2026-09-21. Everything below is in this dire
 ## Run it
 
 ```bash
-cd slm/app/web && npm install && npm run build      # landing + chat + bench into dist/
+cd app/web && npm install && npm run build          # chat + bench + needle into dist/
 python3 ../serve.py --port 8097 --dir dist           # 127.0.0.1 only; sets COOP/COEP for multi-threaded WASM
-# open http://127.0.0.1:8097/  (landing)  ·  /chat.html  ·  /bench.html
+# open http://127.0.0.1:8097/chat.html  ·  /bench.html  ·  /needle.html
+# Second Look (the site's landing page): see app/second-look/README.md
 ```
 
 Android (Track A, Capacitor):
@@ -56,8 +57,12 @@ Experiments: `experiments/v2/` (needle3 fine-tune with a 4-bit untuned control: 
   results in [`app/second-look/QA.md`](app/second-look/QA.md). The page carries a usage meter: tokens, ms and tok/s under
   every decision, per-model counters, and a usage log.
 - The same page as a claude.ai artifact (private): https://claude.ai/artifact/5UwCN5TwCUBukmTjmfiSkh
-- **The whole lab, hosted:** https://slm-lab-production.up.railway.app/ — the web app (landing with the live demo,
-  `chat.html`, `bench.html`, `needle.html`) at the root and Second Look at `/second-look/`, on Railway (project
-  `zesty-passion`, service `slm-lab`), built from the repo's `Dockerfile` on every push to the connected branch. Served by `app/serve.py
-  --public`, so every response carries COOP/COEP (GitHub Pages cannot, which is why the chat app is not there); the
-  server is static only: `POST /api/bench` is off and folders are never listed.
+- **The whole lab, hosted:** https://slm-lab-production.up.railway.app/ — **Second Look is the landing page, at the
+  root**; the web app's pages are under `/lab/` (`/lab/chat.html`, `/lab/bench.html`, `/lab/needle.html`). The old SLM Lab
+  landing page was removed on 2026-09-25 and is no longer built. Retired URLs answer 301: `/second-look/…` → `/…`,
+  `/chat.html` (and bench, needle) → `/lab/…`, `/lab/` → `/`; `/second-look/sw.js` retires the worker that browsers
+  registered there. Railway project `zesty-passion`, service `slm-lab`, environment `production`, region europe-west4
+  (Amsterdam), built from the repo's `Dockerfile` on every push to `main`. Served by `app/serve.py --public`, so every
+  response carries COOP/COEP (GitHub Pages cannot, which is why the chat app is not there) and the security headers; the
+  server is static only: `POST /api/bench` is off and folders are never listed. `.github/workflows/checks.yml` builds
+  and tests this exact image with the real models on every pull request to `main`.

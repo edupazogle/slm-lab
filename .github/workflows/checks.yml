@@ -1,0 +1,159 @@
+name: Checks (real models, end to end)
+# Runs on every pull request to main, before anything reaches production (Railway deploys main; the Pages workflow
+# deploys Second Look from main). Everything here uses the real models, which this runner can download.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  production-image:
+    name: The Railway image — build, run, Second Look at / with the real models, redirects, headers, static-only rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build the image Railway builds
+        run: docker build -t slm-lab .
+      - name: Run it
+        run: |
+          docker run -d --name slm -e PORT=8080 -p 8080:8080 slm-lab
+          for i in $(seq 100); do curl -sf http://127.0.0.1:8080/ >/dev/null && break; sleep 0.3; done
+      - name: Layout, redirects, headers, static-only rules
+        run: |
+          set -e
+          B=http://127.0.0.1:8080
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          loc() { curl -s -o /dev/null -w '%{redirect_url}' "$1"; }
+          # Second Look is the landing page; the old landing never answers
+          curl -s $B/ | grep -q 'id="dockBtn"'
+          curl -s $B/index.html | grep -q 'id="dockBtn"'
+          if curl -s $B/ | grep -q 'AI that runs on this device'; then echo 'the old landing page answered at /'; exit 1; fi
+          for p in /lab/chat.html /lab/bench.html /lab/needle.html /sw.js /manifest.webmanifest /second-look/sw.js; do
+            c=$(code $B$p); echo "$p $c"; test "$c" = 200
+          done
+          for pair in "/lab/ $B/" "/lab $B/" "/lab/index.html $B/" "/second-look/ $B/" "/second-look $B/" \
+                      "/chat.html $B/lab/chat.html" "/bench.html?n=1 $B/lab/bench.html?n=1" "/needle.html $B/lab/needle.html"; do
+            set -- $pair; c=$(code "$B$1"); l=$(loc "$B$1"); echo "$1 -> $c $l"
+            test "$c" = 301 && test "$l" = "$2"
+          done
+          h=$(curl -sI $B/)
+          for want in 'cross-origin-opener-policy: same-origin' 'cross-origin-embedder-policy: require-corp' \
+                      'referrer-policy: no-referrer' 'x-frame-options: sameorigin' 'strict-transport-security:'; do
+            echo "$h" | grep -qi "^$want" || { echo "missing header: $want"; exit 1; }
+          done
+          test "$(code $B/models/)" = 404
+          test "$(code -X POST -H 'Content-Type: application/json' -d '{}' $B/api/bench)" = 404
+      - name: Second Look QA round against the production image (at the site root, real models)
+        working-directory: app/second-look
+        run: |
+          npm init -y >/dev/null && npm install --no-save playwright@1.56.1 >/dev/null
+          npx playwright install --with-deps chromium
+          node test/qa_browser.js --url http://127.0.0.1:8080/ --out qa/report.json --shots qa
+      - name: The QA report as Markdown (what app/second-look/QA.md records)
+        if: always()
+        working-directory: app/second-look
+        run: python3 test/qa_report_md.py qa/report.json || true
+      - name: Server log
+        if: always()
+        run: docker logs slm | tail -50
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-image-qa
+          path: app/second-look/qa
+          if-no-files-found: ignore
+
+  web:
+    name: Web app under /lab/ — lint, build, a real chat with SmolLM2-360M, the needle self-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install, lint, build
+        working-directory: app/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npm run build
+          test ! -e dist/index.html   # the old landing page is not built any more
+      - name: Chromium for Playwright
+        working-directory: app/web
+        run: npx playwright install --with-deps chromium
+      - name: Serve the build under /lab/ with COOP/COEP, as Railway does
+        run: |
+          mkdir -p "$RUNNER_TEMP/site" && cp -r app/web/dist "$RUNNER_TEMP/site/lab"
+          python3 app/serve.py --public --port 8098 --dir "$RUNNER_TEMP/site" > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 50); do curl -sf http://127.0.0.1:8098/lab/chat.html >/dev/null && break; sleep 0.2; done
+      - name: Chat end to end (downloads SmolLM2-360M from huggingface.co, loads it, answers two messages)
+        working-directory: app/web
+        env:
+          QA_ORIGIN: http://127.0.0.1:8098/lab
+          QA_PROFILE: ${{ runner.temp }}/pw-chat
+          QA_DIR: ${{ runner.temp }}/qa
+        run: node scripts/qa-chat.mjs e2e desktop carbon
+      - name: needle3 self-test (downloads needle3.cact, extracts two claims)
+        working-directory: app/web
+        run: |
+          node scripts/run-page.mjs http://127.0.0.1:8098/lab/needle.html | tee "$RUNNER_TEMP/needle.log"
+          grep -q '== NEEDLE DONE' "$RUNNER_TEMP/needle.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-qa
+          path: ${{ runner.temp }}/qa
+          if-no-files-found: ignore
+
+  second-look-pages:
+    name: Second Look as GitHub Pages serves it (a sub-path), the QA round, detector parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch the runtime and the two models, build the static site
+        working-directory: app/second-look
+        run: ./build.sh && python3 build_pages.py
+      - name: Serve it under a sub-path
+        run: |
+          mkdir -p "$RUNNER_TEMP/site" && cp -r app/second-look/dist "$RUNNER_TEMP/site/slm-lab"
+          python3 app/serve.py --public --port 8793 --dir "$RUNNER_TEMP/site" > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 50); do curl -sf http://127.0.0.1:8793/slm-lab/ >/dev/null && break; sleep 0.2; done
+      - name: QA round in headless Chromium
+        working-directory: app/second-look
+        run: |
+          npm init -y >/dev/null && npm install --no-save playwright@1.56.1 >/dev/null
+          npx playwright install --with-deps chromium
+          node test/qa_browser.js --url http://127.0.0.1:8793/slm-lab/ --out qa/report.json --shots qa
+      - name: The Python port matches the page's detectors
+        working-directory: experiments/e1
+        run: python3 regex_baseline.py --check-page
+      - name: Pin the model files (build.sh --lock) and show the lock file if it changed
+        working-directory: app/second-look
+        run: |
+          bash build.sh --lock > /dev/null
+          if git diff --quiet models.lock; then echo "models.lock is current"; else echo "----- models.lock (commit this) -----"; cat models.lock; echo "-----"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: second-look-pages-qa
+          path: app/second-look/qa
+          if-no-files-found: ignore

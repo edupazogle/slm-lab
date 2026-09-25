@@ -6,15 +6,32 @@ const ggufMagicNumber = new Uint8Array([0x47, 0x47, 0x55, 0x46]);
 export interface VerifiedModel {
   url: string;
   size: number;
+  mmprojUrl?: string;
 }
 
-export async function verifyCustomModel(url: string): Promise<VerifiedModel> {
+const HF_GGUF = /^https:\/\/(huggingface\.co|hf\.co)\/.+\.gguf$/i;
+
+export async function verifyCustomModel(url: string, mmprojUrl?: string): Promise<VerifiedModel> {
   const _url = url.trim().replace(/\?.*/, '');
-  if (!/^https:\/\/(huggingface\.co|hf\.co)\/.+\.gguf$/i.test(_url)) {
+  if (!HF_GGUF.test(_url)) {
     throw new Error('Use a Hugging Face file link that ends in .gguf (https://huggingface.co/<owner>/<repo>/resolve/main/<file>.gguf).');
   }
+  // The vision projector is a second file the engine downloads when the model loads: it is held to the same rules. It
+  // was passed through unchecked, so any host could be put there.
+  const _mmproj = mmprojUrl?.trim().replace(/\?.*/, '') || undefined;
+  if (_mmproj && !HF_GGUF.test(_mmproj)) {
+    throw new Error('Use a Hugging Face file link that ends in .gguf for the vision projector too (https://huggingface.co/<owner>/<repo>/resolve/main/<mmproj file>.gguf).');
+  }
 
-  const response = await fetch(_url, {
+  await checkGguf(_url, 'That file is not a GGUF model', 'that link');
+  if (_mmproj) await checkGguf(_mmproj, 'The vision projector is not a GGUF file', 'the vision projector link');
+
+  return { url: _url, size: await getModelSize(_url), mmprojUrl: _mmproj };
+}
+
+/** A ranged fetch of the start of the file: it must be there and begin with the GGUF signature. */
+async function checkGguf(url: string, notGguf: string, link: string) {
+  const response = await fetch(url, {
     headers: {
       Range: `bytes=0-${2 * 1024 * 1024}`,
     },
@@ -23,13 +40,11 @@ export async function verifyCustomModel(url: string): Promise<VerifiedModel> {
   if (response.ok) {
     const buf = await response.arrayBuffer();
     if (!checkBuffer(new Uint8Array(buf.slice(0, 4)), ggufMagicNumber)) {
-      throw new Error('That file is not a GGUF model: it does not start with the GGUF signature.');
+      throw new Error(`${notGguf}: it does not start with the GGUF signature.`);
     }
   } else {
-    throw new Error(`Hugging Face answered HTTP ${response.status} for that link.`);
+    throw new Error(`Hugging Face answered HTTP ${response.status} for ${link}.`);
   }
-
-  return { url: _url, size: await getModelSize(_url) };
 }
 
 const checkBuffer = (buffer: Uint8Array, header: Uint8Array) => {

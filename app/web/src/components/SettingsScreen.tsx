@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { Button } from '../lib/localmode/button';
 import { DEFAULT_INFERENCE_PARAMS, MAX_CONTEXT } from '../config';
 import { useWllama } from '../utils/wllama.context';
+import { useMessages } from '../utils/messages.context';
+import { useNav } from '../utils/nav.context';
+import { Screen } from '../utils/types';
 import { useThemeState } from '../utils/theme';
 import type { ThemeChoice } from '../utils/theme';
 
@@ -149,6 +152,8 @@ export default function SettingsScreen() {
           </p>
         </section>
 
+        <Conversations />
+
         <section className="tier">
           <h2 className="tier-title">Appearance</h2>
           <div className="theme-row" role="radiogroup" aria-label="Colour theme">
@@ -182,5 +187,67 @@ export default function SettingsScreen() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** The conversations are kept in this browser only; this is the one place that removes all of them at once. */
+function Conversations() {
+  const { conversations, deleteAllConversations } = useMessages();
+  const { stop } = useWllama();
+  const { navigate } = useNav();
+  const [confirming, setConfirming] = useState(false);
+  const [deleted, setDeleted] = useState<number | null>(null);
+  const n = conversations.length;
+
+  return (
+    <section className="tier">
+      <h2 className="tier-title">Conversations</h2>
+      <p className="tier-blurb">
+        {n === 0
+          ? 'No conversation is stored in this browser.'
+          : `${n} conversation${n === 1 ? ' is' : 's are'} stored in this browser, on this device, and nowhere else. Deleting ${n === 1 ? 'it' : 'them'} cannot be undone. Downloaded models stay: they are on the Models screen.`}
+      </p>
+      {confirming ? (
+        <div className="settings-confirm" role="group" aria-label="Confirm the deletion">
+          <span>
+            Delete all {n} conversation{n === 1 ? '' : 's'}?
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            onClick={async () => {
+              setConfirming(false);
+              stop();
+              navigate(Screen.SETTINGS, null);
+              if (await deleteAllConversations()) setDeleted(n);
+            }}
+          >
+            Delete all
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+            Keep them
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={n === 0}
+          onClick={() => {
+            setDeleted(null);
+            setConfirming(true);
+          }}
+        >
+          Delete all conversations
+        </Button>
+      )}
+      {deleted != null && (
+        <p className="field-note" role="status">
+          {deleted} conversation{deleted === 1 ? ' was' : 's were'} deleted from this browser.
+        </p>
+      )}
+    </section>
   );
 }

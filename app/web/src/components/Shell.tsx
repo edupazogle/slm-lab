@@ -8,6 +8,7 @@ import { Screen } from '../utils/types';
 import { useThemeState } from '../utils/theme';
 import { useWllama } from '../utils/wllama.context';
 import { useMessages } from '../utils/messages.context';
+import { HOME_HREF } from '../lab-links';
 import Sidebar from './Sidebar';
 import ChatScreen from './ChatScreen';
 import ModelScreen from './ModelScreen';
@@ -41,13 +42,13 @@ export default function Shell() {
         >
           {drawerOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
         </button>
-        <a className="brand" href="./index.html">
+        <a className="brand" href={HOME_HREF}>
           <span className="brand-name">SLM Lab</span>
           <span className="brand-sub">on this device</span>
         </a>
         <div className="header-right">
-          <a className="header-link" href="./index.html">
-            About the lab
+          <a className="header-link" href={HOME_HREF}>
+            Second Look
           </a>
           <Button
             type="button"

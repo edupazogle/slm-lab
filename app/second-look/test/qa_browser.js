@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /* QA round for the Second Look page in headless Chromium (Playwright): device check, the rules-only redactor, the model
-   download, every decision widget on every example, the threshold, keyboard tabs, the 89-decision test, the redactor with
-   the model, a .docx and an .xlsx upload, the pseudonymised .docx export, synthetic variants (repeatable by seed) and their
-   .zip, the usage meter and its .csv, offline mode, the cached reload, and a reload with no connection (the service worker).
+   download, every decision widget on every example, eight decisions fired at once, the threshold, keyboard tabs, the
+   89-decision test (and a second run), the redactor with the model, a UK letter, a .docx and an .xlsx upload, the
+   pseudonymised .docx export, synthetic variants (repeatable by seed) and their .zip, the usage meter and its .csv, the live
+   request counter in the receipts, offline mode, the cached reload, and a reload with no connection (the service worker),
+   which must leave the lab's pages under lab/ alone. Runs at the site root (the Railway site) or under a sub-path (Pages).
    Usage: node test/qa_browser.js --url http://127.0.0.1:8792/ [--out qa/report.json] [--shots qa] [--docx test/sample-claim.docx] [--xlsx test/sample-claims.xlsx] [--no-net]
    --no-net: the runner has no CDN access; everything off-origin is refused (the page serves its own scripts from vendor/).
    Needs playwright (npm i -D playwright && npx playwright install chromium). Exit code 0 when every check passes. */
@@ -36,6 +38,7 @@ const EXPECT = {
   page.on('pageerror', (e) => errors.page.push(String(e).slice(0, 300)));
   page.on('requestfailed', (r) => errors.failedRequests.push(r.url().slice(0, 120)));
   const text = (sel) => page.$eval(sel, (e) => e.textContent.trim());
+  const kpiNet = () => page.evaluate(() => ['kpiNet', 'kpiNetU', 'kpiNetL'].map((id) => document.getElementById(id).textContent.trim()).join(' | '));   // the hero's network figure: value | unit | caption
   const click = (sel) => page.$eval(sel, (e) => e.click());        // a DOM click: the fixed model bar may sit over the target
   const mapRows = () => page.$$eval('#anonMap tbody tr', (rs) => rs.map((r) => [...r.children].map((c) => c.textContent.trim())));
   const waitText = (sel, re, timeout = 60000) => page.waitForFunction(([s, r]) => new RegExp(r).test(document.querySelector(s).textContent), [sel, re.source], { timeout });
@@ -51,7 +54,11 @@ const EXPECT = {
     if (args['no-net']) await ctx.route('**/*', (route) => route.request().url().startsWith(URL) ? route.continue() : route.abort());
     const p = await ctx.newPage();
     await p.goto(URL, { waitUntil: 'load' });
-    await p.waitForSelector('#tour:not([hidden])', { timeout: 10000 });
+    // v9: the tour is offered, not imposed: a new visitor meets the page, and the tour starts from the hero button
+    const auto = await p.waitForSelector('#tour:not([hidden])', { timeout: 1500 }).then(() => true, () => false);
+    check('tour-opt-in', !auto, auto ? 'the tour opened over the page on its own' : 'the page opens without the tour over it');
+    await p.click('#tourStartBtn');                                                // a real, hit-tested click
+    await p.waitForSelector('#tour:not([hidden])', { timeout: 5000 });
     await p.click('#tourNext');                                                    // "Start"
     await p.waitForFunction(() => /Download/.test(document.querySelector('#tourStep').textContent), null, { timeout: 5000 });
     await p.waitForTimeout(700);                                                   // the ring moves onto the button (.45 s)
@@ -59,6 +66,21 @@ const EXPECT = {
     await p.mouse.click(hit.x, hit.y);
     const started = await p.waitForFunction(() => /Downloading|Starting|Models ready/.test(document.querySelector('#dlText').textContent), null, { timeout: 15000 }).then(() => true, () => false);
     check('tour-first-visit', hit.ok && started, !hit.ok ? `a click on the highlighted button lands on #${hit.top}` : started ? 'the highlighted button takes a real click and the download starts' : 'the button took the click but no download started');
+    // closing the tour gives keyboard focus back to where it was (the hero's tour button), not to <body>
+    await p.keyboard.press('Escape');
+    const back = await p.evaluate(() => ({ hidden: document.querySelector('#tour').hidden, at: document.activeElement && (document.activeElement.id || document.activeElement.tagName) }));
+    check('tour-focus-return', back.hidden && back.at === 'tourStartBtn', `tour closed with Escape; focus on ${back.at}`);
+    await ctx.close();
+  }
+
+  // 0b. a phone: no keyboard-shortcut hint on a touch screen, no sideways scroll
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.addInitScript(() => { try { localStorage.setItem('sl_tour_done', '1'); } catch (e) {} });
+    if (args['no-net']) await ctx.route('**/*', (route) => route.request().url().startsWith(URL) ? route.continue() : route.abort());
+    const p = await ctx.newPage(); await p.goto(URL, { waitUntil: 'load' });
+    const ph = await p.evaluate(() => ({ kbd: [...document.querySelectorAll('.q .kbd')].filter((k) => k.getClientRects().length).length, sw: document.documentElement.scrollWidth, req: document.querySelector('#reqText').getClientRects().length }));
+    check('phone-layout', ph.kbd === 0 && ph.sw <= 390, `${ph.kbd} shortcut hints shown; page ${ph.sw} px wide at 390; request counter in the bar ${ph.req ? 'shown' : 'hidden (the tour points at its own count instead)'}`);
     await ctx.close();
   }
 
@@ -66,6 +88,8 @@ const EXPECT = {
   await page.goto(URL, { waitUntil: 'load' });
   await waitText('#capTitle', /Can run|lacks/, 15000);
   check('device-check', /Can run/.test(await text('#capTitle')), await text('#capTitle'));
+  const store = await page.$$eval('#capRows .kv', (es) => es.map((e) => e.textContent.trim()).find((t) => /^Storage/.test(t)) || '');
+  check('storage-units', /^Storage free[\d.]+ (GB|MB)$/.test(store) && !/\d{4,}(\.\d)? MB/.test(store), store);
   check('scripts-self-hosted', await page.evaluate(() => typeof ort === 'object' && [...document.scripts].some((s) => /vendor\/ort\.wasm\.min\.js$/.test(s.src))), 'ONNX Runtime from vendor/, not the CDN');
 
   // 2. the redactor with the rules alone (before any model), on the built-in sample letter
@@ -77,6 +101,36 @@ const EXPECT = {
   const out0 = await text('#anonOut');
   check('redactor-output-clean', !/Dubois|Leclerc|Marchand|example\.fr/.test(out0), out0.slice(0, 80).replace(/\n/g, ' '));
 
+  // 2a. the redactor says what it does: pseudonymisation, and the leak rate E1a measured for these rules, with its source
+  const copy = await page.evaluate(() => { const b = document.body.cloneNode(true); b.querySelectorAll('script, style').forEach((e) => e.remove()); return b.textContent; });
+  const leak = await text('#anonLeak');
+  check('redactor-pseudonymise-copy', !/anonymis|Safe to share/i.test(copy) && /Pseudonymise this text/.test(await text('#anonRun')) && /Pseudonymised: check before sharing/.test(copy) && /0\.7515/.test(leak) && /487/.test(leak) && /E1a v4/.test(leak) && /2026-09-25/.test(leak),
+    `button "${await text('#anonRun')}"; ${leak.slice(0, 110)}`);
+  // 2a'. a UK letter: the street address, a postcode with no town, a date written "3rd of May 1961" (it came out unchanged)
+  const UK = 'Dear Mr Hughes,\n\nI am writing about my mother, Margaret Ellis, born on the 3rd of May 1961. She lives at 27 Harrow Road, London W2 5DY. Please also write to her sister at 14 Park Lane, Manchester M1 1AE, born May 3rd, 1958.\n\nKind regards,\nDavid Ellis';
+  await click('#xp [data-go="2"]'); await page.fill('#anonIn', UK); await click('#anonRun'); await waitText('#anonMeta', /items replaced/);
+  const ukRows = await mapRows(), ukOut = await text('#anonOut'), ukBy = Object.fromEntries(ukRows.map((r) => [r[1], r[0]]));
+  const ukWant = [['27 Harrow Road', 'ADDRESS'], ['W2 5DY', 'POSTCODE'], ['3rd of May 1961', 'DATE'], ['14 Park Lane', 'ADDRESS'], ['M1 1AE', 'POSTCODE'], ['May 3rd, 1958', 'DATE']];
+  const ukBad = ukWant.filter(([t, ty]) => !(ukBy[t] || '').startsWith(`[${ty}_`) || ukOut.includes(t));
+  check('redactor-uk-letter', ukBad.length === 0, ukBad.length ? 'missed or left in: ' + ukBad.map((x) => x[0]).join(', ') : ukWant.map(([t]) => `${t} → ${ukBy[t]}`).join(' · '));
+
+  // 2b. the lock: the page's security policy refuses a request to another site (a fetch and an image), and says so
+  const csp = await page.$eval('meta[http-equiv="Content-Security-Policy"]', (m) => m.content).catch(() => '');
+  check('csp-connect-self', /connect-src 'self'(;|$)/.test(csp) && /img-src 'self'/.test(csp), csp.slice(0, 90));
+  await click('#lockRun');
+  await page.waitForFunction(() => document.querySelectorAll('#lockOut .lk').length === 2, null, { timeout: 10000 });
+  const lock = await page.$$eval('#lockOut .lk', (es) => es.map((e) => ({ cls: e.className, t: e.textContent.trim() })));
+  check('lock-refused', lock.every((l) => l.cls === 'lk' && /^Refused/.test(l.t)) && /connect-src/.test(lock[0].t) && /img-src/.test(lock[1].t), lock.map((l) => l.t.slice(0, 70)).join(' | '));
+  // the calibration view and "At your volume" work before any download, from the recorded run, and say so
+  const vol = await page.$$eval('#volOut b', (es) => es.map((e) => e.textContent.trim()));
+  check('volume-view-recorded', vol.length === 3 && vol.every((v) => /^~[\d,]+$/.test(v)) && /Recorded 25 Sep 2026/.test(await text('#chartSub')) && /the recorded run/.test(await text('#volNote')), vol.join(' · ') + ' · ' + (await text('#volNote')).slice(0, 60));
+
+  // an example clicked before the models are on says why nothing ran
+  await click('#w-route [data-ex="0"]');
+  const toast0 = await page.waitForFunction(() => { const t = document.querySelector('#toast'); return !t.hidden && t.textContent; }, null, { timeout: 3000 }).then((h) => h.jsonValue(), () => '');
+  check('example-before-models', /Turn on the models/.test(toast0), toast0 || 'no toast');
+  const kpi0 = await kpiNet();
+
   // 3. the download, from the button in the model bar
   const t0 = Date.now(); await click('#dockBtn');
   await waitText('#dlText', /Models ready|Try the download again/, 240000);
@@ -85,9 +139,17 @@ const EXPECT = {
   const dlTotal = await text('#dlTotal'), m = dlTotal.match(/^([\d.]+) MB \/ ([\d.]+) MB$/);
   check('models-download', /Models ready/.test(await text('#dlText')) && cards.every((c) => /^Ready/.test(c)) && m && m[1] === m[2], `${dlTotal} in ${measured.download_s} s; ` + cards.join(' | '));
   if (!/Models ready/.test(await text('#dlText'))) { await finish(); return; }
+  // every on/off switch in the bar takes a real click (from 1181 to about 1370 px the third chip was cut off by its row)
+  const sws = await page.$$eval('.dm .sw', (ss) => ss.map((s) => { const b = s.getBoundingClientRect(), t = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!t && s.contains(t); }));
+  check('dock-switches-reachable', sws.length === 2 && sws.every(Boolean), `${sws.filter(Boolean).length} of ${sws.length} switches hit-testable at ${page.viewportSize().width} px`);
   check('model-bar-live', await page.$eval('#dock', (d) => d.dataset.live) === 'on' && (await page.$$eval('.dm[data-st="on"]', (e) => e.length)) === 3, await text('#dsTitle') + ' · ' + await text('#dsSub'));
   check('meter-warm-up', /\d+ calls · [\d,.k]+ tokens/.test(await text('#meterTotals')), await text('#meterTotals'));
   await shot('models-ready');
+  await click('#lockRun'); await page.waitForTimeout(600);
+  check('lock-not-counted', /^0 network requests since ready/.test(await text('#reqText')), await text('#reqText'));
+  // the hero's "0 bytes" is the request counter (it was a constant): not counted before the models, 0 since
+  const kpi1 = await kpiNet();
+  check('kpi-reads-counter', /^— \| bytes \| sent: counted once/.test(kpi0) && /^0 \| bytes \| sent since the models started$/.test(kpi1), `before: ${kpi0} · after: ${kpi1}`);
 
   // 4. every widget, every example, one at a time (each tab opened first)
   await page.waitForFunction(() => document.querySelector('#out-custom .trc-v'), null, { timeout: 120000 });
@@ -121,6 +183,39 @@ const EXPECT = {
   check('widgets-label-agreement', labelled.length && agreed / labelled.length >= 0.75, `${agreed} of ${labelled.length} labelled examples answered as labelled (the page's own routing figure is 79 %)`);
   const urg = measured.widgets.urgency || [];
   check('widget-urgency-order', urg.length === 3 && urg[0].p > urg[2].p, urg.map((x) => x.p).join(' > '));
+  // 4b. eight decisions at once (five or more overlapping decisions crashed the tab): five Decide clicks and a Ctrl+Enter,
+  //     then two example clicks queued behind running decisions; and three that must not run: a Decide click on a widget
+  //     whose run is in flight (the button is off), a Ctrl+Enter on one, and a held key's repeat
+  {
+    // the meter's table is drawn on the next frame: read where it stands only once the last "Run all" is in it
+    await page.waitForTimeout(300); await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const e0 = errors.page.length, seq0 = await page.$eval('#meterTable tbody tr td', (td) => +td.textContent || 0);
+    await page.evaluate(() => {
+      const w = (id) => document.getElementById('w-' + id);
+      const key = (id, repeat) => w(id).querySelector('textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, metaKey: true, repeat, bubbles: true, cancelable: true }));
+      for (const id of ['route', 'legal', 'vuln', 'urgency', 'guard']) w(id).querySelector('[data-run]').click();
+      key('custom', false);
+      key('custom', true); key('legal', false); w('route').querySelector('[data-run]').click();   // none of these runs
+      w('vuln').querySelector('[data-ex="1"]').click(); w('guard').querySelector('[data-ex="2"]').click();
+    });
+    await page.waitForFunction(() => [...document.querySelectorAll('.widget [data-run]')].every((b) => !b.disabled), null, { timeout: 60000 });
+    await page.waitForTimeout(400);   // the meter's table is drawn on the next frame; any stray extra run would land by now
+    const rows = await page.$$eval('#meterTable tbody tr', (rs) => rs.map((r) => [...r.children].map((c) => c.textContent.trim())));
+    const fresh = rows.filter((r) => +r[0] > seq0), where = {}; for (const r of fresh) where[r[2]] = (where[r[2]] || 0) + 1;
+    const want = { route: 1, legal: 1, vuln: 2, urgency: 1, guard: 2, custom: 1 };
+    const own = await page.$$eval('.widget .json', (es) => es.map((e) => { try { return JSON.parse(e.textContent).usage.calls; } catch (x) { return -1; } }));
+    const ok = errors.page.length === e0 && fresh.length === 8 && Object.entries(want).every(([k, n]) => where[k] === n) && own.every((c) => c === 1);
+    check('overlap-8-decisions', ok, `${fresh.length} decisions answered (${Object.entries(where).map(([k, n]) => `${k} ${n}`).join(', ')}); receipts' own calls ${own.join('/')}; page errors ${errors.page.length - e0}`);
+  }
+  // "Turn off" and on again from the hero's button (it stayed disabled after "Turn off")
+  {
+    const before = await page.$eval('#dlBtn', (b) => b.disabled);
+    await click('#dockBtn'); await waitText('#dockBtnText', /^Turn on/, 10000);
+    const off = await page.$eval('#dlBtn', (b) => ({ dis: b.disabled, t: b.textContent.trim() }));
+    await click('#dlBtn'); await waitText('#dlText', /Models ready/, 60000);
+    const after = await page.$eval('#dlBtn', (b) => b.disabled);
+    check('hero-button-after-off', before && !off.dis && /back on/i.test(off.t) && after && await page.$eval('#dock', (d) => d.dataset.live) === 'on', `on: disabled ${before}; after "Turn off": "${off.t}", disabled ${off.dis}; on again: ${await text('#dlText')}`);
+  }
   // the Decide button runs the current text again
   await click('.dtab[data-dtab="legal"]');
   const b0 = await text('#out-legal .json'); await click('#w-legal [data-run]');
@@ -142,14 +237,24 @@ const EXPECT = {
 
   // 6. the telling test
   const t1 = Date.now(); await click('#testRun');
-  await waitText('#testRun', /Ran 89 decisions/, 300000);
-  measured.test_s = +((Date.now() - t1) / 1000).toFixed(1); measured.test = { button: await text('#testRun') };
+  await waitText('#testMeta', /Ran 89 decisions/, 300000);
+  measured.test_s = +((Date.now() - t1) / 1000).toFixed(1); measured.test = { button: await text('#testMeta') };
   for (const k of ['legal', 'vuln', 'route']) {
     await click(`#testTabs [data-k="${k}"]`);
     measured.test[k] = await page.$$eval('#testStats .stat .n', (es) => es.map((e) => e.textContent.trim()));
   }
   const aucL = +measured.test.legal[0], aucV = +measured.test.vuln[0], acc = parseInt(measured.test.route[0], 10);
   check('test-89-decisions', aucL >= 0.95 && aucV >= 0.95 && acc >= 75 && /tokens · median/.test(measured.test.button), `legal AUC ${aucL}, vulnerable AUC ${aucV}, routing ${acc} %; ${measured.test.button}`);
+  // the last tab clicked above is routing: the volume view now reads this device's run
+  check('volume-view-live', /measured on this device/i.test(await text('#chartSub')) && /this device's run/.test(await text('#volNote')), (await text('#volOut')).replace(/\s+/g, ' ').slice(0, 80));
+  // the test runs again (the result used to be written on its button, which stayed disabled)
+  {
+    const calls = async () => +((await text('#meterTotals')).match(/^(\d+) calls/) || [0, 0])[1];
+    const n0 = await calls(), lbl = await text('#testRun'), en = await page.$eval('#testRun', (b) => !b.disabled);
+    await click('#testRun'); await page.waitForFunction(() => !document.querySelector('#testRun').disabled, null, { timeout: 300000 });
+    const n1 = await calls();
+    check('test-rerun', en && /again/.test(lbl) && n1 - n0 === 89, `"${lbl}", enabled ${en}; second run: ${n1 - n0} calls`);
+  }
   const caseRows = await page.$$eval('#caseTable tbody tr', (rs) => rs.map((r) => r.children.length));
   check('test-case-table', caseRows.length === 30 && caseRows.every((n) => n === 7), `${caseRows.length} rows`);
   await shot('test');
@@ -202,6 +307,21 @@ const EXPECT = {
   const z = await download('#synZip'), zn = unzipNames(z.buf);
   check('synthetic-zip', zn.length === 10 && zn.includes('variants.jsonl'), `${z.name}: ${zn.length} files`);
 
+  // 10b. a model call that fails in the middle of a pseudonymisation or of the variants: a sentence says so, the button is
+  //      free again, and no earlier result is left on screen as if it were this one's (the runtime is made to fail here)
+  {
+    await page.evaluate(() => { const P = ort.InferenceSession.prototype; P._run = P.run; P.run = function () { return Promise.reject(new Error('a test failure')); }; });
+    await click('#xp [data-go="2"]'); await page.fill('#anonIn', FIXED); await click('#anonRun');
+    await page.waitForFunction(() => !document.querySelector('#anonErr').hidden, null, { timeout: 30000 }).catch(() => {});
+    const a = await page.evaluate(() => ({ err: document.querySelector('#anonErr').hidden ? '' : document.querySelector('#anonErr').textContent, free: !document.querySelector('#anonRun').disabled, out: document.querySelector('#anonOut').textContent, step: document.querySelector('#xp').dataset.step }));
+    await page.setInputFiles('#synFile', { name: 'unsure-names.txt', mimeType: 'text/plain', buffer: Buffer.from('We were skiing with Albesjan Kowalczyk and Ioana Mbeki last winter.\nThe report went to Gustavo Adeyemi.') });
+    await waitText('#synMeta', /No variants|documents generated/, 30000);
+    const sm = await text('#synMeta'), sfree = await page.$eval('#synRun', (b) => !b.disabled), srows = await page.$$eval('#synTable tbody tr', (r) => r.length);
+    await page.evaluate(() => { const P = ort.InferenceSession.prototype; P.run = P._run; });
+    check('errors-say-so', /^Not pseudonymised: a test failure/.test(a.err) && a.free && a.out === '' && a.step === '2' && /^No variants: the run stopped \(a test failure\)/.test(sm) && sfree && srows === 0,
+      `pseudonymise: "${a.err.slice(0, 70)}", button free ${a.free}, step ${a.step}; variants: "${sm.slice(0, 60)}", button free ${sfree}`);
+  }
+
   // 11. the usage meter
   const meterRows = await page.$$eval('#meterTable tbody tr', (rs) => rs.map((r) => [...r.children].map((c) => c.textContent.trim())));
   const modelsSeen = new Set(meterRows.map((r) => r[3]));
@@ -222,6 +342,18 @@ const EXPECT = {
   await shot('offline');
   await context.setOffline(false);
 
+  // 12b. the receipts, the hero figure and the meter read the live request counter: a real request after the models started
+  //      (same origin, so the policy allows it) moves all of them
+  {
+    const sent0 = await page.$$eval('[data-sent]', (es) => es.map((e) => e.textContent));
+    await page.evaluate(() => fetch('manifest.webmanifest?probe=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()));
+    await page.waitForFunction(() => document.querySelector('#kpiNet').textContent === '1', null, { timeout: 10000 }).catch(() => {});
+    const sent1 = await page.$$eval('[data-sent]', (es) => es.map((e) => e.textContent)), kpi = await kpiNet();
+    const mstat = await page.$$eval('#meterStats .mstat', (es) => es[es.length - 1].textContent.trim());
+    check('receipts-live-counter', sent0.length >= 6 && sent0.every((t) => /^0 requests since the models started · 0 bytes sent$/.test(t)) && sent1.every((t) => /^1 request since the models started/.test(t)) && /^1 \| request \| since the models started/.test(kpi) && /^1request since/.test(mstat),
+      `${sent0.length} receipts: "${sent0[0]}" → "${sent1[0]}"; hero ${kpi}; meter "${mstat}"`);
+  }
+
   // 13. the cached reload: nothing downloaded the second time
   await page.reload({ waitUntil: 'load' }); await waitText('#capTitle', /Can run|lacks/, 15000);
   await page.waitForFunction(() => /cached/.test(document.querySelector('#dockBtnText').textContent), null, { timeout: 10000 }).catch(() => {});
@@ -231,24 +363,73 @@ const EXPECT = {
   const cards2 = await page.$$eval('#modelCards [data-status]', (es) => es.map((e) => e.textContent.trim()));
   check('cached-reload', /cached/.test(label2) && cards2.every((c) => /loaded from this browser, nothing downloaded/.test(c)), `button "${label2}"; ${measured.reload_s} s; ` + cards2.join(' | '));
 
-  // 14. a reload with no connection at all: the service worker serves the page, IndexedDB the models
-  const swOn = await page.evaluate(async () => { const r = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); return !!(r && r.active); });
-  if (swOn) {
-    await context.setOffline(true);
-    await page.reload({ waitUntil: 'load' }); await waitText('#capTitle', /Can run|lacks/, 15000);
-    const t3 = Date.now(); await click('#dockBtn'); await waitText('#dlText', /Models ready|Try the download again/, 120000);
-    measured.offline_reload_s = +((Date.now() - t3) / 1000).toFixed(1);
-    await page.waitForFunction(() => document.querySelector('#out-route .trc-v'), null, { timeout: 60000 });
-    check('offline-reload', /Models ready/.test(await text('#dlText')) && /offline/i.test(await text('#netText')), `page, scripts and fonts from the service worker, models from IndexedDB: ready in ${measured.offline_reload_s} s; route → ${await text('#out-route .trc-v')}`);
-    await context.setOffline(false);
-  } else check('offline-reload', false, 'no active service worker (served over plain http from a host other than localhost?)');
   await shot('full');
+
+  // 14. a reload with no connection at all: the service worker serves the page, IndexedDB the models. The connection is
+  //     really cut: the page is opened in its own context through a small proxy this script owns, and the proxy is shut
+  //     before the reload. context.setOffline alone proved nothing: Playwright 1.56 (the CI's) does not apply it, nor
+  //     context.route, to the service worker's own fetches, so a worker that fetched everything from the network passed.
+  //     The same run checks that the worker leaves the lab's pages alone (lab/ beside the page: at the site root its scope
+  //     is the whole origin): the proxy answers lab/ itself, so the check needs no file on the server.
+  await offlineReload();
   await finish();
+
+  async function offlineReload() {
+    const up = new (require('url').URL)(URL), lib = up.protocol === 'https:' ? require('https') : http, socks = new Set();
+    const labPath = up.pathname.replace(/[^/]*$/, '') + 'lab/';
+    const proxy = http.createServer((req, res) => {
+      if (req.url.startsWith(labPath)) { res.writeHead(200, { 'Content-Type': req.url.endsWith('.html') ? 'text/html' : 'text/plain', 'Cache-Control': 'no-store' }); return res.end(req.url.endsWith('.html') ? '<!doctype html><title>lab page</title>lab' : 'lab probe'); }
+      const f = lib.request({ protocol: up.protocol, hostname: up.hostname, port: up.port, path: req.url, method: req.method, headers: { ...req.headers, host: up.host } },
+        (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
+      f.on('error', () => res.destroy()); req.pipe(f);
+    });
+    proxy.on('connection', (s) => { socks.add(s); s.on('close', () => socks.delete(s)); });
+    const cut = () => new Promise((r) => { proxy.close(() => r()); for (const s of socks) s.destroy(); });
+    await new Promise((r) => proxy.listen(0, '127.0.0.1', r));
+    const origin = `http://127.0.0.1:${proxy.address().port}`, at = origin + up.pathname + up.search, lab = origin + labPath;
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await ctx.addInitScript(() => { try { localStorage.setItem('sl_tour_done', '1'); } catch (e) {} });
+    if (args['no-net']) await ctx.route('**/*', (route) => route.request().url().startsWith(origin) ? route.continue() : route.abort());
+    const p = await ctx.newPage();
+    p.on('console', (m) => { if (m.type() === 'error') errors.console.push(m.text().slice(0, 200)); });
+    p.on('pageerror', (e) => errors.page.push(String(e).slice(0, 300)));
+    const txt = (sel) => p.$eval(sel, (e) => e.textContent.trim()), ready = () => p.waitForFunction(() => /Models ready|Try the download again/.test(document.querySelector('#dlText').textContent), null, { timeout: 240000 });
+    let labCached = 'not checked', labOnline = 'not checked';
+    try {
+      await p.goto(at, { waitUntil: 'load' });
+      const sw = await p.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller, null, { timeout: 20000 }).then(() => true, () => false);
+      if (!sw) return check('offline-reload', false, 'no service worker took control of the page');
+      await p.$eval('#dockBtn', (b) => b.click()); await ready();                      // the models into this origin's IndexedDB
+      if (!/Models ready/.test(await txt('#dlText'))) return check('offline-reload', false, 'the first download failed: ' + await txt('#dlText'));
+      // the lab's files, fetched while the worker controls the page: they must not land in its cache
+      labOnline = await p.evaluate(async (u) => (await Promise.all([u + 'probe.txt', u + 'assets/probe.css'].map((x) => fetch(x).then((r) => r.status, () => 0)))).join('/'), lab);
+      await p.waitForTimeout(300);
+      labCached = await p.evaluate(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) if (/\/lab\//.test(r.url)) out.push(r.url); return out.join(' ') || 'none'; });
+      await cut(); await ctx.setOffline(true);                                        // no server any more, and the browser offline
+      try { await p.reload({ waitUntil: 'load', timeout: 30000 }); }
+      catch (e) { return check('offline-reload', false, 'with no connection the page did not load: ' + e.message.split('\n')[0]); }
+      await p.waitForFunction(() => /Can run|lacks/.test(document.querySelector('#capTitle').textContent), null, { timeout: 15000 });
+      const t3 = Date.now(); await p.$eval('#dockBtn', (b) => b.click()); await ready();
+      measured.offline_reload_s = +((Date.now() - t3) / 1000).toFixed(1);
+      await p.waitForFunction(() => document.querySelector('#out-route .trc-v'), null, { timeout: 60000 });
+      const fromSw = await p.evaluate(() => !!navigator.serviceWorker.controller && performance.getEntriesByType('navigation')[0].workerStart > 0);
+      const cards = await p.$$eval('#modelCards [data-status]', (es) => es.map((e) => e.textContent.trim()));
+      check('offline-reload', fromSw && /Models ready/.test(await txt('#dlText')) && /offline/i.test(await txt('#netText')) && cards.every((c) => /loaded from this browser/.test(c)),
+        `server shut and browser offline; page, scripts and fonts from the service worker, models from IndexedDB: ready in ${measured.offline_reload_s} s; route → ${await txt('#out-route .trc-v')}`);
+      // offline, a lab file is not answered from the worker's cache, and a lab page does not open as this page
+      const labOffline = await p.evaluate((u) => fetch(u + 'assets/probe.css').then(() => 'answered', () => 'failed'), lab);
+      const labNav = await p.goto(lab + 'chat.html', { waitUntil: 'load', timeout: 15000 }).then(async () => 'opened: ' + await p.title(), (e) => 'failed: ' + e.message.split('\n')[0].slice(0, 60));
+      check('sw-leaves-lab', labOnline === '200/200' && labCached === 'none' && labOffline === 'failed' && /^failed/.test(labNav),
+        `${labPath}: fetched online ${labOnline}, in the worker's cache: ${labCached}; offline: fetch ${labOffline}, page ${labNav}`);
+    } catch (e) { check('offline-reload', false, e.message.split('\n')[0]); }
+    finally { await cut(); await ctx.close(); }
+  }
 
   async function finish() {
     check('no-page-errors', errors.page.length === 0, errors.page.join(' | ') || 'none');
-    const relevant = errors.console.filter((e) => !/ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(e));
-    check('no-console-errors', relevant.length === 0, relevant.join(' | ') || (errors.console.length ? `${errors.console.length} from refused off-origin or offline requests only` : 'none'));
+    // the lock test's own refusals (example.org, by the page's policy) are expected; any other policy violation is a fault
+    const relevant = errors.console.filter((e) => !/ERR_FAILED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_(?:REFUSED|RESET|CLOSED)/.test(e) && !/example\.org/.test(e));
+    check('no-console-errors', relevant.length === 0, relevant.join(' | ') || (errors.console.length ? `${errors.console.length} from refused off-origin or offline requests, or the lock test, only` : 'none'));
     const failed = checks.filter((c) => !c.ok);
     const report = { url: URL, at: new Date().toISOString(), passed: checks.length - failed.length, failed: failed.length, checks, measured, errors };
     if (args.out) { fs.mkdirSync(path.dirname(args.out), { recursive: true }); fs.writeFileSync(args.out, JSON.stringify(report, null, 1)); }

@@ -46,4 +46,10 @@ export interface Skill<T = unknown> {
   Render: ComponentType<SkillRenderProps<T>>;
   /** remove data that must live in memory only, before the record is written to storage (`input` is the user's text) */
   forStorage?(run: SkillRunRecord, input: string): SkillRunRecord;
+  /**
+   * Set when the text this skill is given, and the answer it writes, hold personal data (Pseudonymise). The app then
+   * keeps both in this page's memory only: the stored user turn is a placeholder, the conversation title does not quote
+   * the text, and error lines do not quote the model's output. `title` names such a conversation; a date is added.
+   */
+  personalData?: { title: string };
 }

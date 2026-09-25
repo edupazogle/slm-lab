@@ -6,7 +6,10 @@
 // is a tinted `.ff` field with its small label inside the box, the text is set in the typed face); the submit/stop
 // controls carry text labels instead of being icon-only circles; the dictation mic sub-part was dropped (no local
 // speech-to-text ships in this app, and the build spec forbids stubs); `label` and `allowEmpty` props added (a skill
-// like "Synthetic claims" runs with no text at all); the textarea ref is typed for React 18's RefObject.
+// like "Synthetic claims" runs with no text at all); the textarea ref is typed for React 18's RefObject; `onSubmit` may
+// return false to refuse the send, and the text then stays in the box; a disabled composer is not faded (opacity took
+// the label and the placeholder below 4.5:1): it disables its textarea and send button and carries `data-disabled`, and
+// the placeholder uses --ink-soft instead of a 45 % tint of the text colour.
 
 /**
  * @file prompt-input.tsx
@@ -104,6 +107,7 @@ interface PromptFormState {
   streaming: boolean;
   attachments: PromptAttachment[];
   allowEmpty: boolean;
+  disabled: boolean;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   submit: () => void;
   onStop?: () => void;
@@ -128,8 +132,8 @@ function isCoarsePointer() {
 /** Props for {@link PromptInput}. */
 export interface PromptInputProps
   extends Omit<React.ComponentProps<'form'>, 'onSubmit'> {
-  /** Fired with the trimmed text (and attachments) on submit. */
-  onSubmit: (text: string, attachments: PromptAttachment[]) => void;
+  /** Fired with the trimmed text (and attachments) on submit. Return false to refuse it: the text is kept. */
+  onSubmit: (text: string, attachments: PromptAttachment[]) => void | boolean;
   /** Controlled value (optional). */
   value?: string;
   /** Reports edits in controlled mode. */
@@ -197,7 +201,7 @@ export function PromptInput({
     const trimmed = text.trim();
     if ((!trimmed && resolvedAttachments.length === 0 && !allowEmpty) || streaming || disabled)
       return;
-    onSubmit(trimmed, resolvedAttachments);
+    if (onSubmit(trimmed, resolvedAttachments) === false) return;
     setText('');
     provider?.setAttachments([]);
   }, [text, resolvedAttachments, allowEmpty, streaming, disabled, onSubmit, setText, provider]);
@@ -209,11 +213,12 @@ export function PromptInput({
       streaming,
       attachments: resolvedAttachments,
       allowEmpty,
+      disabled: !!disabled,
       textareaRef,
       submit,
       onStop,
     }),
-    [text, setText, streaming, resolvedAttachments, allowEmpty, submit, onStop],
+    [text, setText, streaming, resolvedAttachments, allowEmpty, disabled, submit, onStop],
   );
 
   return (
@@ -221,13 +226,14 @@ export function PromptInput({
       <form
         data-slot="prompt-input"
         data-streaming={streaming || undefined}
+        data-disabled={disabled || undefined}
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
         className={cn(
           'ff composer flex flex-col gap-1',
-          disabled && 'pointer-events-none opacity-60',
+          disabled && 'pointer-events-none',
           className,
         )}
         {...props}
@@ -258,7 +264,7 @@ export function PromptInputTextarea({
   'aria-label': ariaLabel,
   ...props
 }: PromptInputTextareaProps) {
-  const { text, setText, textareaRef, submit, streaming } = usePromptForm();
+  const { text, setText, textareaRef, submit, streaming, disabled } = usePromptForm();
 
   // Auto-resize to content up to maxHeight.
   React.useEffect(() => {
@@ -277,6 +283,7 @@ export function PromptInputTextarea({
       placeholder={placeholder}
       aria-label={ariaLabel ?? 'Message'}
       rows={1}
+      disabled={disabled}
       onChange={(e) => setText(e.target.value)}
       onKeyDown={(e) => {
         onKeyDown?.(e);
@@ -291,7 +298,7 @@ export function PromptInputTextarea({
         }
       }}
       className={cn(
-        'typed max-h-[40dvh] w-full resize-none bg-transparent py-1 text-base leading-snug text-base-content placeholder:text-base-content/45 focus:outline-none',
+        'typed max-h-[40dvh] w-full resize-none bg-transparent py-1 text-base leading-snug text-base-content placeholder:text-[color:var(--ink-soft)] focus:outline-none',
         className,
       )}
       {...props}
@@ -331,7 +338,7 @@ export function PromptInputSubmit({
   stopLabel,
   ...props
 }: PromptInputSubmitProps) {
-  const { streaming, onStop, text, attachments, allowEmpty } = usePromptForm();
+  const { streaming, onStop, text, attachments, allowEmpty, disabled } = usePromptForm();
   const empty = text.trim().length === 0 && attachments.length === 0 && !allowEmpty;
 
   if (streaming) {
@@ -354,7 +361,7 @@ export function PromptInputSubmit({
     <Button
       type="submit"
       size="sm"
-      disabled={empty}
+      disabled={empty || disabled}
       data-slot="prompt-input-submit"
       className={className}
       {...props}

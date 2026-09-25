@@ -394,6 +394,23 @@ body {
   max-width: var(--measure);
   color: var(--ink-soft);
 }
+.start-model {
+  display: grid;
+  gap: 0.5rem;
+  border: var(--hair);
+  border-left: 3px solid var(--carbon);
+  border-radius: var(--radius);
+  background: var(--sheet);
+  padding: 0.7rem 0.8rem;
+}
+.empty-state .start-model p {
+  color: var(--ink);
+}
+.start-model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
 .msg {
   display: grid;
@@ -427,6 +444,11 @@ body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-size: 0.98rem;
+}
+.msg-user .msg-body-note {
+  /* the placeholder left where a text that was not saved used to be */
+  font-style: italic;
+  color: var(--ink-soft);
 }
 .msg-assistant {
   border-left: 3px solid var(--carbon);
@@ -483,6 +505,9 @@ body {
 }
 .validation-head {
   font-weight: 600;
+}
+.validation-scope {
+  margin-top: 0.15rem;
 }
 .validation-issues {
   margin: 0.3rem 0 0;
@@ -560,6 +585,11 @@ body {
 }
 .composer {
   background: var(--field);
+}
+/* no model yet: the box takes no input. Shown by the dashed edge, not by fading it, which took the label and the
+   placeholder below 4.5:1 */
+.composer[data-disabled] {
+  border-style: dashed;
 }
 .composer-tools {
   display: flex;
@@ -644,7 +674,7 @@ body {
 .decision-confirm {
   border-left-color: var(--canary-deep);
 }
-.decision-refuse {
+.decision-handover {
   border-left-color: var(--stamp);
 }
 .mapping-list {
@@ -704,6 +734,13 @@ body {
 }
 .tier {
   margin-bottom: 1.75rem;
+}
+.settings-confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
 }
 .tier-title {
   font-size: var(--t-1);

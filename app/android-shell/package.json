@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Capacitor Android shell around the SLM Lab PWA (slm/app/web/dist).",
   "scripts": {
-    "sync": "rm -rf www && cp -r ../web/dist www && npx cap sync android",
+    "sync": "rm -rf www && cp -r ../web/dist www && cp www/chat.html www/index.html && npx cap sync android",
     "apk": "cd android && ./gradlew assembleDebug"
   },
   "dependencies": {

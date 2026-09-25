@@ -107,6 +107,8 @@ export interface Message {
   skillId?: string;
   /** skill-specific input captured with the user message (e.g. how many synthetic claims) */
   skillInput?: Record<string, unknown>;
+  /** the text was not saved (it went to a skill that handles personal data): `content` is a placeholder since a reload */
+  textNotSaved?: boolean;
   error?: string;
 }
 

@@ -208,3 +208,106 @@ Scored again (`results_v3.json`): only POSTCODE moves, 35 → 32 predictions and
 dropped predictions ran into the next line's field label ("53883⏎Adresse", "20581⏎Numéro", "95440⏎Ville"); the last one had
 counted as covering its gold postcode only because more than half its characters did. Leak rates, PERSON and every direct
 identifier are unchanged (POSTCODE is not a direct identifier).
+
+## Addendum 2026-09-25 (3): the 8 malformed synthetic NIRs corrected, the documents re-scored
+
+The synthetic claims could not be regenerated. They were drawn unseeded, and two fresh runs of the fixed generator differed
+from the committed file, and from each other, on all 100 rows. Regenerating would therefore have replaced every synthetic
+claim, not just the 8 NIRs.
+
+So the 8 NIRs were corrected in place in `data/synthetic_claims.jsonl`:
+- the birth year is zero-padded;
+- the key is recomputed with the generator's own formula;
+- every later span moves +1.
+
+This is what the fixed generator would have written from the same random draws. The other 92 claims are byte-identical,
+and `combine_dataset.py` changes exactly the same 8 lines of `data/combined_dataset.jsonl` (details in `DATA.md`).
+`gen_fr_claims.py` is now seeded (`SEED = 42`).
+
+| Id | NIR before (14 characters) | NIR after (15 characters) |
+|---|---|---|
+| synthetic_016 | 2 5 03 77 874 296 07 | 2 05 03 77 874 296 14 |
+| synthetic_023 | 2 0 12 02 637 143 81 | 2 00 12 02 637 143 88 |
+| synthetic_026 | 2 7 05 44 698 162 38 | 2 07 05 44 698 162 45 |
+| synthetic_027 | 1 3 09 15 793 487 45 | 1 03 09 15 793 487 97 |
+| synthetic_031 | 1 1 07 18 124 174 43 | 1 01 07 18 124 174 95 |
+| synthetic_034 | 1 2 10 57 333 176 89 | 1 02 10 57 333 176 44 |
+| synthetic_073 | 1 1 05 2A 268 851 31 | 1 01 05 2A 268 851 83 |
+| synthetic_077 | 1 6 10 63 406 912 06 | 1 06 10 63 406 912 58 |
+
+**Checked first.** The v3 run was reproduced before the data changed. On the old data, `regex_baseline.py` and
+`parity_check.js` gave byte-identical `preds/regex_v3_*` and `preds/js_v3_*`, and `eval.py` gave the same numbers as
+`results_v3.json`. The page's detector block changed after v3 only in how it computes the sentence around a name, and that
+sentence is not part of parity.
+
+**Run from `experiments/e1/` with python3.**
+- Port check: `regex_baseline.py --check-page`.
+- Detect: `regex_baseline.py data/combined_dataset.jsonl preds/regex_v4_extended.jsonl --first extended`. The ablation is
+  the same command with `--first page` → `preds/regex_v4_page.jsonl`.
+- Parity: `node parity_check.js data/combined_dataset.jsonl preds/js_v4_page.jsonl`, and the same with
+  `preds/js_v4_extended.jsonl preds/extra_first.txt`. Then `compare_parity.py` → `preds/parity_v4_<cfg>.json`.
+- Score: `eval.py --data data/combined_dataset.jsonl --preds preds/regex_v4_extended.jsonl --ablation preds/regex_v4_page.jsonl --out results_v4.json`.
+
+**Parity: 0 of 900 documents differ, in either configuration.**
+- `preds/parity_v4_page.json`: 2,390 entities (v3: 2,383) and 3,199 candidates.
+- `preds/parity_v4_extended.json`: 2,410 entities (v3: 2,403) and 3,203 candidates.
+- The +7 entities are 8 new NIRs, minus the 1 CARD that had covered a malformed NIR.
+
+| | v3 (`results_v3.json`) | v4 (`results_v4.json`) |
+|---|---|---|
+| NIR recall, FR synthetic | 0.92 (92/100) | 1.00 (100/100) |
+| NATIONAL_ID/NIR recall, FR | 0.5812 (111/191) | 0.6230 (119/191) |
+| NATIONAL_ID/NIR recall, all 900 | 0.4491 (119/265) | 0.4792 (127/265) |
+| Leak rate, typed, FR | 0.7639 (372/487) | 0.7495 (365/487) |
+| Leak rate, any type, FR | 0.7577 | 0.7454 |
+| Leak rate, typed, all 900 | 0.8267 (725/877) | 0.8187 (718/877) |
+| FR synthetic slice: leak rate, typed · any type | 0.12 (12/100) · 0.11 | 0.05 (5/100) · 0.05 |
+| Precision, direct identifiers, FR | 0.9281 (1,238 predictions) | 0.9293 (1,245) |
+| Precision, direct identifiers, all 900 | 0.9267 (1,841) | 0.9275 (1,848) |
+| NIR predictions, FR (all correct) | 111 | 119 |
+| CARD predictions, FR (precision) | 17 (0.7059) | 16 (0.7500) |
+| `nir_miss_diagnosis_fr_synthetic` | 92 caught; 8 malformed (7 uncovered, 1 masked as CARD) | 100 caught |
+| Ablation (the page's 166 names), FR: leak rate · precision | 0.7659 · 0.9339 | 0.7515 · 0.9351 |
+| Fail proof (+5 shift), FR precision | 0.8207 | 0.8225 |
+| Pass bar met, FR / EN | no / no | no / no |
+
+**What moved.** The 8 corrected NIRs are now all caught as NIR.
+- 7 of their 8 documents no longer leak.
+- `synthetic_023` still leaks through its name, "Denis Lopes de la Chrétien".
+- All 5 FR synthetic documents that still leak are "de la" names: `synthetic_000`, `012`, `023`, `032` and `093`.
+- FR still fails the NIR bar (0.6230 < 0.98), because FR OpenPII NATIONAL_ID stays at 0.2088 (19/91).
+
+**Everything else is unchanged:**
+- every EN number;
+- PERSON recall and precision (FR 0.3794, EN 0.4591, all 0.4150);
+- EMAIL, PHONE, IBAN, PLATE, ID_DOC and ADDRESS recall, CARD recall, POSTCODE and DATE;
+- the round trip (1.000 in both languages) and `person_miss_diagnosis`;
+- the FR OpenPII slice;
+- the kill rule, which is still not triggered.
+
+The only other difference in the file is text: the context of `worst_person_misses[0]` (`synthetic_023`) now shows the
+corrected NIR.
+
+`results_v3.json` records its ablation input as a scratch copy (`py_page.jsonl`). `preds/regex_v3_page.jsonl` gives the
+same v3 ablation numbers, and v4 scores the ablation from `preds/regex_v4_page.jsonl`.
+
+## Addendum 4 (2026-09-25): v5, the page's UK forms
+
+Second Look's detectors gained UK dates ("3rd of May 1961", "3 May, 1961"), English-order street addresses ending at the
+street type, and standalone UK postcodes; `regex_baseline.py` changed identically (`--check-page` passes). Same data as
+v4, same pipeline: `results_v5.json`, `preds/*_v5_*`. Parity with the page's JS: 0 of 900 documents differ in both
+configurations (entities 2,451 with the page's list, 2,471 with the extended list).
+
+| | v4 | v5 |
+|---|---|---|
+| English typed leak rate | 0.9051 (353/390) | 0.8846 (345/390) |
+| English typed leak rate, page's 166-name list | 0.9103 | 0.8897 |
+| English ADDRESS recall · predictions (precision) | 0.0 · 1 (0.0) | 0.3763 · 58 (0.8966) |
+| English POSTCODE recall | 0.0 | 0.0104 |
+| French ADDRESS recall · predictions (precision) | 0.1933 · 26 (0.8462) | 0.2082 · 28 (0.8571) |
+| All 900: typed leak rate · ADDRESS recall | 0.8187 · 0.0935 | 0.8096 · 0.2950 |
+
+Unchanged: every French leak rate (0.7495; 0.7515 with the page's own 166-name list, the figure Second Look shows),
+PERSON, NIR, PHONE, EMAIL, IBAN, CARD, PLATE and DATE recall (the data holds no "of" dates), the round trip (1.0). The
+pass bar is still missed in both languages and the kill rule is still not triggered. Precision moved by less than 0.002
+everywhere; two more ADDRESS false positives land on gold ADDRESS spans (partial overlaps).

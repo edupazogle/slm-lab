@@ -1,8 +1,8 @@
 // One turn. A user message is a form field with what was typed in it; an answer is the model's text (or a skill's
 // rendered result), its thinking if it wrote any, and the receipt.
-import { useEffect, useMemo, useState } from 'react';
+import { Component, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Check, Copy, Pencil, RefreshCw } from 'lucide-react';
-import type { Message } from '../utils/types';
+import type { Message, SkillRunRecord } from '../utils/types';
 import { Button } from '../lib/localmode/button';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '../lib/localmode/reasoning';
 import { MarkdownMessage } from './MarkdownMessage';
@@ -70,7 +70,11 @@ export function UserMessage({
         </form>
       ) : (
         <>
-          <div className="msg-body typed">{msg.content}</div>
+          {msg.textNotSaved ? (
+            <p className="msg-body msg-body-note">{msg.content}</p>
+          ) : (
+            <div className="msg-body typed">{msg.content}</div>
+          )}
           {canEdit && (
             <div className="msg-actions">
               <Button
@@ -97,12 +101,15 @@ export function AssistantMessage({
   inputText,
   modelName,
   canRegenerate,
+  regenerateBlocked,
   onRegenerate,
 }: {
   msg: Message;
   inputText: string;
   modelName: string;
   canRegenerate: boolean;
+  /** why "Ask again" is shown but cannot run (the text it would run on was not saved) */
+  regenerateBlocked?: string;
   onRegenerate(): void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -128,7 +135,9 @@ export function AssistantMessage({
 
       {run && skill ? (
         <>
-          <skill.Render object={run.object as never} streaming={run.status === 'running'} input={inputText} skillInput={msg.skillInput} run={run} />
+          <SkillRenderBoundary run={run}>
+            <skill.Render object={run.object as never} streaming={run.status === 'running'} input={inputText} skillInput={msg.skillInput} run={run} />
+          </SkillRenderBoundary>
           {run.status !== 'running' && <ValidationBadge run={run} />}
         </>
       ) : msg.content ? (
@@ -157,14 +166,55 @@ export function AssistantMessage({
             {copied ? 'Copied' : 'Copy'}
           </Button>
           {canRegenerate && (
-            <Button type="button" size="xs" variant="ghost" onClick={onRegenerate}>
+            <Button
+              type="button"
+              size="xs"
+              variant="ghost"
+              onClick={onRegenerate}
+              disabled={!!regenerateBlocked}
+              aria-describedby={regenerateBlocked ? `regen-note-${msg.id}` : undefined}
+            >
               <RefreshCw className="size-3" aria-hidden="true" /> Ask again
             </Button>
+          )}
+          {canRegenerate && regenerateBlocked && (
+            <span id={`regen-note-${msg.id}`} className="text-xs text-base-content/70">
+              {regenerateBlocked}
+            </span>
           )}
         </div>
       )}
     </article>
   );
+}
+
+/**
+ * A renderer is written for the shape its schema describes, but the fallback path can hand it any JSON (a string where a
+ * list goes, an object where a word goes). If it throws, this answer shows the raw text instead of the chat going blank.
+ */
+class SkillRenderBoundary extends Component<{ run: SkillRunRecord; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidUpdate(prev: { run: SkillRunRecord }) {
+    // the next partial object while it streams, or the final one, gets a fresh try
+    const { run } = this.props;
+    if (this.state.failed && (prev.run.object !== run.object || prev.run.status !== run.status)) this.setState({ failed: false });
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    const { run } = this.props;
+    return (
+      <div className="skill-result">
+        <p className="text-sm">The answer did not match the shape this skill shows, so here it is as the model wrote it.</p>
+        <pre className="typed whitespace-pre-wrap break-words">{run.rawText || (JSON.stringify(run.object, null, 2) ?? '')}</pre>
+      </div>
+    );
+  }
 }
 
 function ValidationBadge({ run }: { run: NonNullable<Message['skillRun']> }) {
@@ -174,7 +224,12 @@ function ValidationBadge({ run }: { run: NonNullable<Message['skillRun']> }) {
       : `The engine would not take the schema, so the answer was asked for in the prompt and checked afterwards (${run.attempts} attempt${run.attempts === 1 ? '' : 's'}).`;
   return (
     <div className={`validation ${run.valid ? 'is-valid' : 'is-invalid'}`}>
-      <p className="validation-head">{run.valid ? 'Valid against the schema' : 'Does not match the schema'}</p>
+      <p className="validation-head">{run.valid ? 'The answer has the expected fields' : 'The answer does not have the expected fields'}</p>
+      {run.valid && (
+        <p className="validation-scope">
+          Each field is there and of the right kind. Whether the values are true is not checked: compare them with the text.
+        </p>
+      )}
       {run.issues.length > 0 && (
         <ul className="validation-issues typed">
           {run.issues.map((i, n) => (

@@ -11,14 +11,30 @@ import os
 import zlib
 import re
 import numpy as np
+from pathlib import Path
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 import sys
 
-# Configuration
-DATA_DIR = "/home/edu/Public/bizloop/slm/experiments/e11/data"
-MODEL_DIR = "/home/edu/Public/bizloop/slm/experiments/e11/models"
-RESULTS_DIR = "/home/edu/Public/bizloop/slm/experiments/e11/results"
+# Configuration (paths relative to this script, so the folder runs wherever it is checked out)
+HERE = Path(__file__).resolve().parent
+DATA_DIR = str(HERE / "data")
+MODEL_DIR = str(HERE / "models")
+RESULTS_DIR = str(HERE / "results")
+
+PANE_STATE_CLASSES = ['working', 'finished-report', 'waiting-permission', 'api-error', 'garble']
+
+def row_label(entry):
+    """
+    The 5-class label of a dataset row. build_dataset.py writes it as `label` (brief E11-fix-2.md) from 2026-09-25;
+    older rows carry only `pane_state`, which was never 'garble' (synthetic windows kept their structural state),
+    so for those the label is derived: 'garble' if is_synthetic, else pane_state.
+    """
+    if entry.get('label') in PANE_STATE_CLASSES:
+        return entry['label']
+    if entry.get('is_synthetic'):
+        return 'garble'
+    return entry.get('pane_state', 'unknown')
 
 # Characters beyond Latin Extended-B (U+01FF) are considered likely model garbage
 LATIN_EXTENDED_B_END = 0x01FF
@@ -109,12 +125,22 @@ def extract_features_zlib_regex(text):
 
     return features
 
+def build_features(texts, extra=None):
+    """Baseline 1 feature matrix; `extra` (one value per text, e.g. the LM garble score) is appended as a column."""
+    X = np.array([extract_features_zlib_regex(text) for text in texts])
+    if extra is not None:
+        X = np.column_stack([X, np.asarray(extra, dtype=float)])
+    return X
+
 def load_dataset(split):
     """Load dataset from JSONL file."""
     dataset_path = os.path.join(DATA_DIR, f'{split}.jsonl')
     texts = []
     labels = []
 
+    if not os.path.exists(dataset_path) or os.path.getsize(dataset_path) == 0:
+        print(f"ERROR: {dataset_path} is missing or empty (run build_dataset.py first)", file=sys.stderr)
+        sys.exit(1)
     with open(dataset_path, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
@@ -157,16 +183,28 @@ def evaluate_baseline_0(texts, labels):
         'predictions': predictions
     }
 
-def evaluate_baseline_1(texts, labels):
-    """Evaluate baseline (1): zlib + regex features with logistic regression."""
-    # Extract features
-    features_list = []
-    for text in texts:
-        features = extract_features_zlib_regex(text)
-        features_list.append(features)
-
-    X = np.array(features_list)
+def evaluate_baseline_1(texts, labels, model=None, scaler=None, extra=None):
+    """
+    Evaluate baseline (1): zlib + regex features with logistic regression.
+    With model=None it FITS on (texts, labels) and scores those same windows (training fit). To score a test split,
+    pass the model and scaler returned by the train call: before 2026-09-25 the test split was fitted on itself,
+    so its "test" numbers were in-sample. `extra` appends one feature column (Baseline 2: the LM garble score).
+    """
+    X = build_features(texts, extra)
     y = labels
+
+    if model is not None:
+        predictions = model.predict(scaler.transform(X))
+        from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+        return {
+            'accuracy': accuracy_score(y, predictions),
+            'precision': precision_score(y, predictions, zero_division=0),
+            'recall': recall_score(y, predictions, zero_division=0),
+            'f1': f1_score(y, predictions, zero_division=0),
+            'predictions': predictions,
+            'model': model,
+            'scaler': scaler
+        }
 
     # Check if we have at least 2 classes
     if len(np.unique(y)) < 2:
@@ -180,7 +218,7 @@ def evaluate_baseline_1(texts, labels):
 
         accuracy = accuracy_score(y, predictions)
         precision = precision_score(y, predictions, zero_division=0)
-        recall = recall_score = recall_score(y, predictions, zero_division=0)
+        recall = recall_score(y, predictions, zero_division=0)
         f1 = f1_score(y, predictions, zero_division=0)
 
         return {
@@ -255,7 +293,11 @@ def main():
     # Evaluate baseline 1 on train and test
     print("\n=== Baseline 1: zlib + regex + logistic regression ===")
     train_metrics_1 = evaluate_baseline_1(train_texts, train_labels)
-    test_metrics_1 = evaluate_baseline_1(test_texts, test_labels)
+    if train_metrics_1['model'] is None:
+        print("ERROR: the train split holds one class only; Baseline 1 cannot be fitted", file=sys.stderr)
+        sys.exit(1)
+    test_metrics_1 = evaluate_baseline_1(test_texts, test_labels,
+                                         model=train_metrics_1['model'], scaler=train_metrics_1['scaler'])
 
     print("Train:")
     print(f"  Accuracy: {train_metrics_1['accuracy']:.4f}")

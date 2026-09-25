@@ -6,11 +6,14 @@
 //
 // Results are rendered on the page (so a person holding a phone can read them). They are POSTed to
 // /api/bench on the same origin, where slm/app/serve.py appends them to bench_results.jsonl, only when
-// the URL says &post=1 (scripts/run-bench.mjs does): the landing page sends visitors here, and the
+// the URL says &post=1 (scripts/run-bench.mjs does): visitors can open this page, and the
 // result carries their user agent, screen, memory and GPU, which the server would log with their
 // address without them knowing.
+//
+// With no ?url= the page says what it does and offers the default run (lab-links.ts), instead of a bare "missing ?url=".
 import { Wllama, type ChatCompletionChunk } from '@wllama/wllama';
 import { WLLAMA_COMPAT_CONFIG, WLLAMA_CONFIG_PATHS } from './config';
+import { BENCH_HREF, BENCH_MODEL } from './lab-links';
 
 const q = new URLSearchParams(location.search);
 const logEl = document.getElementById('log') as HTMLPreElement;
@@ -36,9 +39,25 @@ async function gpuInfo() {
   } catch (e) { return { available: false, note: String(e) }; }
 }
 
+function showStart() {
+  log([
+    'This page measures how fast a language model runs in this browser, on this device.',
+    `The default run loads ${BENCH_MODEL.label}, lets it write 64 tokens twice and prints the engine's own timings.`,
+    `The model is ${BENCH_MODEL.sizeMB} MB. It is downloaded from huggingface.co the first time and kept in this browser's storage after that.`,
+    'The results stay on this page: nothing is sent anywhere.',
+    '',
+    'To measure another model: bench.html?url=<link to a .gguf file>&threads=auto&gpu=0&n=64&reps=2',
+  ].join('\n'));
+  const go = document.createElement('a');
+  go.className = 'go';
+  go.href = BENCH_HREF;
+  go.textContent = `Run the default measurement (${BENCH_MODEL.sizeMB} MB download the first time)`;
+  logEl.after(go);
+}
+
 async function main() {
   const url = q.get('url');
-  if (!url) { log('missing ?url=<gguf url>'); return; }
+  if (!url) { showStart(); return; }
   const threads = q.get('threads') ?? 'auto';
   const nGpu = Number(q.get('gpu') ?? '0');
   const nPredict = Number(q.get('n') ?? '96');
@@ -99,7 +118,11 @@ async function main() {
       if (run.nGen < nPredict * 0.8) run.warning = `short generation (${run.nGen}/${nPredict}) - decode rate unreliable`;
       result.runs.push(run); log(`run ${i}: prefill ${run.prefillTokS} (wall ${run.wallPrefillTokS}) tok/s · decode ${run.decodeTokS} (wall ${run.wallDecodeTokS}) tok/s · ttft ${run.ttftMs} ms · prompt ${nPrompt} tok`);
     }
-    const mean = (k: 'prefillTokS' | 'decodeTokS' | 'wallDecodeTokS' | 'ttftMs') => +(result.runs.reduce((a, r) => a + (r[k] ?? 0), 0) / result.runs.length).toFixed(1);
+    // over the runs that measured it: a null is "not measured", and counting it as 0 dragged the mean down
+    const mean = (k: 'prefillTokS' | 'decodeTokS' | 'wallDecodeTokS' | 'ttftMs') => {
+      const vs = result.runs.map((r) => r[k]).filter((v): v is number => v != null);
+      return vs.length ? +(vs.reduce((a, v) => a + v, 0) / vs.length).toFixed(1) : null;
+    };
     result.summary = { prefillTokS: mean('prefillTokS'), decodeTokS: mean('decodeTokS'), wallDecodeTokS: mean('wallDecodeTokS'), ttftMs: mean('ttftMs') };
     result.ok = true;
     await wllama.exit();

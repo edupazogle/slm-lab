@@ -5,14 +5,15 @@
 // Path 2, "fallback": if the engine rejects the schema, the lifted LocalMode `generateObject` asks for JSON in the
 // prompt, extracts it from whatever came back, validates it, and retries with the validation error (up to 2 times).
 //
-// Either way the result is validated against the same Zod schema, and the badge says "valid against schema" or lists
-// exactly what failed.
+// Either way the result is validated against the same Zod schema, and the badge says the answer has the expected shape
+// (every field there, of the right kind — not that the values are true) or lists exactly what failed. For a skill that
+// handles personal data (`personalData`), no error line quotes the model's output: that output lists the values.
 import type { ChatCompletionMessage } from '@wllama/wllama';
 import type { StreamCallbacks, StreamOutcome, StreamRequest } from '../utils/engine';
 import type { SkillRunRecord } from '../utils/types';
 import type { Skill, SkillInput } from './types';
 import { toJsonSchema, validate } from './validate';
-import { extractJSON, parsePartialJSON, repairJSON } from '../lib/localmode/schema';
+import { extractJSON, parsePartialJSON, repairJSON, withoutRawText } from '../lib/localmode/schema';
 import { generateObject } from '../lib/localmode/generate-object';
 import { StructuredOutputError } from '../lib/localmode/types';
 import { errorText } from '../utils/utils';
@@ -58,6 +59,7 @@ export async function runSkill<T>(
 ): Promise<SkillResult> {
   const schema = skill.schema(skillInput);
   const jsonSchema = toJsonSchema(schema);
+  const issueLine = (line: string) => (skill.personalData ? withoutRawText(line) : line);
   const run: SkillRunRecord = {
     skillId: skill.id,
     status: 'running',
@@ -133,7 +135,7 @@ export async function runSkill<T>(
       run.issues = [
         outcome.finishReason === 'length'
           ? `The answer reached the token limit (${outcome.tokensOut ?? '?'} tokens) before the JSON was complete.`
-          : `The output is not valid JSON: ${parseError}`,
+          : `The output is not valid JSON: ${issueLine(parseError ?? '')}`,
       ];
       onUpdate({ ...run });
       return { run, outcome };
@@ -200,7 +202,7 @@ export async function runSkill<T>(
     } else if (e instanceof StructuredOutputError) {
       run.rawText = e.rawText;
       const cause = (e as { cause?: unknown }).cause;
-      run.issues = [`No valid answer after ${e.attempts} attempts.`, ...(cause ? [errorText(cause).slice(0, 400)] : [])];
+      run.issues = [`No valid answer after ${e.attempts} attempts.`, ...(cause ? [issueLine(errorText(cause)).slice(0, 400)] : [])];
       try {
         const v = validate(schema, extractJSON(e.rawText));
         run.object = extractJSON(e.rawText);

@@ -1,5 +1,5 @@
 // Theme: data-theme="carbon" (light) or "carbonpaper" (dark) on <html>. Follows the system until the person chooses,
-// then remembers the choice. The key and values are the landing page's own (src/landing/ThemeToggle.tsx), so a choice
+// then remembers the choice. The key and values were shared with the old landing page (removed 2026-09-25), so a choice
 // made on one page holds on the other. chat.html applies it before first paint (no flash).
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
