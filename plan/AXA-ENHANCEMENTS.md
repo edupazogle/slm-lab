@@ -1,0 +1,87 @@
+# AXA presentation pass — review, plan and status
+
+2026-09-25 · branch `axa-enhancements` · handed over to the SLL PRO session at the operator's request, mid-way through.
+
+Goal (operator): review the lab, find UX/UI and functional enhancements for an AXA audience (claims leaders, IT security,
+risk and compliance, executives), implement the plan, and publish the new version to Railway for validation. The page to
+present is **Second Look** (`/second-look/`); the landing, chat and bench pages are secondary.
+
+Tone rules used for every new line of copy (from `bizloop/underwriting/GUIDE-how-underwriting-leaders-talk.md`): outcome
+first, then mechanism; decision support with the person in charge; measured before-and-after; plain, structured, no hype.
+
+## What the review found
+
+Four inputs: a live audit (Lighthouse, headers, weights), a code and browser review of Second Look, a code review of the
+web app, and screenshots at 1440 and 390 px.
+
+**Second Look**
+- P1: five or more overlapping decisions crash the tab (headless Chromium on Linux, reproduced 5 of 5): model runs are
+  not serialised, Ctrl+Enter ignores key repeat, Decide stays clickable during a run.
+- P1: the redactor is called "Anonymise" and its output "Safe to share", while E1a measured a French leak rate of 0.76 and
+  42 % of names found (rules only). A UK letter ("27 Harrow Road", "W2 5DY" with no town, "3rd of May 1961") came out
+  almost unchanged.
+- P1 (fixed on `main` by another session, d55b1b8): the tour's highlight ring took the click on the button it asked for.
+- P2: hype and "LLM" framing ("TinyLLM. Huge Possibilities.", "Looks like a mockup. It is not."); the models are a 13M
+  and a 22M encoder. The calibration note says the true cases sit below the diagonal; they sit above it (under-confident).
+  "0 requests · 0 bytes · €0" in receipts and the "0 bytes" KPI are constants, not the counter. `build.sh` pulls models
+  from `resolve/main` unpinned while the page hard-codes byte counts. AXA-style logo on a public page. Tour step 2 points
+  at a counter hidden on phones. "Measured on 8 drafted replies" has no data in the repo. Dark-on-dark chips in the dock panel.
+- Accessibility 87 (Lighthouse): tablist without tabs, unlabelled sliders, 4.33:1 and 3.88:1 contrast, heading order.
+- The page offered no way back to the rest of the lab, and the first-visit tour opened as a modal over the hero.
+
+**Web app** (landing, chat, bench)
+- P1: the chat's model list shows two "abliterated" models, a community fine-tune and two 3.2 GB Llama entries.
+- P1: the anonymise skill stores the ORIGINAL text in IndexedDB and uses it as the conversation title.
+- P1: triage labels an outcome "refuse"; the landing demo's errors are wrong for plain http and for an unreachable
+  huggingface.co (a corporate proxy); the landing promises offline use and an installable app, and there is no manifest
+  or service worker.
+- P2: six clicks and two waits to a first chat answer; a message sent while a model loads is lost; picking a suggestion
+  with a skill chip active empties the composer; "Valid against the schema" reads as "correct"; `/bench.html` with no
+  parameters is a dead end and "Measure this device" starts a 386 MB download with no warning; jargon; chat contrast 2.52:1.
+
+**Hosting**: no CSP, HSTS, Referrer-Policy, Permissions-Policy or frame protection; no caching on hashed assets; the
+Railway edge already compresses (gzip, zstd); the service runs in us-west2, so every request from Europe waits ~180 ms.
+
+## The plan, and where it stands
+
+| # | Change | Status |
+|---|---|---|
+| 1 | Second Look hero for claims leaders: "Claims decisions, on this device." + a lede that states outcome, mechanism and who decides | **done** (9c4a243) |
+| 2 | The tour offered from a hero button, not opened over the page (`?tour` still starts it) | **done**, QA `tour-opt-in` + `tour-first-visit` |
+| 3 | A Content-Security-Policy (`connect-src 'self'`) and a "Test the lock" widget that tries a fetch and a pixel to example.org and shows the refusal | **done**, QA `csp-connect-self`, `lock-refused` |
+| 4 | The request counter leaves out requests the policy refused (a refused image still shows in the resource timeline) | **done**, QA `lock-not-counted`; a real request still counts (checked by hand: 0 → 0 → 1) |
+| 5 | Section 05 "What a pilot has to answer first": 9 answers for IT, risk and compliance, each checkable | **done** |
+| 6 | Calibration: the recorded per-message run embedded, so chart, threshold and a new "At your volume" view work before any download; volumes rounded to 2 significant figures | **done**, QA `volume-view-recorded`, `volume-view-live` |
+| 7 | Phone model bar on one row; chart labels legible on phones; tour pictures centred | **done** |
+| 8 | Accessibility fixes (labels, tablist, headings, contrast) | **done**; not re-scored in Lighthouse |
+| 9 | Links back to the lab from Second Look (sidebar, Railway only) | **done**; phones still have none (add a footer row) |
+| 10 | serve.py: Referrer-Policy, X-Frame-Options, Permissions-Policy, HSTS (`--public`), immutable caching for Vite hashed assets | **done** |
+| 11 | Serialise model runs, ignore key repeat, disable Decide while running (the crash) | not started |
+| 12 | "Anonymise" → "Pseudonymise", "Safe to share" → "Pseudonymised: check before sharing", with the measured leak rate beside it | not started |
+| 13 | Calibration note: the squares sit above the diagonal (under-confident), not below | not started |
+| 14 | Receipts and the "0 bytes" KPI read the live counter instead of constants | not started |
+| 15 | Pin model revisions in `build.sh` and check sha256 (a changed upstream file breaks every build) | not started |
+| 16 | Dock-panel chip contrast; hide the Ctrl ↵ hint on phones; tour step 2 text on phones; "Load it for me" label; hero button stuck disabled after Turn off; test button cannot re-run; toast when an example is clicked before the models; error handling in Pseudonymise and variants; storage shown in GB; footer "30 messages" for every widget | not started |
+| 17 | UK address, standalone UK postcode and "3rd of May 1961" dates in the redactor. Needs the Python port (`experiments/e1/regex_baseline.py`) changed too, and the 900-document parity re-run to 0 diffs | not started, deliberately |
+| 18 | Web app: hide the abliterated / community / 3.2 GB models unless `?lab=1` | **in progress, uncommitted when handed over** (see below) |
+| 19 | Web app: the anonymise skill stops storing the original text; neutral titles; "Delete all conversations" | not started |
+| 20 | Web app: triage wording, landing error messages (insecure context, huggingface.co unreachable), honest offline copy, one-click "Start with SmolLM2", message kept while a model loads, suggestion/chip bug, schema-badge wording, bench landing, "Measure this device" size warning, link to Second Look from the landing, chat contrast | not started |
+| 21 | Railway preview environment on this branch, in an EU region | see "Deployment" |
+
+## Open decisions for the operator
+
+- **The AXA mark** in Second Look's sidebar is on a public page. Keep it (the audience is AXA and the page says it is a
+  prototype), or swap it for a neutral mark and keep only the AXA blue palette.
+- **Region**: production runs in us-west2. For a European audience europe-west4 should remove most of the ~180 ms wait
+  per request (an estimate, not measured).
+- **Promote**: production deploys from `main`. Merging `axa-enhancements` into `main` replaces the live page, and the
+  GitHub Pages copy redeploys too (its workflow runs the QA round first).
+
+## How to verify
+
+```bash
+cd app/second-look && ./build.sh && python3 build_pages.py
+python3 -m http.server 8792 --bind 127.0.0.1 --directory dist &
+NODE_PATH=../web/node_modules node test/qa_browser.js --url http://127.0.0.1:8792/     # 62 checks, 62 passed at e7e9afc
+cd ../web && npm ci && npm run build && npm run lint
+```
