@@ -2,7 +2,7 @@
    reload works with no connection. The models are not cached here: the page keeps them in IndexedDB (one copy, 57 MB).
    Every file is fetched fresh when online (a redeploy is picked up even when this file and CACHE did not change), and the
    kept copy answers when the network does not. All paths are relative to this file, so it works at / and under a sub-path. */
-const CACHE = 'second-look-shell-v9';
+const CACHE = 'second-look-shell-v10';
 const SHELL = ['./', 'index.html', 'vendor/ort.wasm.min.js', 'vendor/mammoth.browser.min.js', 'manifest.webmanifest', 'icon.svg',
   'assets/fonts/SourceSansPro-Regular.woff2', 'assets/fonts/SourceSansPro-SemiBold.woff2', 'assets/fonts/SourceSansPro-Bold.woff2', 'assets/fonts/SourceSerif4-Bold.woff2'];
 const KEEP = new Set(SHELL.map((u) => new URL(u, location).pathname));

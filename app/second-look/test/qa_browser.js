@@ -58,6 +58,17 @@ const EXPECT = {
   const out0 = await text('#anonOut');
   check('redactor-output-clean', !/Dubois|Leclerc|Marchand|example\.fr/.test(out0), out0.slice(0, 80).replace(/\n/g, ' '));
 
+  // 2b. the lock: the page's security policy refuses a request to another site (a fetch and an image), and says so
+  const csp = await page.$eval('meta[http-equiv="Content-Security-Policy"]', (m) => m.content).catch(() => '');
+  check('csp-connect-self', /connect-src 'self'(;|$)/.test(csp) && /img-src 'self'/.test(csp), csp.slice(0, 90));
+  await click('#lockRun');
+  await page.waitForFunction(() => document.querySelectorAll('#lockOut .lk').length === 2, null, { timeout: 10000 });
+  const lock = await page.$$eval('#lockOut .lk', (es) => es.map((e) => ({ cls: e.className, t: e.textContent.trim() })));
+  check('lock-refused', lock.every((l) => l.cls === 'lk' && /^Refused/.test(l.t)) && /connect-src/.test(lock[0].t) && /img-src/.test(lock[1].t), lock.map((l) => l.t.slice(0, 70)).join(' | '));
+  // the calibration view and "At your volume" work before any download, from the recorded run, and say so
+  const vol = await page.$$eval('#volOut b', (es) => es.map((e) => e.textContent.trim()));
+  check('volume-view-recorded', vol.length === 3 && vol.every((v) => /^~[\d,]+$/.test(v)) && /Recorded 25 Sep 2026/.test(await text('#chartSub')) && /the recorded run/.test(await text('#volNote')), vol.join(' · ') + ' · ' + (await text('#volNote')).slice(0, 60));
+
   // 3. the download, from the button in the model bar
   const t0 = Date.now(); await click('#dockBtn');
   await waitText('#dlText', /Models ready|Try the download again/, 240000);
@@ -69,6 +80,8 @@ const EXPECT = {
   check('model-bar-live', await page.$eval('#dock', (d) => d.dataset.live) === 'on' && (await page.$$eval('.dm[data-st="on"]', (e) => e.length)) === 3, await text('#dsTitle') + ' · ' + await text('#dsSub'));
   check('meter-warm-up', /\d+ calls · [\d,.k]+ tokens/.test(await text('#meterTotals')), await text('#meterTotals'));
   await shot('models-ready');
+  await click('#lockRun'); await page.waitForTimeout(600);
+  check('lock-not-counted', /^0 network requests since ready/.test(await text('#reqText')), await text('#reqText'));
 
   // 4. every widget, every example, one at a time (each tab opened first)
   await page.waitForFunction(() => document.querySelector('#out-custom .trc-v'), null, { timeout: 120000 });
@@ -131,6 +144,8 @@ const EXPECT = {
   }
   const aucL = +measured.test.legal[0], aucV = +measured.test.vuln[0], acc = parseInt(measured.test.route[0], 10);
   check('test-89-decisions', aucL >= 0.95 && aucV >= 0.95 && acc >= 75 && /tokens · median/.test(measured.test.button), `legal AUC ${aucL}, vulnerable AUC ${aucV}, routing ${acc} %; ${measured.test.button}`);
+  // the last tab clicked above is routing: the volume view now reads this device's run
+  check('volume-view-live', /measured on this device/i.test(await text('#chartSub')) && /this device's run/.test(await text('#volNote')), (await text('#volOut')).replace(/\s+/g, ' ').slice(0, 80));
   const caseRows = await page.$$eval('#caseTable tbody tr', (rs) => rs.map((r) => r.children.length));
   check('test-case-table', caseRows.length === 30 && caseRows.every((n) => n === 7), `${caseRows.length} rows`);
   await shot('test');
@@ -228,8 +243,9 @@ const EXPECT = {
 
   async function finish() {
     check('no-page-errors', errors.page.length === 0, errors.page.join(' | ') || 'none');
-    const relevant = errors.console.filter((e) => !/ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(e));
-    check('no-console-errors', relevant.length === 0, relevant.join(' | ') || (errors.console.length ? `${errors.console.length} from refused off-origin or offline requests only` : 'none'));
+    // the lock test's own refusals (example.org, by the page's policy) are expected; any other policy violation is a fault
+    const relevant = errors.console.filter((e) => !/ERR_FAILED|ERR_INTERNET_DISCONNECTED/.test(e) && !/example\.org/.test(e));
+    check('no-console-errors', relevant.length === 0, relevant.join(' | ') || (errors.console.length ? `${errors.console.length} from refused off-origin or offline requests, or the lock test, only` : 'none'));
     const failed = checks.filter((c) => !c.ok);
     const report = { url: URL, at: new Date().toISOString(), passed: checks.length - failed.length, failed: failed.length, checks, measured, errors };
     if (args.out) { fs.mkdirSync(path.dirname(args.out), { recursive: true }); fs.writeFileSync(args.out, JSON.stringify(report, null, 1)); }

@@ -22,12 +22,13 @@ POST /api/bench  (application/json, same-origin only) appends one line to bench_
 POST /api/bench off, because on the open internet it would let anyone append to a file on the server's disk. The bench
 page keeps its results in the browser either way. Directory listings are off in every mode.
 """
-import argparse, json, os, sys, time
+import argparse, json, os, re, sys, time
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlsplit
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAX_BODY = 256 * 1024
+HASHED = re.compile(r"^/assets/[^/]+-[A-Za-z0-9_-]{8}\.(?:js|css|wasm|woff2?|png|svg)$")   # Vite: name-<8-char hash>.ext
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -39,11 +40,21 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.send_header("X-Content-Type-Options", "nosniff")
+        # what a security reviewer checks first: no referrer leaves for the model hosts or the links, no framing by another
+        # site, and no camera, microphone, location or payment access for any page (clipboard writes stay allowed)
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()")
+        if getattr(self.server, "public", False):
+            self.send_header("Strict-Transport-Security", "max-age=31536000")   # the host terminates TLS; loopback stays http
         # pages and service workers revalidate on every load, so a redeploy is picked up; `self.path` carries the query
-        # string, and a service worker can sit under a sub-path (/second-look/sw.js)
+        # string, and a service worker can sit under a sub-path (/second-look/sw.js). Vite's content-hashed files never
+        # change under the same name, so they are cached for a year.
         path = urlsplit(self.path).path
         if path.endswith((".html", "/", "sw.js", ".webmanifest")):
             self.send_header("Cache-Control", "no-cache")
+        elif HASHED.match(path):
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
         super().end_headers()
 
     def list_directory(self, path):
@@ -94,7 +105,7 @@ def main():
     os.chdir(a.dir)
     host = "0.0.0.0" if a.lan or a.public else "127.0.0.1"
     srv = ThreadingHTTPServer((host, a.port), Handler)
-    srv.results_path, srv.bench = a.results, not a.public
+    srv.results_path, srv.bench, srv.public = a.results, not a.public, a.public
     results = "off" if a.public else f"-> {a.results}"
     print(f"serving {a.dir} on http://{host}:{a.port}  (COOP/COEP on; bench results {results})", flush=True)
     srv.serve_forever()

