@@ -589,7 +589,7 @@
   /* tour */
   .tour { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
   .tour[hidden] { display: none; }
-  .tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 11, 20, .72), 0 0 0 2px var(--color-accent), 0 0 30px 4px color-mix(in srgb, var(--color-accent) 40%, transparent); transition: all .45s cubic-bezier(.2,.7,.2,1); pointer-events: auto; }
+  .tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 11, 20, .72), 0 0 0 2px var(--color-accent), 0 0 30px 4px color-mix(in srgb, var(--color-accent) 40%, transparent); transition: all .45s cubic-bezier(.2,.7,.2,1); pointer-events: none; }   /* the ring sits over the target it asks you to press: with auto it took the click, and step 1 waited for a download that never started */
   .tour-hole.none { box-shadow: 0 0 0 9999px rgba(10, 11, 20, .78); border-radius: 0; }
   .tour-card { position: fixed; width: min(400px, calc(100vw - 32px)); background: var(--card); border: 1px solid var(--border-strong); border-radius: 14px; padding: 22px 22px 18px; box-shadow: var(--shadow-lg); pointer-events: auto; transition: top .45s cubic-bezier(.2,.7,.2,1), left .45s cubic-bezier(.2,.7,.2,1); }
   .tour-card .fl { margin-bottom: 8px; color: var(--color-accent); }
