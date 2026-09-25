@@ -143,6 +143,14 @@ function isStored(o: unknown): o is StoredAnonymise {
   return !!o && typeof o === 'object' && typeof (o as StoredAnonymise).redacted === 'string';
 }
 
+/** The well-formed entries of `entities`. An answer from the fallback path is any JSON: `entities` may not be a list. */
+function entitiesOf(o: unknown): { text: string; type: EntityType }[] {
+  const list = (o as { entities?: unknown } | null | undefined)?.entities;
+  return (Array.isArray(list) ? list : []).filter(
+    (e): e is { text: string; type: EntityType } => !!e && typeof e.text === 'string' && ENTITY_TYPES.includes(e.type)
+  );
+}
+
 function AnonymiseRender({ object, streaming, input, run }: SkillRenderProps<AnonymiseResult>) {
   if (isStored(object)) {
     return (
@@ -162,10 +170,7 @@ function AnonymiseRender({ object, streaming, input, run }: SkillRenderProps<Ano
     );
   }
 
-  const entities = (object?.entities ?? []).filter(
-    (e): e is { text: string; type: EntityType } => !!e && typeof e.text === 'string' && ENTITY_TYPES.includes(e.type)
-  );
-  const r = redact(input, entities);
+  const r = redact(input, entitiesOf(object));
 
   return (
     <div className="skill-result">
@@ -257,9 +262,7 @@ export const anonymiseSkill: Skill<AnonymiseResult> = {
   forStorage(run: SkillRunRecord, input: string): SkillRunRecord {
     const o = run.object as AnonymiseResult | StoredAnonymise | undefined;
     if (isStored(o)) return run;
-    const entities = (o?.entities ?? []).filter(
-      (e): e is { text: string; type: EntityType } => !!e && typeof e.text === 'string' && ENTITY_TYPES.includes(e.type)
-    );
+    const entities = entitiesOf(o);
     const counts: Partial<Record<EntityType, number>> = {};
     for (const e of entities) counts[e.type] = (counts[e.type] ?? 0) + 1;
     return {

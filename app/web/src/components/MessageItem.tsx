@@ -1,8 +1,8 @@
 // One turn. A user message is a form field with what was typed in it; an answer is the model's text (or a skill's
 // rendered result), its thinking if it wrote any, and the receipt.
-import { useEffect, useMemo, useState } from 'react';
+import { Component, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Check, Copy, Pencil, RefreshCw } from 'lucide-react';
-import type { Message } from '../utils/types';
+import type { Message, SkillRunRecord } from '../utils/types';
 import { Button } from '../lib/localmode/button';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '../lib/localmode/reasoning';
 import { MarkdownMessage } from './MarkdownMessage';
@@ -128,7 +128,9 @@ export function AssistantMessage({
 
       {run && skill ? (
         <>
-          <skill.Render object={run.object as never} streaming={run.status === 'running'} input={inputText} skillInput={msg.skillInput} run={run} />
+          <SkillRenderBoundary run={run}>
+            <skill.Render object={run.object as never} streaming={run.status === 'running'} input={inputText} skillInput={msg.skillInput} run={run} />
+          </SkillRenderBoundary>
           {run.status !== 'running' && <ValidationBadge run={run} />}
         </>
       ) : msg.content ? (
@@ -165,6 +167,35 @@ export function AssistantMessage({
       )}
     </article>
   );
+}
+
+/**
+ * A renderer is written for the shape its schema describes, but the fallback path can hand it any JSON (a string where a
+ * list goes, an object where a word goes). If it throws, this answer shows the raw text instead of the chat going blank.
+ */
+class SkillRenderBoundary extends Component<{ run: SkillRunRecord; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidUpdate(prev: { run: SkillRunRecord }) {
+    // the next partial object while it streams, or the final one, gets a fresh try
+    const { run } = this.props;
+    if (this.state.failed && (prev.run.object !== run.object || prev.run.status !== run.status)) this.setState({ failed: false });
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    const { run } = this.props;
+    return (
+      <div className="skill-result">
+        <p className="text-sm">The answer did not match the shape this skill shows, so here it is as the model wrote it.</p>
+        <pre className="typed whitespace-pre-wrap break-words">{run.rawText || (JSON.stringify(run.object, null, 2) ?? '')}</pre>
+      </div>
+    );
+  }
 }
 
 function ValidationBadge({ run }: { run: NonNullable<Message['skillRun']> }) {

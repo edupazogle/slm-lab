@@ -4,7 +4,7 @@ import { Model } from '@wllama/wllama';
 import { ModelState } from './types';
 import { WllamaStorage } from './utils';
 import { LAB_MODE, LIST_MODELS, ListedModel, ModelTier, tierOf } from '../config';
-import { modelDisplayName } from './format';
+import { modelDisplayName, safeDecode } from './format';
 
 export class DisplayedModel {
   url: string;
@@ -54,7 +54,7 @@ export class DisplayedModel {
   }
 
   get fileName(): string {
-    return decodeURIComponent(this.url.split('/').pop() ?? this.url).replace(/-\d{5}-of-(\d{5})\.gguf$/, ' ($1 parts)');
+    return safeDecode(this.url.split('/').pop() ?? this.url).replace(/-\d{5}-of-(\d{5})\.gguf$/, ' ($1 parts)');
   }
 
   get downloadPercent(): number {

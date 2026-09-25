@@ -37,6 +37,9 @@ export type NeedleEvent =
 const CACHE = 'slm-lab-needle-v1';
 const OUT_CAP = 1 << 16;
 let M: NeedleModule | null = null;
+// Separate from M, which is set before the model download: after a failed download, a retried 'load' found M, skipped
+// the download and answered "loaded" with no model in the engine.
+let modelLoaded = false;
 let toolsKey = '';
 let prefixTokens = 0;
 
@@ -87,19 +90,22 @@ self.onmessage = async (ev: MessageEvent<NeedleRequest>) => {
         const wasm = await fetch(msg.engineBase + 'needle.wasm');
         if (!wasm.ok) throw new Error(`engine download failed: HTTP ${wasm.status}`);
         M = await createNeedle({ wasmBinary: await wasm.arrayBuffer(), print: () => {}, printErr: () => {} });
+      }
+      if (!modelLoaded) {
         const { buf, fromCache } = await fetchModel(msg.id, msg.modelUrl);
         const p = M._malloc(buf.length);
         M.HEAPU8.set(buf, p);
         const rc = M._needle_load(p, BigInt(buf.length));
         M._free(p);
         if (rc < 0) throw new Error(`needle_load failed (${rc}): this model file does not match the engine version`);
+        modelLoaded = true;
         post({ id: msg.id, type: 'loaded', loadMs: Math.round(performance.now() - t0), bytes: buf.length, fromCache });
       } else {
         post({ id: msg.id, type: 'loaded', loadMs: 0, bytes: 0, fromCache: true });
       }
       return;
     }
-    if (!M) throw new Error('needle engine is not loaded yet');
+    if (!M || !modelLoaded) throw new Error('needle engine is not loaded yet');
     const key = JSON.stringify([msg.system ?? '', msg.tools]);
     if (key !== toolsKey) {
       // a new schema means a new static prefix; the engine compiles its decode grammar from it

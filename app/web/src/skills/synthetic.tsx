@@ -24,6 +24,9 @@ const countOf = (input?: SkillInput) => {
   return Number.isFinite(n) ? Math.min(8, Math.max(1, Math.round(n))) : 4;
 };
 
+// the fallback path can put an object where a value goes, and React throws on an object: a cell shows text or a number
+const cell = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
+
 // eslint-disable-next-line react-refresh/only-export-components -- a skill module exports its logic and its renderer together
 function SyntheticRender({ object, streaming, skillInput }: SkillRenderProps<SyntheticClaims>) {
   const rows = (Array.isArray(object) ? object : []).filter((r) => r && typeof r === 'object');
@@ -37,12 +40,12 @@ function SyntheticRender({ object, streaming, skillInput }: SkillRenderProps<Syn
         <SkillTable head={['Claim', 'Line', 'Date', 'Claimant', 'City', 'What happened', 'Amount']}>
           {rows.map((r, i) => (
             <tr key={i}>
-              <td className="typed">{r.claim_id ?? ''}</td>
-              <td>{r.line ?? ''}</td>
-              <td className="typed">{r.incident_date ?? ''}</td>
-              <td>{r.claimant ?? ''}</td>
-              <td>{r.city ?? ''}</td>
-              <td className="cell-wide">{r.description ?? ''}</td>
+              <td className="typed">{cell(r.claim_id)}</td>
+              <td>{cell(r.line)}</td>
+              <td className="typed">{cell(r.incident_date)}</td>
+              <td>{cell(r.claimant)}</td>
+              <td>{cell(r.city)}</td>
+              <td className="cell-wide">{cell(r.description)}</td>
               <td className="typed text-right">
                 {typeof r.amount_eur === 'number' ? r.amount_eur.toLocaleString('en-GB', { maximumFractionDigits: 2 }) : ''}
               </td>

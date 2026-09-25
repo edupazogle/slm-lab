@@ -5,14 +5,17 @@ export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return 'unknown size';
   if (bytes < 1000) return `${bytes} B`;
   const units = ['kB', 'MB', 'GB', 'TB'];
-  let v = bytes;
-  let i = -1;
-  do {
+  const digitsFor = (v: number, unit: string) => (v >= 100 || unit === 'kB' ? 0 : v >= 10 ? 1 : 2);
+  const rounded = (v: number, unit: string) => Number(v.toFixed(digitsFor(v, unit)));
+  // The unit is chosen on the ROUNDED value: 999,999 bytes is 999.999 kB, which printed as "1000 kB".
+  let v = bytes / 1000;
+  let i = 0;
+  while (rounded(v, units[i]) >= 1000 && i < units.length - 1) {
     v /= 1000;
     i++;
-  } while (v >= 1000 && i < units.length - 1);
-  const digits = v >= 100 || units[i] === 'kB' ? 0 : v >= 10 ? 1 : 2;
-  return `${v.toFixed(digits)} ${units[i]}`;
+  }
+  // and so are the decimals: 9.996 MB reads "10.0 MB", not "10.00 MB"
+  return `${v.toFixed(digitsFor(rounded(v, units[i]), units[i]))} ${units[i]}`;
 }
 
 export function formatDuration(ms: number | null | undefined): string {
@@ -34,9 +37,18 @@ export function formatCount(n: number | null | undefined): string {
   return n.toLocaleString('en-GB');
 }
 
+/** decodeURIComponent, or the text unchanged when it holds a malformed escape: "model-100%.gguf" throws a URIError. */
+export function safeDecode(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
 /** "SmolLM2-360M-Instruct Q8_0" from a GGUF file name. */
 export function modelDisplayName(url: string): string {
-  const file = decodeURIComponent(url.split('/').pop() ?? url)
+  const file = safeDecode(url.split('/').pop() ?? url)
     .replace(/\.gguf$/i, '')
     .replace(/-\d{5}-of-\d{5}$/, '');
   return file;

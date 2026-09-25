@@ -99,7 +99,11 @@ async function main() {
       if (run.nGen < nPredict * 0.8) run.warning = `short generation (${run.nGen}/${nPredict}) - decode rate unreliable`;
       result.runs.push(run); log(`run ${i}: prefill ${run.prefillTokS} (wall ${run.wallPrefillTokS}) tok/s · decode ${run.decodeTokS} (wall ${run.wallDecodeTokS}) tok/s · ttft ${run.ttftMs} ms · prompt ${nPrompt} tok`);
     }
-    const mean = (k: 'prefillTokS' | 'decodeTokS' | 'wallDecodeTokS' | 'ttftMs') => +(result.runs.reduce((a, r) => a + (r[k] ?? 0), 0) / result.runs.length).toFixed(1);
+    // over the runs that measured it: a null is "not measured", and counting it as 0 dragged the mean down
+    const mean = (k: 'prefillTokS' | 'decodeTokS' | 'wallDecodeTokS' | 'ttftMs') => {
+      const vs = result.runs.map((r) => r[k]).filter((v): v is number => v != null);
+      return vs.length ? +(vs.reduce((a, v) => a + v, 0) / vs.length).toFixed(1) : null;
+    };
     result.summary = { prefillTokS: mean('prefillTokS'), decodeTokS: mean('decodeTokS'), wallDecodeTokS: mean('wallDecodeTokS'), ttftMs: mean('ttftMs') };
     result.ok = true;
     await wllama.exit();

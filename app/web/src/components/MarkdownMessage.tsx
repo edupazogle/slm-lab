@@ -22,7 +22,9 @@ function safeHref(href?: string): string | undefined {
 }
 
 const components: Components = {
-  a({ href, children, ...props }) {
+  // `node` is react-markdown's syntax-tree element: spread onto the <a>, it became a node="[object Object]" attribute
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  a({ node, href, children, ...props }) {
     const safe = safeHref(href);
     if (!safe) return <span>{children}</span>;
     return (
