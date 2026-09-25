@@ -57,6 +57,10 @@ jobs:
           npm init -y >/dev/null && npm install --no-save playwright@1.56.1 >/dev/null
           npx playwright install --with-deps chromium
           node test/qa_browser.js --url http://127.0.0.1:8080/ --out qa/report.json --shots qa
+      - name: The QA report as Markdown (what app/second-look/QA.md records)
+        if: always()
+        working-directory: app/second-look
+        run: python3 test/qa_report_md.py qa/report.json || true
       - name: Server log
         if: always()
         run: docker logs slm | tail -50
@@ -142,6 +146,11 @@ jobs:
       - name: The Python port matches the page's detectors
         working-directory: experiments/e1
         run: python3 regex_baseline.py --check-page
+      - name: Pin the model files (build.sh --lock) and show the lock file if it changed
+        working-directory: app/second-look
+        run: |
+          bash build.sh --lock > /dev/null
+          if git diff --quiet models.lock; then echo "models.lock is current"; else echo "----- models.lock (commit this) -----"; cat models.lock; echo "-----"; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

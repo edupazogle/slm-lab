@@ -290,3 +290,24 @@ corrected NIR.
 
 `results_v3.json` records its ablation input as a scratch copy (`py_page.jsonl`). `preds/regex_v3_page.jsonl` gives the
 same v3 ablation numbers, and v4 scores the ablation from `preds/regex_v4_page.jsonl`.
+
+## Addendum 4 (2026-09-25): v5, the page's UK forms
+
+Second Look's detectors gained UK dates ("3rd of May 1961", "3 May, 1961"), English-order street addresses ending at the
+street type, and standalone UK postcodes; `regex_baseline.py` changed identically (`--check-page` passes). Same data as
+v4, same pipeline: `results_v5.json`, `preds/*_v5_*`. Parity with the page's JS: 0 of 900 documents differ in both
+configurations (entities 2,451 with the page's list, 2,471 with the extended list).
+
+| | v4 | v5 |
+|---|---|---|
+| English typed leak rate | 0.9051 (353/390) | 0.8846 (345/390) |
+| English typed leak rate, page's 166-name list | 0.9103 | 0.8897 |
+| English ADDRESS recall · predictions (precision) | 0.0 · 1 (0.0) | 0.3763 · 58 (0.8966) |
+| English POSTCODE recall | 0.0 | 0.0104 |
+| French ADDRESS recall · predictions (precision) | 0.1933 · 26 (0.8462) | 0.2082 · 28 (0.8571) |
+| All 900: typed leak rate · ADDRESS recall | 0.8187 · 0.0935 | 0.8096 · 0.2950 |
+
+Unchanged: every French leak rate (0.7495; 0.7515 with the page's own 166-name list, the figure Second Look shows),
+PERSON, NIR, PHONE, EMAIL, IBAN, CARD, PLATE and DATE recall (the data holds no "of" dates), the round trip (1.0). The
+pass bar is still missed in both languages and the kill rule is still not triggered. Precision moved by less than 0.002
+everywhere; two more ADDRESS false positives land on gold ADDRESS spans (partial overlaps).
