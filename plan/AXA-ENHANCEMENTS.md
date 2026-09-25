@@ -66,7 +66,7 @@ Railway edge already compresses (gzip, zstd); the service runs in us-west2, so e
 | 18 | Web app: hide the abliterated / community / 3.2 GB models unless `?lab=1` (a hidden model already on the device stays listed, with a note, so it can be deleted) | **done**; build and lint pass, not checked in a browser |
 | 19 | Web app: the anonymise skill stops storing the original text; neutral titles; "Delete all conversations" | not started |
 | 20 | Web app: triage wording, landing error messages (insecure context, huggingface.co unreachable), honest offline copy, one-click "Start with SmolLM2", message kept while a model loads, suggestion/chip bug, schema-badge wording, bench landing, "Measure this device" size warning, link to Second Look from the landing, chat contrast | not started |
-| 21 | Railway preview environment on this branch, in an EU region | see "Deployment" |
+| 21 | Railway preview environment on this branch | **done**: see "Deployment" (region left at us-west2, an open decision) |
 
 ## Notes for the web-app items (read in the code on 2026-09-25, not yet changed)
 
@@ -95,6 +95,17 @@ Railway edge already compresses (gzip, zstd); the service runs in us-west2, so e
   offline reload fails.
 - **Bench landing**: importing `BENCH_HREF` from `sections.tsx` pulls in `findings.json` (144 kB); move it to a small
   constants module.
+
+## Deployment
+
+- **Preview (for validation): https://slm-lab-axa-preview.up.railway.app/** and `/second-look/`. Railway project
+  `zesty-passion`, environment `axa-preview` (duplicated from production on 2026-09-25), service `slm-lab`, source branch
+  `axa-enhancements`: every push to the branch that touches the watched paths redeploys it.
+- Verified at 19fe268 (deployment `4b09ea57`, SUCCESS): `/`, `/chat.html`, `/bench.html` and `/second-look/` answer 200; HSTS,
+  Referrer-Policy, Permissions-Policy and X-Frame-Options are sent; a hashed asset carries `max-age=31536000, immutable`;
+  the QA round against the preview URL passed 62 of 62 (models downloaded from Railway in 8.2 s, the 89-decision test in
+  0.9 s, offline reload ready in 0.5 s).
+- **Production is unchanged**: environment `production` still deploys `main` to https://slm-lab-production.up.railway.app/.
 
 ## Open decisions for the operator
 
