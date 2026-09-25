@@ -54,19 +54,19 @@ Railway edge already compresses (gzip, zstd); the service runs in us-west2, so e
 | 6 | Calibration: the recorded per-message run embedded, so chart, threshold and a new "At your volume" view work before any download; volumes rounded to 2 significant figures | **done**, QA `volume-view-recorded`, `volume-view-live` |
 | 7 | Phone model bar on one row; chart labels legible on phones; tour pictures centred | **done** |
 | 8 | Accessibility fixes (labels, tablist, headings, contrast) | **done**; not re-scored in Lighthouse |
-| 9 | Links back to the lab from Second Look (sidebar, Railway only) | **done**; phones still have none (add a footer row) |
+| 9 | Links back to the lab from Second Look (sidebar, Railway only) | **done**; phones have a footer row (06bf0d0); the links go to /lab/ and show only on the Railway host |
 | 10 | serve.py: Referrer-Policy, X-Frame-Options, Permissions-Policy, HSTS (`--public`), immutable caching for Vite hashed assets | **done** |
-| 11 | Serialise model runs, ignore key repeat, disable Decide while running (the crash) | not started |
-| 12 | "Anonymise" → "Pseudonymise", "Safe to share" → "Pseudonymised: check before sharing", with the measured leak rate beside it | not started |
-| 13 | Calibration note: the squares sit above the diagonal (under-confident), not below | not started |
-| 14 | Receipts and the "0 bytes" KPI read the live counter instead of constants | not started |
-| 15 | Pin model revisions in `build.sh` and check sha256 (a changed upstream file breaks every build) | not started |
-| 16 | Dock-panel chip contrast; hide the Ctrl ↵ hint on phones; tour step 2 text on phones; "Load it for me" label; hero button stuck disabled after Turn off; test button cannot re-run; toast when an example is clicked before the models; error handling in Pseudonymise and variants; storage shown in GB; footer "30 messages" for every widget | not started |
-| 17 | UK address, standalone UK postcode and "3rd of May 1961" dates in the redactor. Needs the Python port (`experiments/e1/regex_baseline.py`) changed too, and the 900-document parity re-run to 0 diffs | not started, deliberately |
+| 11 | Serialise model runs, ignore key repeat, disable Decide while running (the crash) | **done** (06bf0d0): one queue for every model call; QA `overlap-8-decisions` |
+| 12 | "Anonymise" → "Pseudonymise", "Safe to share" → "Pseudonymised: check before sharing", with the measured leak rate beside it | **done** (06bf0d0): leak rate 0.7515 shown (E1a v4, the page's own 166-name list) |
+| 13 | Calibration note: the squares sit above the diagonal (under-confident), not below | **done** (06bf0d0) |
+| 14 | Receipts and the "0 bytes" KPI read the live counter instead of constants | **done** (06bf0d0) |
+| 15 | Pin model revisions in `build.sh` and check sha256 (a changed upstream file breaks every build) | **done** (06bf0d0): `models.lock`; the Hugging Face files are pinned from CI (`build.sh --lock`) |
+| 16 | Dock-panel chip contrast; hide the Ctrl ↵ hint on phones; tour step 2 text on phones; "Load it for me" label; hero button stuck disabled after Turn off; test button cannot re-run; toast when an example is clicked before the models; error handling in Pseudonymise and variants; storage shown in GB; footer "30 messages" for every widget | **done** (06bf0d0), plus the model bar's clipped third chip (1181–1370 px) and the tour cards on phones |
+| 17 | UK address, standalone UK postcode and "3rd of May 1961" dates in the redactor. Needs the Python port (`experiments/e1/regex_baseline.py`) changed too, and the 900-document parity re-run to 0 diffs | **done** (06bf0d0): Python port changed identically, parity 0/900; E1a v5 (`results_v5.json`): English leak 0.9051 → 0.8846 |
 | 18 | Web app: hide the abliterated / community / 3.2 GB models unless `?lab=1` (a hidden model already on the device stays listed, with a note, so it can be deleted) | **done**; build and lint pass, not checked in a browser |
-| 19 | Web app: the anonymise skill stops storing the original text; neutral titles; "Delete all conversations" | not started |
-| 20 | Web app: triage wording, landing error messages (insecure context, huggingface.co unreachable), honest offline copy, one-click "Start with SmolLM2", message kept while a model loads, suggestion/chip bug, schema-badge wording, bench landing, "Measure this device" size warning, link to Second Look from the landing, chat contrast | not started |
-| 21 | Railway preview environment on this branch | **done**: see "Deployment" (region left at us-west2, an open decision) |
+| 19 | Web app: the anonymise skill stops storing the original text; neutral titles; "Delete all conversations" | **done** (a5694da) |
+| 20 | Web app: triage wording, landing error messages (insecure context, huggingface.co unreachable), honest offline copy, one-click "Start with SmolLM2", message kept while a model loads, suggestion/chip bug, schema-badge wording, bench landing, "Measure this device" size warning, link to Second Look from the landing, chat contrast | **done** (a5694da) for chat, bench and needle; the landing-page parts were dropped with the landing (see below) |
+| 21 | Railway preview environment on this branch | **done**; production itself moved to europe-west4 on 2026-09-25 |
 
 ## Notes for the web-app items (read in the code on 2026-09-25, not yet changed)
 
@@ -107,13 +107,22 @@ Railway edge already compresses (gzip, zstd); the service runs in us-west2, so e
   0.9 s, offline reload ready in 0.5 s).
 - **Production is unchanged**: environment `production` still deploys `main` to https://slm-lab-production.up.railway.app/.
 
+## Decided on 2026-09-25 (the operator)
+
+- **Second Look is the site's only landing page.** The SLM Lab landing page is removed from the repo and the build; the
+  site root `/` is Second Look, the web app's chat, bench and needle pages live under `/lab/`, and retired URLs answer
+  301 (`/second-look/…` → `/…`, `/chat.html` → `/lab/chat.html`, `/lab/` → `/`). See the Dockerfile and `app/serve.py
+  --redirect`.
+- **Region**: production moved to europe-west4 (Amsterdam), 1 replica, on 2026-09-25.
+- **Promote**: merged to `main` once `.github/workflows/checks.yml` (real models, the production image) was green.
+
 ## Open decisions for the operator
 
 - **The AXA mark** in Second Look's sidebar is on a public page. Keep it (the audience is AXA and the page says it is a
   prototype), or swap it for a neutral mark and keep only the AXA blue palette.
-- **Region**: production runs in us-west2. For a European audience europe-west4 should remove most of the ~180 ms wait
+- ~~**Region**~~ (decided above): production runs in us-west2. For a European audience europe-west4 should remove most of the ~180 ms wait
   per request (an estimate, not measured).
-- **Promote**: production deploys from `main`. Merging `axa-enhancements` into `main` replaces the live page, and the
+- ~~**Promote**~~ (decided above): production deploys from `main`. Merging `axa-enhancements` into `main` replaces the live page, and the
   GitHub Pages copy redeploys too (its workflow runs the QA round first).
 
 ## How to verify

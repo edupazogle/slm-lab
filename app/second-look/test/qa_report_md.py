@@ -5,24 +5,21 @@ d = json.load(open(sys.argv[1])); a = json.load(open(sys.argv[2])) if len(sys.ar
 ac = {c['id']: c for c in a['checks']} if a else {}
 cell = lambda s: str(s).replace('|', '\\|')
 L = ["# QA round — Second Look · TypeSafe\n",
-     "Run 2026-09-24 on the v8 page (the Claude Design v7 layout with the meter, the detector fixes and the offline shell) with `test/qa_browser.js` "
-     "(Playwright 1.56.1, headless Chromium 141, Linux, WebAssembly single-threaded, no GPU) against two deployments of the same `index.html`: the GitHub "
-     "Pages build (`build_pages.py` → `dist/`, served plainly on 127.0.0.1, where the service worker is allowed) and the artifact-like server "
-     "(`serve_local.py`, the artifact host's CSP). The runner had no access to the CDNs or to Hugging Face (`--no-net`: every off-origin request refused), "
-     "so `vendor/` held the npm packages of the same versions (onnxruntime-web 1.17.3, mammoth 1.12.3) and the runtime and model files were read back "
-     "from the published artifact (the wasm's sha256 equals npm's). Every number below is from those runs; the report files stay in `qa/` (git-ignored). "
-     "The same script runs in `.github/workflows/pages.yml` before every deploy, its report uploaded as the `qa-report` artifact.\n"]
-res = f"**Result: {d['passed']} of {d['passed'] + d['failed']} checks pass on the Pages build"
+     "Rendered from the report `test/qa_browser.js` writes (Playwright 1.56.1, headless Chromium, Linux, WebAssembly single-threaded, no GPU). "
+     "On every pull request to main, `.github/workflows/checks.yml` runs it with the real models against the production image at the site root and "
+     "against the GitHub Pages layout under a sub-path, and prints this Markdown in the production-image job; `.github/workflows/pages.yml` runs it "
+     "again before each Pages deploy. The report files stay in `qa/` (git-ignored) and are uploaded as the workflows' artifacts.\n"]
+res = f"**Result: {d['passed']} of {d['passed'] + d['failed']} checks pass"
 if a: res += f", {a['passed']} of {a['passed'] + a['failed']} on the artifact-like server"
 L.append(res + ".**\n")
-L.append("## Checks\n\n| Check | Pages build | " + ("Artifact-like | " if a else "") + "What was seen (Pages build) |\n|---|---|" + ("---|" if a else "") + "---|")
+L.append("## Checks\n\n| Check | Result | " + ("Artifact-like | " if a else "") + "What was seen |\n|---|---|" + ("---|" if a else "") + "---|")
 for c in d['checks']:
     row = [f"`{c['id']}`", 'pass' if c['ok'] else 'FAIL']
     if a: row.append('pass' if ac.get(c['id'], {}).get('ok') else 'FAIL')
     row.append(cell(c['detail']))
     L.append('| ' + ' | '.join(row) + ' |')
 m = d['measured']
-L.append("\n## Each decision widget, each example (Pages build)\n\nThe answer, whether it matches the example's label, the probability or score, the wall time of the decision, "
+L.append("\n## Each decision widget, each example\n\nThe answer, whether it matches the example's label, the probability or score, the wall time of the decision, "
          "the time inside the model, the tokens the tokenizer produced, and the throughput. Mechanics are pass / fail; agreement with the label is measured and gated at 75 %.\n")
 L.append("| Widget | Example | Answer | As labelled | p / score | ms | ms in the model | Tokens in | tok/s |\n|---|---|---|---|---|---|---|---|---|")
 for wid, rows in m['widgets'].items():
@@ -33,7 +30,7 @@ la = m['label_agreement']
 L.append(f"\n{la['agreed']} of {la['of']} labelled examples answered as labelled. The one disagreement is the routing example \"Skiing accident abroad\", which the "
          "embedding model sends to Health (the hospital and the bill) rather than Travel: one of the six misrouted messages behind the page's own 79 % routing figure, a model limit, not a page fault.\n")
 t = m['test']
-L.append("## Timings and the meter (Pages build)\n\n| | |\n|---|---|")
+L.append("## Timings and the meter\n\n| | |\n|---|---|")
 L.append(f"| Models downloaded and started (local server) | {m['download_s']} s |")
 L.append(f"| Second visit, models from IndexedDB | {m['reload_s']} s |")
 if 'offline_reload_s' in m: L.append(f"| Reload with no connection (page from the service worker, models from IndexedDB) | {m['offline_reload_s']} s to ready |")

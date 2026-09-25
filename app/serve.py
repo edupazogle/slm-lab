@@ -83,7 +83,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if not self.redirected():
-            super().do_GET()
+            try:
+                super().do_GET()
+            except (BrokenPipeError, ConnectionResetError):
+                pass   # the browser closed the connection mid-file (a cancelled model download): not a server error
 
     def do_HEAD(self):
         if not self.redirected():
