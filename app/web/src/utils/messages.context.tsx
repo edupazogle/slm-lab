@@ -49,6 +49,8 @@ export const MessagesProvider = ({ children }: { children: ReactNode }) => {
   const [ready, setReady] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  // conversations whose last write failed, and why: the notice stays while any is left, and goes when none is
+  const failedWrites = useRef(new Map<number, string>());
 
   useEffect(() => {
     let cancelled = false;
@@ -86,9 +88,12 @@ export const MessagesProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (conv) await set(id, forStorage(conv), getStore());
       else await del(id, getStore());
+      failedWrites.current.delete(id);
     } catch (e) {
-      setStorageError(`Conversations are not being saved: ${errorText(e)}.`);
+      failedWrites.current.set(id, `Conversations are not being saved: ${errorText(e)}.`);
     }
+    // this also clears a refusal at startup once a write gets through: the database is taking writes again
+    setStorageError([...failedWrites.current.values()].pop() ?? null);
   }, []);
 
   const schedule = useCallback(

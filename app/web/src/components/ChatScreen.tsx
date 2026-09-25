@@ -45,7 +45,7 @@ const SUGGESTIONS = [
 export default function ChatScreen() {
   const { convId } = useNav();
   const { getConversation } = useMessages();
-  const { loadedModel, runtime, loadProgress, isGenerating } = useWllama();
+  const { loadedModel, runtime, loadProgress, isGenerating, setNotice } = useWllama();
   const { send, regenerate, editAndResend, stop } = useChatActions();
   const [skillId, setSkillId] = useState<string | null>(null);
   const [text, setText] = useState('');
@@ -70,7 +70,13 @@ export default function ChatScreen() {
   };
 
   const onSubmit = (value: string) => {
-    if (isGenerating) return;
+    if (isGenerating) return false;
+    // The box is open while a model loads, so a person can type ahead. Sending then used to fall through to `send`,
+    // which cleared the text and moved to the Models screen: refuse it here and keep the text (and the image).
+    if (!loadedModel) {
+      setNotice('Not sent: the model was still loading. Your text is still in the box.');
+      return false;
+    }
     const media = image ?? undefined;
     setImage(null);
     void send({

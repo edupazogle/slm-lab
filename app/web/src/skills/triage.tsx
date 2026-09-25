@@ -40,12 +40,15 @@ function TriageRender({ object, streaming }: SkillRenderProps<Triage>) {
   const o = (object ?? {}) as Partial<Triage>;
   const step = o.next_step && BAND[o.next_step] ? BAND[o.next_step] : null;
   const missing = Array.isArray(o.missing_information) ? o.missing_information.filter((s) => typeof s === 'string' && s.trim()) : [];
+  // the fallback path can put an object here, and React throws on an object
+  const line = typeof o.line === 'string' ? o.line : '';
+  const urgency = typeof o.urgency === 'string' ? o.urgency : '';
 
   return (
     <div className="skill-result">
       <div className="grid gap-2 sm:grid-cols-2">
-        <Field label="Line of business" value={o.line ?? ''} missing={!o.line} />
-        <Field label="Urgency" value={o.urgency ?? ''} missing={!o.urgency} />
+        <Field label="Line of business" value={line} missing={!line} />
+        <Field label="Urgency" value={urgency} missing={!urgency} />
       </div>
 
       <div className="ff">

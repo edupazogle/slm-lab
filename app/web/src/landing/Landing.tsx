@@ -22,11 +22,12 @@ export function Landing() {
           <a className="wordmark" href="./">
             SLM Lab
           </a>
-          <nav className="top-nav" aria-label="Sections">
+          <nav className="top-nav" aria-label="Sections and pages">
             <a href="#try">Try it</a>
             <a href="#limits">Limits</a>
             <a href="#measured">Measured</a>
             <a href="#phone">On your phone</a>
+            <a href="second-look/">Second Look</a>
           </nav>
           <ThemeToggle />
         </div>
@@ -47,6 +48,12 @@ export function Landing() {
               <a className="btn btn-secondary" href={BENCH_HREF}>
                 Measure this device
               </a>
+            </p>
+            {/* served beside this page at /second-look/. Following the link is a navigation, not a request this page
+                makes, so the "Your copy" counter does not count it */}
+            <p className="hero-other">
+              <a href="second-look/">Second Look</a> is the lab's other page. Two smaller models, also running in the
+              browser, route a claim message and flag it, and each decision comes with a probability.
             </p>
           </section>
 

@@ -6,7 +6,8 @@
 // is a tinted `.ff` field with its small label inside the box, the text is set in the typed face); the submit/stop
 // controls carry text labels instead of being icon-only circles; the dictation mic sub-part was dropped (no local
 // speech-to-text ships in this app, and the build spec forbids stubs); `label` and `allowEmpty` props added (a skill
-// like "Synthetic claims" runs with no text at all); the textarea ref is typed for React 18's RefObject.
+// like "Synthetic claims" runs with no text at all); the textarea ref is typed for React 18's RefObject; `onSubmit` may
+// return false to refuse the send, and the text then stays in the box.
 
 /**
  * @file prompt-input.tsx
@@ -128,8 +129,8 @@ function isCoarsePointer() {
 /** Props for {@link PromptInput}. */
 export interface PromptInputProps
   extends Omit<React.ComponentProps<'form'>, 'onSubmit'> {
-  /** Fired with the trimmed text (and attachments) on submit. */
-  onSubmit: (text: string, attachments: PromptAttachment[]) => void;
+  /** Fired with the trimmed text (and attachments) on submit. Return false to refuse it: the text is kept. */
+  onSubmit: (text: string, attachments: PromptAttachment[]) => void | boolean;
   /** Controlled value (optional). */
   value?: string;
   /** Reports edits in controlled mode. */
@@ -197,7 +198,7 @@ export function PromptInput({
     const trimmed = text.trim();
     if ((!trimmed && resolvedAttachments.length === 0 && !allowEmpty) || streaming || disabled)
       return;
-    onSubmit(trimmed, resolvedAttachments);
+    if (onSubmit(trimmed, resolvedAttachments) === false) return;
     setText('');
     provider?.setAttachments([]);
   }, [text, resolvedAttachments, allowEmpty, streaming, disabled, onSubmit, setText, provider]);

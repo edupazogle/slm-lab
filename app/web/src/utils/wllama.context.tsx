@@ -342,14 +342,14 @@ export const WllamaProvider = ({ children }: { children: ReactNode }) => {
 
   const addCustomModel = useCallback(
     async (url: string, mmprojUrl?: string) => {
-      const custom = await verifyCustomModel(url);
+      const custom = await verifyCustomModel(url, mmprojUrl);
       if (models.some((m) => m.url === custom.url)) {
         throw new Error('That model is already in the list.');
       }
       const userAddedModels = getUserAddedModels(cachedModels);
       updateUserAddedModels([
         ...userAddedModels,
-        new DisplayedModel(custom.url, custom.size, true, undefined, mmprojUrl?.trim() || undefined),
+        new DisplayedModel(custom.url, custom.size, true, undefined, custom.mmprojUrl),
       ]);
       setCustomTick((t) => t + 1);
     },
