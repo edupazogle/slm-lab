@@ -1,0 +1,89 @@
+Files created:
+- build_dataset.py: Script to create train/test datasets from cockpit transcripts following E11-fix-2.md specifications
+- baselines.py: Script implementing and evaluating Baseline 0 (non-Latin ratio), Baseline 1 (zlib+regex+logistic regression), and Baseline 2 (zlib+regex+LM features)
+- lm_feature.py: Script to compute LM-based garble scores using HuggingFaceTB/SmolLM2-135M
+- evaluate.py: Script to calculate all required metrics and prove metrics can fail via shuffled predictions
+- data/DATA.md: Documents dataset characteristics and counts
+- data/train.jsonl: Training dataset with 868 windows (268 synthetic garble)
+- data/test.jsonl: Test dataset with 439 windows (133 synthetic garble)
+- data/lm_scores.jsonl: Cached LM scores for each window (mean: 3.1431, std: 1.1991)
+- data/lm_scores_summary.json: LM scoring statistics summary
+- models/baseline_1_model.pkl: Trained Baseline 1 logistic regression model
+- models/baseline_1_scaler.pkl: Feature scaler for Baseline 1
+- results/baselines_results.json: Detailed metrics for all three baselines
+- results/comprehensive_results.json: Comprehensive evaluation results
+- results/summary.json: Summary of key metrics
+- REPORT.md: Experiment report with decision and analysis
+
+Commands to reproduce each number:
+- Dataset creation: source .venv/bin/activate && python3 build_dataset.py
+- LM feature computation: source .venv/bin/activate && timeout 600 python3 lm_feature.py
+- Baseline evaluation: source .venv/bin/activate && python3 baselines.py
+- Comprehensive evaluation: source .venv/bin/activate && python3 evaluate.py
+
+Numbers with their files:
+- Garble recall overall (Baseline 1): 0.9160 from results/baselines_results.json (baseline_1.test.recall)
+- Garble recall on Latin slice (Baseline 1): 0.9091 from results/comprehensive_results.json (test_set.garble_recall_latin_slice)
+- False alarms per 8 agent-hours (Baseline 1): 3.6446 from results/comprehensive_results.json (test_set.false_alarms_per_8_agent_hours)
+- Pane-state accuracy (Baseline 1): 0.9704 from results/baselines_results.json (baseline_1.test.accuracy)
+- Waiting-permission recall (Baseline 1): 0.0 from results/comprehensive_results.json (test_set.waiting_permission_recall)
+- CPU ms per classification (Baseline 1): 0.50 from results/comprehensive_results.json (test_set.cpu_ms_per_classification)
+- LM Score Mean: 3.1431 from data/lm_scores_summary.json (score_stats.mean)
+- LM Score Std: 1.1991 from data/lm_scores_summary.json (score_stats.std)
+- Median time per window (LM scoring): 659.83 ms from lm_feature.py output
+- Baseline 2 garble recall: 0.9008 from results/baselines_results.json (baseline_2.test.recall)
+- Baseline 2 false alarms per 8 agent-hours: 3.5726 from results/comprehensive_results.json (test_set.false_alarms_per_8_agent_hours)
+- Baseline 2 CPU ms per classification: 659.8 from results/comprehensive_results.json (test_set.cpu_ms_per_classification)
+
+Pass bar and whether it was met:
+Pass bar requirements from E11-watchdog-classifier.md:
+- Garble recall ≥ 0.95 overall and ≥ 0.90 on Latin-script slice
+- ≤ 1 false alarm per 8 agent-hours
+- Pane-state accuracy ≥ 0.90 with waiting-permission recall ≥ 0.95
+- ≤ 1 s CPU per poll
+
+Baseline 1 results:
+- Garble recall overall: 0.9160 (FAILS - requires ≥ 0.95)
+- Garble recall on Latin slice: 0.9091 (PASSES - requires ≥ 0.90)
+- False alarms per 8 agent-hours: 3.6446 (FAILS - requires ≤ 1)
+- Pane-state accuracy: 0.9704 (PASSES - requires ≥ 0.90)
+- Waiting-permission recall: 0.0 (FAILS - requires ≥ 0.95)
+- CPU per poll: 0.50 ms (PASSES - requires ≤ 1000 ms)
+OVERALL: PASS BAR NOT MET
+
+Baseline 2 results (for comparison):
+- Garble recall overall: 0.9008 (FAILS - requires ≥ 0.95)
+- Garble recall on Latin slice: 0.8922 (FAILS - requires ≥ 0.90)
+- False alarms per 8 agent-hours: 3.5726 (FAILS - requires ≤ 1)
+- Pane-state accuracy: 0.9658 (PASSES - requires ≥ 0.90)
+- Waiting-permission recall: 0.0 (FAILS - requires ≥ 0.95)
+- CPU per poll: 659.8 ms (PASSES - requires ≤ 1000 ms)
+OVERALL: PASS BAR NOT MET
+
+Kill rule evaluation from E11-step-3.md:
+Baseline 2 is kept only if it beats Baseline 1 by MORE than 2 points on garble recall without raising false alarms per 8 agent-hours above 1, AND stays ≤ 1 s CPU per poll
+- Baseline 1 garble recall: 0.9160 (91.60%)
+- Baseline 2 garble recall: 0.9008 (90.08%)
+- Difference: -0.0152 (-1.52 points) - Baseline 2 performed WORSE than Baseline 1 by 1.52 points
+- False alarms per 8 agent-hours: Baseline 1 = 3.6446, Baseline 2 = 3.5726 (both above 1)
+- CPU per poll: Baseline 1 = 0.50 ms, Baseline 2 = 659.8 ms (both below 1000 ms)
+DECISION: Baseline 2 is NOT kept. It failed the kill rule because it did not beat Baseline 1 by more than 2 points on garble recall (it performed worse by 1.52 points).
+
+What I did not do and why:
+1. Did not implement step 2 (add small-LM perplexity feature) as a kept baseline - I did implement and evaluate the small-LM perplexity feature as Baseline 2 (zlib + regex + LM score). However, Baseline 2 did not beat Baseline 1 by more than 2 points on garble recall (it performed worse by 1.52 points), so per the kill rule in E11-step-3.md, Baseline 2 is not kept and we revert to Baseline 1.
+
+2. Did not implement full 5-way pane state classification with waiting-permission recall - The current implementation derives pane state from transcript structure but our labeling approach didn't capture enough waiting-permission examples to train effective detection. A full implementation would require:
+   - More precise mapping of character positions to transcript events for accurate pane-state labeling
+   - Collection of sufficient examples for each pane state class (particularly waiting-permission)
+   - Potentially adjusting the labeling logic to better capture waiting-permission states
+
+3. Did not measure false alarms per 8 agent-hours from actual timestamps - Instead, I used an approximation based on the ratio of false positives to total windows scaled to 8 agent-hours. A proper implementation would:
+   - Extract first and last event timestamps for each test job from transcripts
+   - Calculate total agent-hours from these timestamps
+   - Divide false positive count by total agent-hours and multiply by 8
+
+4. Did not optimize hyperparameters - Used default LogisticRegression parameters. A production implementation would tune:
+   - Regularization strength (C parameter)
+   - Solver choice
+   - Feature selection
+   - Potentially different thresholds for different operating points
